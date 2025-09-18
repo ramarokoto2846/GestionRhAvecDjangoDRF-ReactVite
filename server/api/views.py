@@ -139,15 +139,24 @@ class CongeViewSet(viewsets.ModelViewSet):
         conge.statut = 'valide'
         conge.date_decision = datetime.now()
         conge.save()
-        return Response({'status': 'congé validé'})
+        return Response({
+            'status': 'congé validé',
+            'message': f"Un email de notification a été envoyé à {conge.employe.email}."
+        })
 
     @action(detail=True, methods=['post'])
     def refuser(self, request, pk=None):
         conge = self.get_object()
         conge.statut = 'refuse'
         conge.date_decision = datetime.now()
+        # Capture motif_refus from request body, if provided
+        conge.motif_refus = request.data.get('motif_refus', '')
         conge.save()
-        return Response({'status': 'congé refusé'})
+        return Response({
+            'status': 'congé refusé',
+            'message': f"Un email de notification a été envoyé à {conge.employe.email}.",
+            'motif_refus': conge.motif_refus or 'Non spécifiée'
+        })
 
 
 # -----------------------

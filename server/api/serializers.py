@@ -339,7 +339,7 @@ class CongeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Conge
         fields = '__all__'
-        read_only_fields = ['date_demande', 'date_decision']
+        read_only_fields = ['date_demande', 'date_decision', 'nbr_jours', 'employe_nom']
 
     def validate(self, data):
         if data['date_fin'] < data['date_debut']:

@@ -210,11 +210,12 @@ class Conge(models.Model):
     ]
 
     id_conge = models.CharField(max_length=10, primary_key=True)
-    employe = models.ForeignKey(Employe, on_delete=models.CASCADE, related_name="conges")
+    employe = models.ForeignKey('Employe', on_delete=models.CASCADE, related_name="conges")
     date_debut = models.DateField()
     date_fin = models.DateField()
     nbr_jours = models.IntegerField(editable=False)
     motif = models.TextField()
+    motif_refus = models.TextField(null=True, blank=True)  # Raison du refus
     statut = models.CharField(max_length=20, choices=STATUT_VALIDE, default='en_attente')
     date_demande = models.DateTimeField(auto_now_add=True)
     date_decision = models.DateTimeField(null=True, blank=True)
@@ -223,7 +224,7 @@ class Conge(models.Model):
         if self.date_fin < self.date_debut:
             raise ValidationError("La date de fin doit être après la date de début")
         
-        # Vérifier les chevauchements de congés
+        # Vérifier chevauchement
         overlapping_conges = Conge.objects.filter(
             employe=self.employe,
             date_debut__lte=self.date_fin,
@@ -236,17 +237,80 @@ class Conge(models.Model):
         super().clean()
 
     def save(self, *args, **kwargs):
+        # Calcul du nombre de jours
         delta = self.date_fin - self.date_debut
         self.nbr_jours = delta.days + 1
-        
-        # Mettre à jour la date de décision si le statut change
-        if self.statut != 'en_attente' and not self.date_decision:
-            self.date_decision = datetime.now()
-            
+
+        old_status = None
+        is_update = False
+
+        # Vérifie si l'objet existe déjà en base
+        if self.pk and Conge.objects.filter(pk=self.pk).exists():
+            old_instance = Conge.objects.get(pk=self.pk)
+            old_status = old_instance.statut
+            is_update = True
+
+        # Mettre à jour la date_decision si le statut passe à "valide" ou "refuse"
+        if self.statut in ['valide', 'refuse'] and not self.date_decision:
+            from django.utils import timezone
+            self.date_decision = timezone.now()
+
         super().save(*args, **kwargs)
+
+        # Notification si nouveau congé ou changement de statut
+        if not is_update or (is_update and old_status != self.statut):
+            self._send_notification_email()
+
+    def _send_notification_email(self):
+        """Envoyer une notification par email à l'employé en fonction du statut."""
+        subject = f"Statut de votre demande de congé #{self.id_conge}"
+
+        if self.statut == 'en_attente':
+            message = (
+                f"Bonjour {self.employe.nom} {self.employe.prenom},\n\n"
+                f"Votre demande de congé (ID: {self.id_conge}) du {self.date_debut} au {self.date_fin} "
+                f"a été soumise avec succès et est en attente de validation.\n"
+                f"Motif : {self.motif}\n\n"
+                f"Vous serez informé(e) de la décision finale.\n\n"
+                f"Cordialement,\nL'équipe RH"
+            )
+        elif self.statut == 'valide':
+            message = (
+                f"Bonjour {self.employe.nom} {self.employe.prenom},\n\n"
+                f"Nous avons le plaisir de vous informer que votre demande de congé (ID: {self.id_conge}) "
+                f"du {self.date_debut} au {self.date_fin} a été validée.\n"
+                f"Motif : {self.motif}\n"
+                f"Nombre de jours : {self.nbr_jours}\n\n"
+                f"Cordialement,\nL'équipe RH"
+            )
+        elif self.statut == 'refuse':
+            message = (
+                f"Bonjour {self.employe.nom} {self.employe.prenom},\n\n"
+                f"Nous sommes désolés de vous informer que votre demande de congé (ID: {self.id_conge}) "
+                f"du {self.date_debut} au {self.date_fin} a été refusée.\n"
+                f"Motif : {self.motif}\n"
+                f"Raison du refus : {self.motif_refus or 'Non spécifiée'}\n"
+                f"Pour plus d'informations, veuillez contacter le service RH.\n\n"
+                f"Cordialement,\nL'équipe RH"
+            )
+
+        try:
+            from django.core.mail import send_mail
+            from django.conf import settings
+
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[self.employe.email],
+                fail_silently=False,
+            )
+        except Exception as e:
+            print(f"Erreur lors de l'envoi de l'email pour le congé {self.id_conge}: {str(e)}")
 
     def __str__(self):
         return f"Congé {self.id_conge} - {self.employe} ({self.statut})"
+
 
 # ========================
 # Evenement

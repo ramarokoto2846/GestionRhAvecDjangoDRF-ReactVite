@@ -61,6 +61,8 @@ SIMPLE_JWT = {
 CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
     "http://localhost:5173",
+    "http://127.0.0.1:5174",
+    "http://localhost:5174",
 ]
 
 # Modèle utilisateur personnalisé
@@ -129,3 +131,12 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
+
+
+
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'leondroh.p18@gmail.com'
+EMAIL_HOST_PASSWORD = 'xbkr kmbx pkdx xwkk'
+DEFAULT_FROM_EMAIL = 'leondroh.p18@gmail.com'
