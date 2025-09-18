@@ -11,14 +11,18 @@ import {
   useMediaQuery,
   alpha,
   Chip,
-  Container
+  Container,
+  AppBar,
+  Toolbar,
+  Paper
 } from "@mui/material";
 import {
   People as PeopleIcon,
   Event as EventIcon,
   AccessTime as TimeIcon,
   ChevronRight as ChevronRightIcon,
-  Logout as LogoutIcon
+  Logout as LogoutIcon,
+  Menu as MenuIcon
 } from "@mui/icons-material";
 import {
   getCurrentUser,
@@ -28,15 +32,14 @@ import {
   getConges,
   getAbsences,
   getEvenementsAVenir
-} from "../services/api"; // Import des fonctions spécifiques depuis api.js
+} from "../services/api";
 
 const Home = () => {
   const navigate = useNavigate();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const [user, setUser] = useState(null);
-  const [notificationsCount, setNotificationsCount] = useState(3);
   const [stats, setStats] = useState([]);
   const [loadingStats, setLoadingStats] = useState(true);
   const [errorStats, setErrorStats] = useState(null);
@@ -151,8 +154,8 @@ const Home = () => {
     fetchStats();
   }, []);
 
-  // Actions rapides (inchangées)
-  const quickActions = [
+  // Actions rapides transformées en navigation
+  const navItems = [
     { icon: <PeopleIcon />, label: "Départements", path: "/departements", color: "#FF6B6B" },
     { icon: <PeopleIcon />, label: "Employés", path: "/employes", color: "#4ECDC4" },
     { icon: <TimeIcon />, label: "Pointages", path: "/pointages", color: "#45B7D1" },
@@ -163,16 +166,87 @@ const Home = () => {
 
   if (loadingStats) {
     return (
-      <Box sx={{ flexGrow: 1, height: '931px', bgcolor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <Box sx={{ flexGrow: 1, height: '100vh', bgcolor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Typography variant="h6">Chargement des statistiques...</Typography>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ flexGrow: 1, height: '931px', bgcolor: '#f8fafc' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '931px', bgcolor: '#f8fafc' }}>
+      {/* Navigation Bar */}
+      <AppBar position="static" elevation={0} sx={{ bgcolor: 'white', borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
+        <Container maxWidth="xl">
+          <Toolbar disableGutters sx={{ justifyContent: 'space-between' }}>
+            <Typography 
+              variant="h6" 
+              component="div" 
+              sx={{ 
+                color: 'primary.main', 
+                fontWeight: 'bold',
+                display: { xs: 'none', md: 'block' }
+              }}
+            >
+              HR Management System
+            </Typography>
+            
+            {/* Navigation Items */}
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'center', flex: 1 }}>
+              {navItems.map((item, index) => (
+                <Button
+                  key={index}
+                  color="inherit"
+                  onClick={() => navigate(item.path)}
+                  startIcon={item.icon}
+                  sx={{ 
+                    color: 'text.primary',
+                    '&:hover': {
+                      backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                      color: 'primary.main'
+                    },
+                    fontSize: { xs: '0.7rem', sm: '0.8rem', md: '0.9rem' },
+                    px: { xs: 1, sm: 2 },
+                    py: 1,
+                    minWidth: 'auto',
+                    borderBottom: '1px solid gray',
+                    borderRadius: 0,
+                  }}
+                >
+                  {item.label}
+                </Button>
+              ))}
+            </Box>
+            
+            {/* Bouton de déconnexion */}
+            <Button 
+              color="error" 
+              onClick={handleLogout}
+              startIcon={<LogoutIcon />}
+              sx={{ 
+                whiteSpace: 'nowrap',
+                ml: 2,
+                display: { xs: 'none', sm: 'flex' }
+              }}
+            >
+              Déconnexion
+            </Button>
+
+            {/* Menu mobile */}
+            <Button 
+              color="inherit"
+              sx={{ 
+                display: { xs: 'flex', sm: 'none' },
+                minWidth: 'auto'
+              }}
+            >
+              <MenuIcon />
+            </Button>
+          </Toolbar>
+        </Container>
+      </AppBar>
+
       {/* Main Content */}
-      <Container maxWidth="xl" sx={{ py: isMobile ? 2 : 4, px: isMobile ? 2 : 3 }}>
+      <Container maxWidth="xl" sx={{ py: isMobile ? 2 : 4, px: isMobile ? 2 : 3, flex: 1 }}>
         {/* Welcome Section */}
         <Box 
           sx={{ 
@@ -254,7 +328,8 @@ const Home = () => {
                   '&:hover': {
                     borderColor: 'error.dark',
                     bgcolor: alpha(theme.palette.error.main, 0.04)
-                  }
+                  },
+                  display: { sm: 'none' }
                 }}
                 onClick={handleLogout}
               >
@@ -355,72 +430,27 @@ const Home = () => {
             </Grid>
           ))}
         </Grid>
-
-        {/* Quick Actions (inchangées) */}
-        <Typography variant="h5" gutterBottom sx={{ mb: 3, fontWeight: 'bold', color: 'text.primary' }}>
-          Accès rapide
-        </Typography>
-        
-        <Grid container spacing={3} sx={{ mb: 6 }}>
-          {quickActions.map((action, index) => (
-            <Grid item xs={12} sm={6} md={4} lg={2} key={index}>
-              <Card 
-                sx={{ 
-                  height: '100%', 
-                  cursor: 'pointer', 
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                  borderRadius: 3,
-                  boxShadow: '0 5px 15px rgba(0,0,0,0.05)',
-                  border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                  '&:hover': {
-                    transform: 'translateY(-8px)',
-                    boxShadow: '0 12px 30px rgba(0,0,0,0.1)'
-                  }
-                }}
-                onClick={() => navigate(action.path)}
-              >
-                <CardContent sx={{ textAlign: 'center', p: 3 }}>
-                  <Box 
-                    sx={{ 
-                      width: 60, 
-                      height: 60, 
-                      borderRadius: 3,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      mx: 'auto',
-                      mb: 2,
-                      bgcolor: alpha(action.color, 0.2),
-                      color: action.color
-                    }}
-                  >
-                    {React.cloneElement(action.icon, { sx: { fontSize: 30 } })}
-                  </Box>
-                  
-                  <Typography variant="h6" sx={{ fontWeight: 'medium', mb: 1 }}>
-                    {action.label}
-                  </Typography>
-                  
-                  <Box 
-                    sx={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center', 
-                      color: 'primary.main',
-                      mt: 1
-                    }}
-                  >
-                    <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                      Accéder
-                    </Typography>
-                    <ChevronRightIcon sx={{ fontSize: 18 }} />
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
       </Container>
+
+      {/* Footer */}
+      <Paper 
+        component="footer" 
+        square 
+        variant="outlined"
+        sx={{
+          py: 3,
+          px: 2,
+          mt: 'auto',
+          backgroundColor: alpha(theme.palette.primary.main, 0.02),
+          borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}`
+        }}
+      >
+        <Container maxWidth="xl">
+          <Typography variant="body2" color="text.secondary" align="center">
+            © {new Date().getFullYear()} HR Management System. Tous droits réservés.
+          </Typography>
+        </Container>
+      </Paper>
     </Box>
   );
 };

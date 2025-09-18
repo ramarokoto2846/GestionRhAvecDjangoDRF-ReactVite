@@ -489,7 +489,7 @@ const Departements = () => {
             onClick={() => handleOpenDialog()}
             sx={{
               borderRadius: 2,
-              minWidth: 200,
+              width: 300,
               px: 3,
               textTransform: "none",
               fontWeight: "bold",

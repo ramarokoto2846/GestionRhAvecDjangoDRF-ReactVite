@@ -8,7 +8,7 @@ import {
 } from "@mui/material";
 import { alpha, useTheme } from "@mui/material/styles";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { format, parseISO, isValid, differenceInDays } from "date-fns";
+import { format, parseISO, isValid, differenceInDays, getMonth } from "date-fns";
 import { fr } from "date-fns/locale";
 import Swal from "sweetalert2";
 
@@ -28,7 +28,7 @@ import PersonIcon from '@mui/icons-material/Person';
 
 import { getAbsences, createAbsence, updateAbsence, deleteAbsence, getEmployes, getCurrentUser } from "../../services/api";
 import Header from "../../components/Header";
-import { triggerNotificationsRefresh } from "../../components/Header"; // Importez la fonction
+import { triggerNotificationsRefresh } from "../../components/Header";
 
 const drawerWidth = 240;
 
@@ -48,6 +48,8 @@ const Absences = () => {
   const [error, setError] = useState(null);
   const [user, setUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [justificationFilter, setJustificationFilter] = useState("all"); // New state for justification filter
+  const [monthFilter, setMonthFilter] = useState("all"); // New state for month filter
   const [stats, setStats] = useState({ total: 0, justifiees: 0, nonJustifiees: 0 });
 
   const initialFormData = {
@@ -60,6 +62,12 @@ const Absences = () => {
   };
 
   const [formData, setFormData] = useState(initialFormData);
+
+  // List of months for the filter (1-based indexing for display)
+  const months = Array.from({ length: 12 }, (_, i) => ({
+    value: i + 1,
+    label: format(new Date(2025, i, 1), "MMMM", { locale: fr })
+  }));
 
   useEffect(() => {
     const fetchUserAndData = async () => {
@@ -198,7 +206,7 @@ const Absences = () => {
       }
       handleCloseDialog();
       await fetchData();
-      triggerNotificationsRefresh(); // Déclencher le rafraîchissement des notifications
+      triggerNotificationsRefresh();
     } catch (error) {
       let errorMessage = error.message || "Erreur lors de l'opération.";
       if (error.response?.data) {
@@ -233,7 +241,7 @@ const Absences = () => {
         await deleteAbsence(id);
         showSnackbar("Absence supprimée avec succès !", "success");
         await fetchData();
-        triggerNotificationsRefresh(); // Déclencher le rafraîchissement des notifications
+        triggerNotificationsRefresh();
       } catch (error) {
         let errorMessage = error.message || "Erreur lors de la suppression.";
         if (error.response?.data) {
@@ -250,11 +258,28 @@ const Absences = () => {
     }
   };
 
-  const filteredData = absences.filter(absence =>
-    (absence.employe_nom || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (absence.id_absence || "").includes(searchTerm) ||
-    (absence.motif || "").toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Updated filtering logic
+  const filteredData = absences.filter(absence => {
+    // Search filter
+    const matchesSearch =
+      (absence.employe_nom || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (absence.id_absence || "").includes(searchTerm) ||
+      (absence.motif || "").toLowerCase().includes(searchTerm.toLowerCase());
+
+    // Justification filter
+    const matchesJustification =
+      justificationFilter === "all" ||
+      (justificationFilter === "justified" && absence.justifiee) ||
+      (justificationFilter === "unjustified" && !absence.justifiee);
+
+    // Month filter
+    const matchesMonth =
+      monthFilter === "all" ||
+      (isValid(parseISO(absence.date_debut_absence)) &&
+        getMonth(parseISO(absence.date_debut_absence)) + 1 === Number(monthFilter));
+
+    return matchesSearch && matchesJustification && matchesMonth;
+  });
 
   const menuItems = [
     { text: "Accueil", path: "/Home", icon: <HomeIcon /> },
@@ -327,7 +352,7 @@ const Absences = () => {
             onClick={() => handleOpenDialog()}
             sx={{
               borderRadius: 2,
-              width: 200,
+              width: 300,
               mr: 1.25,
               px: 4,
               textTransform: "none",
@@ -336,7 +361,7 @@ const Absences = () => {
             }}
             disabled={actionLoading}
           >
-            <AddIcon sx={{ mr: 1, fontSize: '1rem' }} />
+            <AddIcon sx={{ mr: 1 }} />
             Nouvelle Absence
           </Fab>
         </Box>
@@ -369,16 +394,49 @@ const Absences = () => {
         </Grid>
 
         <Paper sx={{ p: 2, mb: 3, borderRadius: 3 }}>
-          <TextField
-            fullWidth
-            placeholder="Rechercher..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-              startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment>,
-              endAdornment: searchTerm && <InputAdornment position="end"><IconButton onClick={() => setSearchTerm("")}><CloseIcon /></IconButton></InputAdornment>
-            }}
-          />
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                fullWidth
+                placeholder="Rechercher..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                InputProps={{
+                  startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment>,
+                  endAdornment: searchTerm && <InputAdornment position="end"><IconButton onClick={() => setSearchTerm("")}><CloseIcon /></IconButton></InputAdornment>
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                select
+                fullWidth
+                label="Filtrer par justification"
+                value={justificationFilter}
+                onChange={(e) => setJustificationFilter(e.target.value)}
+              >
+                <MenuItem value="all">Toutes</MenuItem>
+                <MenuItem value="justified">Justifiées</MenuItem>
+                <MenuItem value="unjustified">Non Justifiées</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                select
+                fullWidth
+                label="Filtrer par mois"
+                value={monthFilter}
+                onChange={(e) => setMonthFilter(e.target.value)}
+              >
+                <MenuItem value="all">Tous les mois</MenuItem>
+                {months.map((month) => (
+                  <MenuItem key={month.value} value={month.value}>
+                    {month.label}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+          </Grid>
         </Paper>
 
         <Paper sx={{ width: "100%", overflow: "hidden", borderRadius: 3 }}>

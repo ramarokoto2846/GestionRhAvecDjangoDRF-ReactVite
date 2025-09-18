@@ -38,7 +38,10 @@ import {
   alpha,
   MenuItem,
   Tooltip,
-  useTheme
+  useTheme,
+  FormControl,
+  InputLabel,
+  Select
 } from "@mui/material";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -58,7 +61,8 @@ import {
   Email as EmailIcon,
   Phone as PhoneIcon,
   Work as WorkIcon,
-  Business as BusinessIcon
+  Business as BusinessIcon,
+  FilterList as FilterIcon
 } from "@mui/icons-material";
 import axios from "axios";
 import { getEmployes, createEmploye, updateEmploye, deleteEmploye, getDepartements } from "../../services/api";
@@ -81,6 +85,7 @@ const Employes = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [departementFilter, setDepartementFilter] = useState("");
 
   const [formData, setFormData] = useState({
     matricule: "",
@@ -257,6 +262,11 @@ const Employes = () => {
     }
   };
 
+  const handleDepartementFilterChange = (event) => {
+    setDepartementFilter(event.target.value);
+    setPage(0); // Reset to first page when filter changes
+  };
+
   const showSnackbar = (message, severity = "success") => {
     setSnackbar({ open: true, message, severity });
   };
@@ -268,13 +278,23 @@ const Employes = () => {
     setPage(0);
   };
 
-  const filteredData = employes.filter(employe =>
-    (employe.nom || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (employe.prenom || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (employe.matricule || "").includes(searchTerm) ||
-    (employe.email || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (employe.poste || "").toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // CORRECTION PRINCIPALE : Filtrer correctement par département
+  const filteredData = employes.filter(employe => {
+    // Filtre par recherche
+    const matchesSearch = 
+      (employe.nom || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (employe.prenom || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (employe.matricule || "").includes(searchTerm) ||
+      (employe.email || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (employe.poste || "").toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Filtre par département - CORRIGÉ
+    const matchesDepartement = 
+      !departementFilter || 
+      (employe.departement && String(employe.departement.id_departement) === departementFilter);
+    
+    return matchesSearch && matchesDepartement;
+  });
 
   const paginatedData = filteredData.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
@@ -348,7 +368,7 @@ const Employes = () => {
               onClick={() => handleOpenDialog()} 
               sx={{ 
                 borderRadius: 2, 
-                width: 200, 
+                width: 300, 
                 mr: 1.25,
                 px: 4, 
                 textTransform: "none", 
@@ -356,7 +376,7 @@ const Employes = () => {
                 fontSize: '1rem'
               }}
             >
-              <AddIcon sx={{ mr: 1, fontSize: '1rem' }} /> 
+              <AddIcon sx={{ mr: 1}} /> 
               Nouvel Employé
             </Fab>
         </Box>
@@ -379,16 +399,57 @@ const Employes = () => {
               </CardContent>
             </Card>
           </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ borderRadius:3, boxShadow:2 }}>
+              <CardContent>
+                <Typography color="text.secondary">Départements</Typography>
+                <Typography variant="h4" sx={{ fontWeight:"bold", color:"info.main" }}>{departements.length}</Typography>
+              </CardContent>
+            </Card>
+          </Grid>
         </Grid>
 
-        {/* Recherche */}
+        {/* Filtres */}
         <Paper sx={{ p:2, mb:3, borderRadius:3 }}>
-          <TextField fullWidth placeholder="Rechercher..." value={searchTerm} onChange={(e)=>setSearchTerm(e.target.value)}
-            InputProps={{
-              startAdornment: <InputAdornment position="start"><SearchIcon/></InputAdornment>,
-              endAdornment: searchTerm && <InputAdornment position="end"><IconButton onClick={()=>setSearchTerm("")}><CloseIcon/></IconButton></InputAdornment>
-            }}
-          />
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} md={6}>
+              <TextField 
+                fullWidth 
+                placeholder="Rechercher..." 
+                value={searchTerm} 
+                onChange={(e)=>setSearchTerm(e.target.value)}
+                InputProps={{
+                  startAdornment: <InputAdornment position="start"><SearchIcon/></InputAdornment>,
+                  endAdornment: searchTerm && <InputAdornment position="end"><IconButton onClick={()=>setSearchTerm("")}><CloseIcon/></IconButton></InputAdornment>
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel id="departement-filter-label">Filtrer par département</InputLabel>
+                <Select
+                  labelId="departement-filter-label"
+                  value={departementFilter}
+                  label="Filtrer par département"
+                  onChange={handleDepartementFilterChange}
+                  startAdornment={
+                    <InputAdornment position="start">
+                      <FilterIcon color="action" />
+                    </InputAdornment>
+                  }
+                >
+                  <MenuItem value="">
+                    <em>Tous les départements</em>
+                  </MenuItem>
+                  {departements.map((departement) => (
+                    <MenuItem key={departement.id_departement} value={String(departement.id_departement)}>
+                      {departement.nom}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
         </Paper>
 
         {/* Tableau */}

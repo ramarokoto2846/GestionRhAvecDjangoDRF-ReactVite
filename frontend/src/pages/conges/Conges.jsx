@@ -4,7 +4,7 @@ import {
   Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Divider,
   Paper, Table, TableContainer, TableHead, TableRow, TableCell, TableBody,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField, Fab, Alert, Snackbar, Grid, Card, CardContent,
-  Chip, MenuItem, CircularProgress, Tooltip, InputAdornment
+  Chip, MenuItem, CircularProgress, Tooltip, InputAdornment, FormControl, InputLabel, Select
 } from "@mui/material";
 import { alpha, useTheme } from "@mui/material/styles";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -48,10 +48,12 @@ const Conges = () => {
   const [error, setError] = useState(null);
   const [user, setUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [stats, setStats] = useState({ total: 0, enAttente: 0, valides: 0, refuses: 0 });
 
+  // Modified: Set id_conge to empty string
   const initialFormData = {
-    id_conge: `C${Date.now()}`,
+    id_conge: "",
     employe: "",
     date_debut: format(new Date(), "yyyy-MM-dd"),
     date_fin: format(new Date(), "yyyy-MM-dd"),
@@ -123,6 +125,7 @@ const Conges = () => {
     setSnackbar({ ...snackbar, open: false });
   };
 
+  // Modified: Removed id_conge override for new leave
   const handleOpenDialog = (conge = null) => {
     if (conge) {
       setEditingConge(conge);
@@ -135,7 +138,7 @@ const Conges = () => {
       });
     } else {
       setEditingConge(null);
-      setFormData({ ...initialFormData, id_conge: `C${Date.now()}` });
+      setFormData(initialFormData); // Use initialFormData with empty id_conge
     }
     setOpenDialog(true);
   };
@@ -151,12 +154,17 @@ const Conges = () => {
     setFormData({ ...formData, [name]: value });
   };
 
+  const handleStatusFilterChange = (e) => {
+    setStatusFilter(e.target.value);
+  };
+
+  // Modified: Generate id_conge during submission if empty
   const validateForm = () => {
-    if (!formData.id_conge || !formData.employe || !formData.date_debut || !formData.date_fin) {
+    if (!formData.employe || !formData.date_debut || !formData.date_fin) {
       showSnackbar("Veuillez remplir tous les champs obligatoires.", "error");
       return false;
     }
-    if (formData.id_conge.length > 10) {
+    if (formData.id_conge && formData.id_conge.length > 10) {
       showSnackbar("L'ID du congé ne doit pas dépasser 10 caractères.", "error");
       return false;
     }
@@ -167,6 +175,7 @@ const Conges = () => {
     return true;
   };
 
+  // Modified: Generate id_conge if empty before submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -174,7 +183,7 @@ const Conges = () => {
     setActionLoading(true);
     try {
       const payload = {
-        id_conge: formData.id_conge,
+        id_conge: formData.id_conge || `C${Date.now()}`, // Generate id_conge if empty
         employe: formData.employe,
         date_debut: formData.date_debut,
         date_fin: formData.date_fin,
@@ -313,9 +322,12 @@ const Conges = () => {
   };
 
   const filteredData = conges.filter(conge =>
-    (conge.employe_nom || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (conge.id_conge || "").includes(searchTerm) ||
-    (conge.motif || "").toLowerCase().includes(searchTerm.toLowerCase())
+    (
+      (conge.employe_nom || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (conge.id_conge || "").includes(searchTerm) ||
+      (conge.motif || "").toLowerCase().includes(searchTerm.toLowerCase())
+    ) &&
+    (statusFilter === "all" || conge.statut === statusFilter)
   );
 
   const getStatutColor = (statut) => {
@@ -393,7 +405,7 @@ const Conges = () => {
             onClick={() => handleOpenDialog()}
             sx={{
               borderRadius: 2,
-              width: 200,
+              width: 300,
               mr: 1.25,
               px: 4,
               textTransform: "none",
@@ -402,7 +414,7 @@ const Conges = () => {
             }}
             disabled={actionLoading}
           >
-            <AddIcon sx={{ mr: 1, fontSize: '1rem' }} />
+            <AddIcon sx={{ mr: 1 }} />
             Nouveau Congé
           </Fab>
         </Box>
@@ -443,18 +455,38 @@ const Conges = () => {
           </Grid>
         </Grid>
 
-        {/* Search Bar */}
+        {/* Search and Filter Bar */}
         <Paper sx={{ p: 2, mb: 3, borderRadius: 3 }}>
-          <TextField
-            fullWidth
-            placeholder="Rechercher..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-              startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment>,
-              endAdornment: searchTerm && <InputAdornment position="end"><IconButton onClick={() => setSearchTerm("")}><CloseIcon /></IconButton></InputAdornment>
-            }}
-          />
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                placeholder="Rechercher..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                InputProps={{
+                  startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment>,
+                  endAdornment: searchTerm && <InputAdornment position="end"><IconButton onClick={() => setSearchTerm("")}><CloseIcon /></IconButton></InputAdornment>
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth>
+                <InputLabel id="status-filter-label">Filtrer par statut</InputLabel>
+                <Select
+                  labelId="status-filter-label"
+                  value={statusFilter}
+                  label="Filtrer par statut"
+                  onChange={handleStatusFilterChange}
+                >
+                  <MenuItem value="all">Tous</MenuItem>
+                  <MenuItem value="en_attente">En attente</MenuItem>
+                  <MenuItem value="valide">Validé</MenuItem>
+                  <MenuItem value="refuse">Refusé</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
         </Paper>
 
         {/* Conges Table */}
@@ -584,28 +616,30 @@ const Conges = () => {
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <TextField
-                    select
-                    fullWidth
-                    margin="dense"
-                    label="Employé"
-                    name="employe"
-                    value={formData.employe}
-                    onChange={handleInputChange}
-                    required
-                    disabled={employes.length === 0}
-                    helperText={employes.length === 0 ? "Aucun employé disponible" : ""}
-                  >
-                    {employes.length === 0 ? (
-                      <MenuItem disabled>Aucun employé disponible</MenuItem>
-                    ) : (
-                      employes.map((employe) => (
-                        <MenuItem key={employe.matricule} value={employe.matricule}>
-                          {`${employe.prenom || ""} ${employe.nom || ""} (${employe.matricule})`}
-                        </MenuItem>
-                      ))
+                  <FormControl fullWidth margin="dense" required>
+                    <InputLabel id="employe-label">Employé</InputLabel>
+                    <Select
+                      labelId="employe-label"
+                      name="employe"
+                      value={formData.employe}
+                      onChange={handleInputChange}
+                      disabled={employes.length === 0}
+                      label="Employé"
+                    >
+                      {employes.length === 0 ? (
+                        <MenuItem disabled>Aucun employé disponible</MenuItem>
+                      ) : (
+                        employes.map((employe) => (
+                          <MenuItem key={employe.matricule} value={employe.matricule}>
+                            {`${employe.prenom || ""} ${employe.nom || ""} (${employe.matricule})`}
+                          </MenuItem>
+                        ))
+                      )}
+                    </Select>
+                    {employes.length === 0 && (
+                      <Typography variant="caption" color="error">Aucun employé disponible</Typography>
                     )}
-                  </TextField>
+                  </FormControl>
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <TextField
@@ -654,7 +688,7 @@ const Conges = () => {
               <Button
                 type="submit"
                 variant="contained"
-                disabled={actionLoading || !formData.employe || !formData.date_debut || !formData.date_fin || !formData.id_conge || employes.length === 0}
+                disabled={actionLoading || !formData.employe || !formData.date_debut || !formData.date_fin || employes.length === 0}
                 sx={{ borderRadius: 2, px: 3, py: 1 }}
               >
                 {actionLoading ? <CircularProgress size={24} /> : (editingConge ? "Modifier" : "Créer")}

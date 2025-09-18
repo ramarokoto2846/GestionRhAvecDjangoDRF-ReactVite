@@ -4,7 +4,7 @@ import {
   Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Divider,
   Paper, Table, TableContainer, TableHead, TableRow, TableCell, TableBody,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField, Fab, Alert, Snackbar, Grid, Card, CardContent,
-  CircularProgress, MenuItem, Chip, InputAdornment, Tooltip
+  CircularProgress, MenuItem, Chip, InputAdornment, Tooltip, FormControl, InputLabel, Select
 } from "@mui/material";
 import { alpha, useTheme } from "@mui/material/styles";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -54,6 +54,7 @@ const Pointages = () => {
   const [stats, setStats] = useState({ total: 0, withExit: 0, withoutExit: 0 });
   const [detailView, setDetailView] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [exitFilter, setExitFilter] = useState("all"); // New state for exit filter
 
   const initialFormData = {
     id_pointage: `P${Date.now()}`,
@@ -156,6 +157,10 @@ const Pointages = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
+  };
+
+  const handleExitFilterChange = (e) => {
+    setExitFilter(e.target.value);
   };
 
   const validateForm = () => {
@@ -275,9 +280,15 @@ const Pointages = () => {
     setDetailView(null);
   };
 
+  // Modified: Added exitFilter to filteredPointages
   const filteredPointages = pointages.filter(pointage =>
-    (pointage.employe_nom || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (pointage.id_pointage || "").includes(searchTerm)
+    (
+      (pointage.employe_nom || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (pointage.id_pointage || "").includes(searchTerm)
+    ) &&
+    (exitFilter === "all" ||
+     (exitFilter === "working" && !pointage.heure_sortie) ||
+     (exitFilter === "exited" && pointage.heure_sortie))
   );
 
   const menuItems = [
@@ -346,7 +357,7 @@ const Pointages = () => {
             onClick={() => handleOpenDialog()}
             sx={{
               borderRadius: 2,
-              width: 200,
+              width: 300,
               mr: 1.25,
               px: 4,
               textTransform: "none",
@@ -355,7 +366,7 @@ const Pointages = () => {
             }}
             disabled={actionLoading}
           >
-            <AddIcon sx={{ mr: 1, fontSize: '1rem' }} />
+            <AddIcon sx={{ mr: 1 }} />
             Nouveau Pointage
           </Fab>
         </Box>
@@ -388,18 +399,37 @@ const Pointages = () => {
           </Grid>
         </Grid>
 
-        {/* Search Bar */}
+        {/* Search and Filter Bar */}
         <Paper sx={{ p: 2, mb: 3, borderRadius: 3 }}>
-          <TextField
-            fullWidth
-            placeholder="Rechercher..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-              startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment>,
-              endAdornment: searchTerm && <InputAdornment position="end"><IconButton onClick={() => setSearchTerm("")}><CloseIcon /></IconButton></InputAdornment>
-            }}
-          />
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                placeholder="Rechercher..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                InputProps={{
+                  startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment>,
+                  endAdornment: searchTerm && <InputAdornment position="end"><IconButton onClick={() => setSearchTerm("")}><CloseIcon /></IconButton></InputAdornment>
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth>
+                <InputLabel id="exit-filter-label">Filtrer par statut</InputLabel>
+                <Select
+                  labelId="exit-filter-label"
+                  value={exitFilter}
+                  label="Filtrer par statut"
+                  onChange={handleExitFilterChange}
+                >
+                  <MenuItem value="all">Tous</MenuItem>
+                  <MenuItem value="working">En cours de travail</MenuItem>
+                  <MenuItem value="exited">Déjà sortis</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
         </Paper>
 
         {/* Pointages Table */}
@@ -462,11 +492,6 @@ const Pointages = () => {
                       </TableCell>
                       <TableCell align="center">
                         <Box sx={{ display: "flex", gap: 1 }}>
-                          <Tooltip title="Détails">
-                            <IconButton color="info" onClick={() => showDetails(pointage)}>
-                              <InfoIcon />
-                            </IconButton>
-                          </Tooltip>
                           <Tooltip title="Modifier">
                             <IconButton color="primary" onClick={() => handleOpenDialog(pointage)} disabled={actionLoading}>
                               <EditIcon />

@@ -5,11 +5,12 @@ import {
   Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField,
   Chip, Alert, Snackbar, Fab, Card, CardContent, Grid, TablePagination,
-  InputAdornment, CircularProgress, alpha
+  InputAdornment, CircularProgress, alpha, ToggleButton, ToggleButtonGroup,
+  MenuItem, FormControl, InputLabel, Select
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, isBefore, isAfter, isWithinInterval, isValid, startOfMonth, endOfMonth, isSameMonth } from "date-fns";
 import { fr } from "date-fns/locale";
 import Swal from "sweetalert2";
 
@@ -26,6 +27,9 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import EventBusyIcon from '@mui/icons-material/EventBusy';
+import UpcomingIcon from '@mui/icons-material/Upcoming';
+import FilterListIcon from '@mui/icons-material/FilterList';
 
 import { getEvenements, createEvenement, updateEvenement, deleteEvenement, getCurrentUser } from "../../services/api";
 import Header from "../../components/Header";
@@ -56,6 +60,8 @@ const Evenements = () => {
   });
   const [errors, setErrors] = useState({});
   const [user, setUser] = useState(null);
+  const [statusFilter, setStatusFilter] = useState("tous"); // "tous", "en-cours", "passe", "a-venir"
+  const [monthFilter, setMonthFilter] = useState("tous"); // "tous" ou numéro de mois (1-12)
   const notificationsCount = 3;
 
   const menuItems = [
@@ -117,7 +123,7 @@ const Evenements = () => {
     } else {
       setCurrentEvenement(null);
       setFormData({
-        id_evenement: `E${Date.now()}`,
+        id_evenement: "", // ID vide au lieu de l'auto-génération
         titre: "",
         description: "",
         date_debut: "",
@@ -133,7 +139,7 @@ const Evenements = () => {
     setOpenDialog(false);
     setCurrentEvenement(null);
     setFormData({
-      id_evenement: `E${Date.now()}`,
+      id_evenement: "",
       titre: "",
       description: "",
       date_debut: "",
@@ -251,6 +257,14 @@ const Evenements = () => {
     return format(date, "dd MMMM yyyy HH:mm", { locale: fr });
   };
 
+  const formatMonthForDisplay = (monthValue) => {
+    if (monthValue === "tous") return "Tous les mois";
+    
+    // Créer une date avec le mois spécifié (l'année n'a pas d'importance)
+    const date = new Date(2023, parseInt(monthValue) - 1, 1);
+    return format(date, "MMMM", { locale: fr });
+  };
+
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
   };
@@ -260,13 +274,118 @@ const Evenements = () => {
     setPage(0);
   };
 
-  const filteredEvenements = evenements.filter(
-    (evenement) =>
+  const handleStatusFilterChange = (event, newFilter) => {
+    if (newFilter !== null) {
+      setStatusFilter(newFilter);
+      setPage(0);
+    }
+  };
+
+  const handleMonthFilterChange = (event) => {
+    setMonthFilter(event.target.value);
+    setPage(0);
+  };
+
+  const getEventStatus = (evenement) => {
+    try {
+      const now = new Date();
+      const startDate = parseISO(evenement.date_debut);
+      const endDate = parseISO(evenement.date_fin);
+
+      if (!isValid(startDate) || !isValid(endDate)) {
+        return "passe";
+      }
+
+      if (isWithinInterval(now, { start: startDate, end: endDate })) {
+        return "en-cours";
+      }
+      else if (isAfter(now, endDate)) {
+        return "passe";
+      }
+      else if (isBefore(now, startDate)) {
+        return "a-venir";
+      }
+
+      return "passe";
+    } catch (error) {
+      console.error("Error determining event status:", error);
+      return "passe";
+    }
+  };
+
+  const getAvailableMonths = () => {
+    const monthsSet = new Set();
+    
+    evenements.forEach(evenement => {
+      try {
+        const dateDebut = parseISO(evenement.date_debut);
+        if (isValid(dateDebut)) {
+          // Extraire uniquement le mois (1-12)
+          const month = dateDebut.getMonth() + 1;
+          monthsSet.add(month);
+        }
+      } catch (error) {
+        console.error("Error parsing date:", error);
+      }
+    });
+    
+    // Ajouter tous les mois de 1 à 12 pour s'assurer qu'ils sont tous disponibles
+    for (let month = 1; month <= 12; month++) {
+      monthsSet.add(month);
+    }
+    
+    // Convertir en tableau et trier
+    const months = Array.from(monthsSet).sort((a, b) => a - b);
+    return months;
+  };
+
+  const filteredEvenements = evenements.filter((evenement) => {
+    const matchesSearch =
       (evenement.titre || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (evenement.lieu || "").toLowerCase().includes(searchQuery.toLowerCase())
-  );
+      (evenement.lieu || "").toLowerCase().includes(searchQuery.toLowerCase());
+
+    const eventStatus = getEventStatus(evenement);
+    const matchesStatus = statusFilter === "tous" || eventStatus === statusFilter;
+
+    let matchesMonth = true;
+    if (monthFilter !== "tous") {
+      try {
+        const eventDate = parseISO(evenement.date_debut);
+        // Extraire le mois de l'événement (1-12)
+        const eventMonth = eventDate.getMonth() + 1;
+        // Comparer avec le filtre (convertir en nombre)
+        matchesMonth = eventMonth === parseInt(monthFilter);
+      } catch (error) {
+        console.error("Error in month filter:", error);
+        matchesMonth = false;
+      }
+    }
+
+    return matchesSearch && matchesStatus && matchesMonth;
+  });
 
   const paginatedEvenements = filteredEvenements.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
+  const countEventsByStatus = () => {
+    const counts = {
+      "tous": evenements.length,
+      "en-cours": 0,
+      "passe": 0,
+      "a-venir": 0
+    };
+    
+    evenements.forEach(evenement => {
+      const status = getEventStatus(evenement);
+      if (status === "en-cours") counts["en-cours"]++;
+      else if (status === "passe") counts["passe"]++;
+      else if (status === "a-venir") counts["a-venir"]++;
+    });
+    
+    return counts;
+  };
+
+  const eventCounts = countEventsByStatus();
+  const availableMonths = getAvailableMonths();
 
   if (loading) return <Box sx={{ display: "flex", justifyContent: "center", mt: 10 }}><CircularProgress /></Box>;
   if (error) return <Box sx={{ display: "flex", justifyContent: "center", mt: 10 }}><Typography color="error">{error}</Typography></Box>;
@@ -279,7 +398,6 @@ const Evenements = () => {
         onMenuToggle={() => setOpen(!open)}
       />
 
-      {/* Sidebar */}
       <Drawer variant="permanent" sx={{ width: drawerWidth, flexShrink: 0, [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: "border-box" }, display: { xs: "none", md: "block" } }} open>
         <Toolbar /><Divider />
         <List>
@@ -294,7 +412,6 @@ const Evenements = () => {
         </List>
       </Drawer>
 
-      {/* Mobile Drawer */}
       <Drawer anchor="left" open={open} onClose={() => setOpen(false)} sx={{ display: { md: "none" } }}>
         <Box sx={{ width: drawerWidth }} role="presentation">
           <List>
@@ -310,7 +427,6 @@ const Evenements = () => {
         </Box>
       </Drawer>
 
-      {/* Contenu principal */}
       <Box component="main" sx={{ flexGrow: 1, bgcolor: "#f8fafc", minHeight: "100vh", p: 3, mt: 8, ml: { md: `${drawerWidth}px` }, ml: 5 }}>
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
@@ -327,7 +443,7 @@ const Evenements = () => {
             onClick={() => handleOpenDialog()}
             sx={{
               borderRadius: 2,
-              width: 200,
+              width: 300,
               mr: 1.25,
               px: 4,
               textTransform: "none",
@@ -335,12 +451,11 @@ const Evenements = () => {
               fontSize: '1rem'
             }}
           >
-            <AddIcon sx={{ mr: 1, fontSize: '1rem' }} />
+            <AddIcon sx={{ mr: 1 }} />
             Nouvel Événement
           </Fab>
         </Box>
 
-        {/* Statistiques */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid item xs={12} sm={6} md={3}>
             <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
@@ -350,23 +465,106 @@ const Evenements = () => {
               </CardContent>
             </Card>
           </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <UpcomingIcon color="info" sx={{ mr: 1 }} />
+                  <Typography color="text.secondary">Événements à venir</Typography>
+                </Box>
+                <Typography variant="h4" sx={{ fontWeight: "bold", color: "info.main" }}>{eventCounts["a-venir"]}</Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <EventAvailableIcon color="success" sx={{ mr: 1 }} />
+                  <Typography color="text.secondary">Événements en cours</Typography>
+                </Box>
+                <Typography variant="h4" sx={{ fontWeight: "bold", color: "success.main" }}>{eventCounts["en-cours"]}</Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <EventBusyIcon color="error" sx={{ mr: 1 }} />
+                  <Typography color="text.secondary">Événements passés</Typography>
+                </Box>
+                <Typography variant="h4" sx={{ fontWeight: "bold", color: "error.main" }}>{eventCounts["passe"]}</Typography>
+              </CardContent>
+            </Card>
+          </Grid>
         </Grid>
 
-        {/* Search Bar */}
         <Paper sx={{ p: 2, mb: 3, borderRadius: 3 }}>
-          <TextField
-            fullWidth
-            placeholder="Rechercher..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            InputProps={{
-              startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment>,
-              endAdornment: searchQuery && <InputAdornment position="end"><IconButton onClick={() => setSearchQuery("")}><CloseIcon /></IconButton></InputAdornment>
-            }}
-          />
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                placeholder="Rechercher..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                InputProps={{
+                  startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment>,
+                  endAdornment: searchQuery && <InputAdornment position="end"><IconButton onClick={() => setSearchQuery("")}><CloseIcon /></IconButton></InputAdornment>
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <ToggleButtonGroup
+                value={statusFilter}
+                exclusive
+                onChange={handleStatusFilterChange}
+                aria-label="filtre statut événement"
+                fullWidth
+              >
+                <ToggleButton value="tous" aria-label="tous les événements">
+                  <Typography variant="body2">Tous ({eventCounts.tous})</Typography>
+                </ToggleButton>
+                <ToggleButton value="a-venir" aria-label="événements à venir">
+                  <UpcomingIcon sx={{ mr: 1 }} />
+                  <Typography variant="body2">À venir ({eventCounts["a-venir"]})</Typography>
+                </ToggleButton>
+                <ToggleButton value="en-cours" aria-label="événements en cours">
+                  <EventAvailableIcon sx={{ mr: 1 }} />
+                  <Typography variant="body2">En cours ({eventCounts["en-cours"]})</Typography>
+                </ToggleButton>
+                <ToggleButton value="passe" aria-label="événements passés">
+                  <EventBusyIcon sx={{ mr: 1 }} />
+                  <Typography variant="body2">Passés ({eventCounts["passe"]})</Typography>
+                </ToggleButton>
+              </ToggleButtonGroup>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <FormControl fullWidth>
+                <InputLabel id="month-filter-label">Mois</InputLabel>
+                <Select
+                  labelId="month-filter-label"
+                  value={monthFilter}
+                  label="Mois"
+                  onChange={handleMonthFilterChange}
+                  startAdornment={
+                    <InputAdornment position="start">
+                      <FilterListIcon />
+                    </InputAdornment>
+                  }
+                >
+                  <MenuItem value="tous">Tous les mois</MenuItem>
+                  {availableMonths.map(month => (
+                    <MenuItem key={month} value={month.toString()}>
+                      {formatMonthForDisplay(month.toString())}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
         </Paper>
 
-        {/* Tableau */}
         {filteredEvenements.length === 0 ? (
           <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
             <CardContent sx={{ textAlign: "center", py: 4 }}>
@@ -396,6 +594,7 @@ const Evenements = () => {
               <Table>
                 <TableHead>
                   <TableRow>
+                    <TableCell>Statut</TableCell>
                     <TableCell>Titre</TableCell>
                     <TableCell>Description</TableCell>
                     <TableCell>Début</TableCell>
@@ -405,39 +604,55 @@ const Evenements = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {paginatedEvenements.map((evenement) => (
-                    <TableRow key={evenement.id_evenement} hover>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                          <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.2), color: theme.palette.primary.main }}>
-                            <CalendarTodayIcon />
-                          </Avatar>
-                          <Box>
-                            <Typography variant="subtitle2" fontWeight="bold">
-                              {evenement.titre || "N/A"}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                              {evenement.id_evenement || "N/A"}
-                            </Typography>
+                  {paginatedEvenements.map((evenement) => {
+                    const status = getEventStatus(evenement);
+                    return (
+                      <TableRow key={evenement.id_evenement} hover>
+                        <TableCell>
+                          <Chip
+                            label={
+                              status === "a-venir" ? "À venir" : 
+                              status === "en-cours" ? "En cours" : "Passé"
+                            }
+                            color={
+                              status === "a-venir" ? "info" : 
+                              status === "en-cours" ? "success" : "default"
+                            }
+                            variant="outlined"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.2), color: theme.palette.primary.main }}>
+                              <CalendarTodayIcon />
+                            </Avatar>
+                            <Box>
+                              <Typography variant="subtitle2" fontWeight="bold">
+                                {evenement.titre || "N/A"}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                {evenement.id_evenement || "N/A"}
+                              </Typography>
+                            </Box>
                           </Box>
-                        </Box>
-                      </TableCell>
-                      <TableCell>{evenement.description || "Aucune description"}</TableCell>
-                      <TableCell>{formatDateForDisplay(evenement.date_debut)}</TableCell>
-                      <TableCell>{formatDateForDisplay(evenement.date_fin)}</TableCell>
-                      <TableCell>{evenement.lieu || "Non spécifié"}</TableCell>
-                      <TableCell align="center">
-                        <Box sx={{ display: "flex", gap: 1 }}>
-                          <IconButton color="primary" onClick={() => handleOpenDialog(evenement)}>
-                            <EditIcon />
-                          </IconButton>
-                          <IconButton color="error" onClick={() => handleDelete(evenement.id_evenement)}>
-                            <DeleteIcon />
-                          </IconButton>
-                        </Box>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+                        <TableCell>{evenement.description || "Aucune description"}</TableCell>
+                        <TableCell>{formatDateForDisplay(evenement.date_debut)}</TableCell>
+                        <TableCell>{formatDateForDisplay(evenement.date_fin)}</TableCell>
+                        <TableCell>{evenement.lieu || "Non spécifié"}</TableCell>
+                        <TableCell align="center">
+                          <Box sx={{ display: "flex", gap: 1 }}>
+                            <IconButton color="primary" onClick={() => handleOpenDialog(evenement)}>
+                              <EditIcon />
+                            </IconButton>
+                            <IconButton color="error" onClick={() => handleDelete(evenement.id_evenement)}>
+                              <DeleteIcon />
+                            </IconButton>
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </TableContainer>
@@ -455,7 +670,6 @@ const Evenements = () => {
           </Paper>
         )}
 
-        {/* Dialog */}
         <Dialog
           open={openDialog}
           onClose={handleCloseDialog}
@@ -480,7 +694,10 @@ const Evenements = () => {
                     error={!!errors.id_evenement}
                     helperText={errors.id_evenement || "Entrez un ID unique"}
                     disabled={!!currentEvenement}
-                    inputProps={{ maxLength: 10 }}
+                    inputProps={{ 
+                      maxLength: 10,
+                      autoComplete: "off"
+                    }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
@@ -566,7 +783,6 @@ const Evenements = () => {
           </form>
         </Dialog>
 
-        {/* Snackbar */}
         <Snackbar
           open={snackbar.open}
           autoHideDuration={6000}
