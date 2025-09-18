@@ -236,6 +236,7 @@ export const validerConge = async (id) => {
       headers: getAuthHeader(),
     });
     return response.data;
+     // Retourne { status: 'congé validé', message: 'Un email a été envoyé...' }
   } catch (error) {
     handleError(error, "Erreur lors de la validation du congé.");
   }
@@ -247,7 +248,7 @@ export const refuserConge = async (id) => {
     const response = await axios.post(`${BASE_URL}/conges/${id}/refuser/`, {}, {
       headers: getAuthHeader(),
     });
-    return response.data;
+    return response.data; // Retourne { status: 'congé refusé', message: 'Un email a été envoyé...' }
   } catch (error) {
     handleError(error, "Erreur lors du refus du congé.");
   }

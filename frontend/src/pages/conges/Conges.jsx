@@ -10,6 +10,7 @@ import { alpha, useTheme } from "@mui/material/styles";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { format, parseISO, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
+import { toast } from 'react-toastify'; // Added for notifications
 import Swal from "sweetalert2";
 
 import HomeIcon from "@mui/icons-material/Home";
@@ -51,13 +52,13 @@ const Conges = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [stats, setStats] = useState({ total: 0, enAttente: 0, valides: 0, refuses: 0 });
 
-  // Modified: Set id_conge to empty string
   const initialFormData = {
     id_conge: "",
     employe: "",
     date_debut: format(new Date(), "yyyy-MM-dd"),
     date_fin: format(new Date(), "yyyy-MM-dd"),
-    motif: ""
+    motif: "",
+    motif_refus: "" // Added for edit dialog
   };
 
   const [formData, setFormData] = useState(initialFormData);
@@ -125,7 +126,6 @@ const Conges = () => {
     setSnackbar({ ...snackbar, open: false });
   };
 
-  // Modified: Removed id_conge override for new leave
   const handleOpenDialog = (conge = null) => {
     if (conge) {
       setEditingConge(conge);
@@ -134,11 +134,12 @@ const Conges = () => {
         employe: conge.employe || "",
         date_debut: conge.date_debut && isValid(parseISO(conge.date_debut)) ? format(parseISO(conge.date_debut), "yyyy-MM-dd") : "",
         date_fin: conge.date_fin && isValid(parseISO(conge.date_fin)) ? format(parseISO(conge.date_fin), "yyyy-MM-dd") : "",
-        motif: conge.motif || ""
+        motif: conge.motif || "",
+        motif_refus: conge.motif_refus || "" // Added for edit dialog
       });
     } else {
       setEditingConge(null);
-      setFormData(initialFormData); // Use initialFormData with empty id_conge
+      setFormData(initialFormData);
     }
     setOpenDialog(true);
   };
@@ -158,7 +159,6 @@ const Conges = () => {
     setStatusFilter(e.target.value);
   };
 
-  // Modified: Generate id_conge during submission if empty
   const validateForm = () => {
     if (!formData.employe || !formData.date_debut || !formData.date_fin) {
       showSnackbar("Veuillez remplir tous les champs obligatoires.", "error");
@@ -175,7 +175,6 @@ const Conges = () => {
     return true;
   };
 
-  // Modified: Generate id_conge if empty before submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -183,11 +182,12 @@ const Conges = () => {
     setActionLoading(true);
     try {
       const payload = {
-        id_conge: formData.id_conge || `C${Date.now()}`, // Generate id_conge if empty
+        id_conge: formData.id_conge || `C${Date.now()}`,
         employe: formData.employe,
         date_debut: formData.date_debut,
         date_fin: formData.date_fin,
-        motif: formData.motif || null
+        motif: formData.motif || null,
+        motif_refus: formData.motif_refus || null // Include motif_refus if editing
       };
 
       if (editingConge) {
@@ -195,7 +195,7 @@ const Conges = () => {
         showSnackbar("Congé modifié avec succès !", "success");
       } else {
         await createConge(payload);
-        showSnackbar("Congé créé avec succès !", "success");
+        showSnackbar("Congé créé avec succès ! Un email a été envoyé à l'employé.", "success");
       }
       handleCloseDialog();
       await fetchData();
@@ -254,7 +254,7 @@ const Conges = () => {
   const handleValider = async (id) => {
     const result = await Swal.fire({
       title: "Valider le congé",
-      text: "Voulez-vous valider ce congé ?",
+      text: "Voulez-vous valider ce congé ? Un email sera envoyé à l'employé.",
       icon: "question",
       showCancelButton: true,
       confirmButtonText: "Oui, valider",
@@ -267,8 +267,8 @@ const Conges = () => {
     if (result.isConfirmed) {
       setActionLoading(true);
       try {
-        await validerConge(id);
-        showSnackbar("Congé validé avec succès !", "success");
+        const response = await validerConge(id);
+        toast.success(response.message || "Congé validé avec succès ! Un email a été envoyé à l'employé.");
         await fetchData();
         triggerNotificationsRefresh();
       } catch (error) {
@@ -279,7 +279,7 @@ const Conges = () => {
             .map(key => `${key}: ${Array.isArray(errors[key]) ? errors[key].join(", ") : errors[key]}`)
             .join("; ");
         }
-        showSnackbar(errorMessage, "error");
+        toast.error(errorMessage);
       } finally {
         setActionLoading(false);
       }
@@ -289,21 +289,32 @@ const Conges = () => {
   const handleRefuser = async (id) => {
     const result = await Swal.fire({
       title: "Refuser le congé",
-      text: "Voulez-vous refuser ce congé ?",
+      text: "Veuillez indiquer la raison du refus :",
       icon: "question",
+      input: "textarea",
+      inputPlaceholder: "Entrez la raison du refus...",
+      inputAttributes: {
+        "aria-label": "Raison du refus"
+      },
       showCancelButton: true,
       confirmButtonText: "Oui, refuser",
       cancelButtonText: "Annuler",
       confirmButtonColor: '#3085d6',
       cancelButtonColor: '#d33',
       background: theme.palette.background.paper,
-      color: theme.palette.text.primary
+      color: theme.palette.text.primary,
+      preConfirm: (motifRefus) => {
+        if (!motifRefus) {
+          Swal.showValidationMessage("La raison du refus est requise.");
+        }
+        return motifRefus;
+      }
     });
     if (result.isConfirmed) {
       setActionLoading(true);
       try {
-        await refuserConge(id);
-        showSnackbar("Congé refusé avec succès !", "success");
+        const response = await refuserConge(id, result.value);
+        toast.success(response.message || "Congé refusé avec succès ! Un email a été envoyé à l'employé.");
         await fetchData();
         triggerNotificationsRefresh();
       } catch (error) {
@@ -314,7 +325,7 @@ const Conges = () => {
             .map(key => `${key}: ${Array.isArray(errors[key]) ? errors[key].join(", ") : errors[key]}`)
             .join("; ");
         }
-        showSnackbar(errorMessage, "error");
+        toast.error(errorMessage);
       } finally {
         setActionLoading(false);
       }
@@ -325,7 +336,8 @@ const Conges = () => {
     (
       (conge.employe_nom || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       (conge.id_conge || "").includes(searchTerm) ||
-      (conge.motif || "").toLowerCase().includes(searchTerm.toLowerCase())
+      (conge.motif || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (conge.motif_refus || "").toLowerCase().includes(searchTerm.toLowerCase())
     ) &&
     (statusFilter === "all" || conge.statut === statusFilter)
   );
@@ -495,6 +507,7 @@ const Conges = () => {
             <Table>
               <TableHead>
                 <TableRow>
+                  <TableCell>UID Congé</TableCell>
                   <TableCell>Employé</TableCell>
                   <TableCell>Date Début</TableCell>
                   <TableCell>Date Fin</TableCell>
@@ -506,17 +519,24 @@ const Conges = () => {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={6} align="center">
+                    <TableCell colSpan={7} align="center">
                       <CircularProgress />
                     </TableCell>
                   </TableRow>
                 ) : filteredData.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} align="center">Aucun congé trouvé</TableCell>
+                    <TableCell colSpan={7} align="center">Aucun congé trouvé</TableCell>
                   </TableRow>
                 ) : (
                   filteredData.map((conge) => (
                     <TableRow key={conge.id_conge} hover>
+                      <TableCell>
+                        <Chip
+                          label={conge.id_conge}
+                          color="primary"
+                          variant="outlined"
+                        />
+                      </TableCell>
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                           <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.2), color: theme.palette.primary.main }}>
@@ -527,7 +547,7 @@ const Conges = () => {
                               {conge.employe_nom || conge.employe || "Inconnu"}
                             </Typography>
                             <Typography variant="body2" color="text.secondary">
-                              {conge.id_conge}
+                              {conge.employe_matricule || conge.employe}
                             </Typography>
                           </Box>
                         </Box>
@@ -679,6 +699,22 @@ const Conges = () => {
                     rows={3}
                   />
                 </Grid>
+                {editingConge && editingConge.statut === "refuse" && (
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      margin="dense"
+                      label="Raison du Refus"
+                      name="motif_refus"
+                      value={formData.motif_refus}
+                      onChange={handleInputChange}
+                      multiline
+                      rows={3}
+                      disabled
+                      helperText="Raison du refus (lecture seule)"
+                    />
+                  </Grid>
+                )}
               </Grid>
             </DialogContent>
             <DialogActions sx={{ p: 3, gap: 1 }}>

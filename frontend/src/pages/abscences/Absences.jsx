@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
-  AppBar, Toolbar, Box, Typography, IconButton, Badge, Avatar, Button,
+  Chip, Toolbar, Box, Typography, IconButton, Badge, Avatar, Button,
   Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Divider,
   Paper, Table, TableContainer, TableHead, TableRow, TableCell, TableBody,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField, Fab, Alert, Snackbar, Grid, Card, CardContent,
@@ -444,6 +444,7 @@ const Absences = () => {
             <Table>
               <TableHead>
                 <TableRow>
+                  <TableCell>Absence UID</TableCell>
                   <TableCell>Employé</TableCell>
                   <TableCell>Date Début</TableCell>
                   <TableCell>Date Fin</TableCell>
@@ -468,6 +469,13 @@ const Absences = () => {
                   filteredData.map((absence) => (
                     <TableRow key={absence.id_absence} hover>
                       <TableCell>
+                        <Chip
+                          label={ absence.id_absence }
+                          color="primary"
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                           <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.2), color: theme.palette.primary.main }}>
                             <PersonIcon />
@@ -477,7 +485,7 @@ const Absences = () => {
                               {absence.employe_nom || absence.employe || "Inconnu"}
                             </Typography>
                             <Typography variant="body2" color="text.secondary">
-                              {absence.id_absence}
+                              {absence.employe_matricule || absence.employe || "Inconnnu"}
                             </Typography>
                           </Box>
                         </Box>

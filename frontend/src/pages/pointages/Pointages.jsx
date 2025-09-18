@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
-  AppBar, Toolbar, Box, Typography, IconButton, Badge, Avatar, Button,
+  Toolbar, Box, Typography, IconButton, Avatar, Button,
   Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Divider,
   Paper, Table, TableContainer, TableHead, TableRow, TableCell, TableBody,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField, Fab, Alert, Snackbar, Grid, Card, CardContent,
@@ -12,10 +12,6 @@ import { format, parseISO, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
 import Swal from "sweetalert2";
 
-import NotificationsIcon from "@mui/icons-material/Notifications";
-import SettingsIcon from "@mui/icons-material/Settings";
-import LogoutIcon from "@mui/icons-material/Logout";
-import MenuIcon from "@mui/icons-material/Menu";
 import HomeIcon from "@mui/icons-material/Home";
 import PeopleIcon from "@mui/icons-material/People";
 import ApartmentIcon from "@mui/icons-material/Apartment";
@@ -438,6 +434,7 @@ const Pointages = () => {
             <Table>
               <TableHead>
                 <TableRow>
+                  <TableCell>Pointage UID</TableCell>
                   <TableCell>Employé</TableCell>
                   <TableCell>Date</TableCell>
                   <TableCell>Heure d'Entrée</TableCell>
@@ -461,6 +458,13 @@ const Pointages = () => {
                   filteredPointages.map((pointage) => (
                     <TableRow key={pointage.id_pointage} hover>
                       <TableCell>
+                        <Chip
+                          label={ pointage.id_pointage }
+                          color="primary"
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                           <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.2), color: theme.palette.primary.main }}>
                             <PersonIcon />
@@ -470,7 +474,7 @@ const Pointages = () => {
                               {pointage.employe_nom || pointage.employe || "Inconnu"}
                             </Typography>
                             <Typography variant="body2" color="text.secondary">
-                              {pointage.id_pointage}
+                              {pointage.employe_matricule || pointage.employe || "Inconnu"}
                             </Typography>
                           </Box>
                         </Box>

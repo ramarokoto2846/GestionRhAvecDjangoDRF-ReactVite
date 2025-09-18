@@ -458,7 +458,8 @@ const Employes = () => {
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>Employé</TableCell>
+                  <TableCell>Matricule</TableCell>
+                  <TableCell>Nom et Titre</TableCell>
                   <TableCell>Contact</TableCell>
                   <TableCell>Poste</TableCell>
                   <TableCell>Département</TableCell>
@@ -469,6 +470,13 @@ const Employes = () => {
               <TableBody>
                 {paginatedData.map(employe => (
                   <TableRow key={employe.matricule} hover>
+                    <TableCell>
+                      <Chip
+                        label={ employe.matricule }
+                        color="primary"
+                        variant="outlined"
+                      />
+                    </TableCell>
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                         <Avatar
@@ -482,9 +490,6 @@ const Employes = () => {
                         <Box>
                           <Typography variant="subtitle2" fontWeight="bold">
                             {employe.prenom} {employe.nom}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            matricule: {employe.matricule}
                           </Typography>
                           <Chip
                             label={employe.titre}

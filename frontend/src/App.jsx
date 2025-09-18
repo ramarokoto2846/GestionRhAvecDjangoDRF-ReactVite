@@ -12,7 +12,6 @@ import Absences from "./pages/abscences/Absences";
 import Evenements from "./pages/evenements/Evenements";
 import Conges from "./pages/conges/Conges";
 
-// Tableau de config des routes privées
 const privateRoutes = [
   { path: "/home", element: <Home /> },
   { path: "/employes", element: <Employes /> },
@@ -30,13 +29,11 @@ function App() {
 
   return (
     <Routes>
-      {/* Page publique */}
       <Route
         path="/"
         element={<Auth setIsAuthenticated={setIsAuthenticated} />}
       />
 
-      {/* Routes privées générées automatiquement */}
       {privateRoutes.map(({ path, element }) => (
         <Route
           key={path}
