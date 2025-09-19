@@ -2,135 +2,41 @@ import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
-  Drawer,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Divider,
   Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  Button,
-  TableHead,
-  Toolbar,
-  TableRow,
-  TablePagination,
-  Chip,
-  Dialog,
-  DialogContent,
-  DialogActions,
-  TextField,
   Grid,
-  InputAdornment,
-  Snackbar,
-  Alert,
-  DialogTitle,
   Fab,
   Card,
   CardContent,
   CircularProgress,
-  alpha,
-  styled,
   useTheme,
+  TextField,
+  InputAdornment,
   IconButton,
+  Snackbar,
+  Alert
 } from "@mui/material";
 
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
-  Apartment as ApartmentIcon,
-  People as PeopleIcon,
   Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
   Search as SearchIcon,
-  Close as CloseIcon,
-  Save as SaveIcon,
-  Home as HomeIcon,
-  AccessTime as AccessTimeIcon,
-  BeachAccess as BeachAccessIcon,
-  Block as BlockIcon,
-  EventAvailable as EventAvailableIcon,
+  Close as CloseIcon
 } from "@mui/icons-material";
 
 import axios from "axios";
-import Swal from "sweetalert2";
+import Header from "../../components/Header";
+import Sidebar from "../../components/Sidebar"; // Import du composant Sidebar
+import DepartementTableau from "./DepartementTableau";
+import DepartementModal from "./DepartementModal";
 import {
   getDepartements,
   createDepartement,
   updateDepartement,
-  deleteDepartement,
+  deleteDepartement
 } from "../../services/api";
-import Header from "../../components/Header";
-
-// --- Styled Components ---
-const ModernDialog = styled(Dialog)(({ theme }) => ({
-  "& .MuiDialog-paper": {
-    borderRadius: 16,
-    background: "linear-gradient(145deg, #ffffff, #f0f4f8)",
-    boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)",
-    border: "1px solid rgba(255, 255, 255, 0.2)",
-    overflow: "hidden",
-    transition: "all 0.3s ease-in-out",
-  },
-}));
-
-const ModernDialogTitle = styled(DialogTitle)(({ theme }) => ({
-  background: theme.palette.primary.main,
-  color: "white",
-  padding: theme.spacing(2, 3),
-  fontWeight: "bold",
-  fontSize: "1.5rem",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  "& .MuiIconButton-root": {
-    color: "white",
-  },
-}));
-
-const ModernTextField = styled(TextField)(({ theme }) => ({
-  "& .MuiOutlinedInput-root": {
-    borderRadius: 12,
-    transition: "all 0.3s ease",
-    background: "rgba(255, 255, 255, 0.9)",
-    "&:hover": {
-      background: "rgba(255, 255, 255, 1)",
-      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
-    },
-    "&.Mui-focused": {
-      boxShadow: `0 0 0 3px ${alpha(theme.palette.primary.main, 0.2)}`,
-    },
-  },
-  "& .MuiInputLabel-root": {
-    fontWeight: 500,
-    color: theme.palette.text.secondary,
-  },
-  "& .MuiInputLabel-root.Mui-focused": {
-    color: theme.palette.primary.main,
-  },
-}));
-
-const ModernButton = styled(Button)(({ theme }) => ({
-  borderRadius: 12,
-  padding: theme.spacing(1.5, 3),
-  fontWeight: "bold",
-  textTransform: "none",
-  transition: "all 0.3s ease",
-  "&:hover": {
-    transform: "translateY(-2px)",
-    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
-  },
-}));
-
-const drawerWidth = 240;
 
 const Departements = () => {
   const theme = useTheme();
-  const location = useLocation();
   const navigate = useNavigate();
 
   const [open, setOpen] = useState(false);
@@ -150,7 +56,6 @@ const Departements = () => {
   const [departements, setDepartements] = useState([]);
   const [user, setUser] = useState(null);
   const [notificationsCount, setNotificationsCount] = useState(3);
-
   const [formData, setFormData] = useState({
     id_departement: "",
     nom: "",
@@ -159,16 +64,6 @@ const Departements = () => {
     localisation: "",
     nbr_employe: 0,
   });
-
-  const menuItems = [
-    { text: "Accueil", path: "/Home", icon: <HomeIcon /> },
-    { text: "Départements", path: "/departements", icon: <ApartmentIcon /> },
-    { text: "Employés", path: "/employes", icon: <PeopleIcon /> },
-    { text: "Pointages", path: "/pointages", icon: <AccessTimeIcon /> },
-    { text: "Congés", path: "/conges", icon: <BeachAccessIcon /> },
-    { text: "Absences", path: "/absences", icon: <BlockIcon /> },
-    { text: "Événements", path: "/evenements", icon: <EventAvailableIcon /> },
-  ];
 
   // --- Récupération utilisateur via JWT ---
   useEffect(() => {
@@ -369,10 +264,6 @@ const Departements = () => {
         .toLowerCase()
         .includes(searchTerm.toLowerCase())
   );
-  const paginatedData = filteredData.slice(
-    page * rowsPerPage,
-    page * rowsPerPage + rowsPerPage
-  );
 
   if (loading)
     return (
@@ -395,64 +286,9 @@ const Departements = () => {
         notificationsCount={notificationsCount}
         onMenuToggle={() => setOpen(!open)}
       />
-
-      {/* Sidebar */}
-      <Drawer
-        variant="permanent"
-        sx={{
-          width: drawerWidth,
-          flexShrink: 0,
-          "& .MuiDrawer-paper": {
-            width: drawerWidth,
-            boxSizing: "border-box",
-          },
-          display: { xs: "none", md: "block" },
-        }}
-        open
-      >
-        <Toolbar />
-        <Divider />
-        <List>
-          {menuItems.map((item) => (
-            <ListItem key={item.text} disablePadding>
-              <ListItemButton
-                component={Link}
-                to={item.path}
-                selected={location.pathname === item.path}
-              >
-                <ListItemIcon>{item.icon}</ListItemIcon>
-                <ListItemText primary={item.text} />
-              </ListItemButton>
-            </ListItem>
-          ))}
-        </List>
-      </Drawer>
-
-      {/* Drawer mobile */}
-      <Drawer
-        anchor="left"
-        open={open}
-        onClose={() => setOpen(false)}
-        sx={{ display: { md: "none" } }}
-      >
-        <Box sx={{ width: drawerWidth }}>
-          <List>
-            {menuItems.map((item) => (
-              <ListItem key={item.text} disablePadding>
-                <ListItemButton
-                  component={Link}
-                  to={item.path}
-                  onClick={() => setOpen(false)}
-                  selected={location.pathname === item.path}
-                >
-                  <ListItemIcon>{item.icon}</ListItemIcon>
-                  <ListItemText primary={item.text} />
-                </ListItemButton>
-              </ListItem>
-            ))}
-          </List>
-        </Box>
-      </Drawer>
+      
+      {/* Sidebar - Utilisation du composant importé */}
+      <Sidebar open={open} setOpen={setOpen} />
 
       {/* Contenu principal */}
       <Box
@@ -463,7 +299,7 @@ const Departements = () => {
           minHeight: "100vh",
           p: 3,
           mt: 8,
-          ml: { md: `${drawerWidth}px` },
+          ml: { md: `240px` },
         }}
       >
         {/* Titre + bouton */}
@@ -561,207 +397,26 @@ const Departements = () => {
         </Paper>
 
         {/* Tableau */}
-        <Paper sx={{ width: "100%", borderRadius: 3 }}>
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>ID</TableCell>
-                  <TableCell>Nom</TableCell>
-                  <TableCell>Responsable</TableCell>
-                  <TableCell>Localisation</TableCell>
-                  <TableCell>Employés</TableCell>
-                  <TableCell>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {paginatedData.map((row) => (
-                  <TableRow key={row.id_departement} hover>
-                    <TableCell>
-                      <Chip
-                        label={row.id_departement || "N/A"}
-                        color="primary"
-                        variant="outlined"
-                      />
-                    </TableCell>
-                    <TableCell>{row.nom || "N/A"}</TableCell>
-                    <TableCell>{row.responsable || "Non défini"}</TableCell>
-                    <TableCell>{row.localisation || "Non défini"}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={row.nbr_employe || 0}
-                        color={
-                          row.nbr_employe > 20 ? "success" : "default"
-                        }
-                        variant="filled"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: "flex", gap: 1 }}>
-                        <IconButton
-                          color="primary"
-                          onClick={() => handleOpenDialog(row)}
-                        >
-                          <EditIcon />
-                        </IconButton>
-                        <IconButton
-                          color="error"
-                          onClick={() => handleDelete(row.id_departement)}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {paginatedData.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
-                      <Typography color="text.secondary">
-                        {searchTerm
-                          ? "Aucun département ne correspond à votre recherche"
-                          : "Aucun département trouvé"}
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-          {filteredData.length > 0 && (
-            <TablePagination>
-              rowsPerPageOptions={[5, 10, 25]}
-              component="div"
-              count={filteredData.length}
-              rowsPerPage={rowsPerPage}
-              page={page}
-              onPageChange={handleChangePage}
-              onRowsPerPageChange={handleChangeRowsPerPage}
-              labelRowsPerPage="Lignes par page"
-            </TablePagination>
-          )}
-        </Paper>
+        <DepartementTableau
+          data={filteredData}
+          page={page}
+          rowsPerPage={rowsPerPage}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+          onEdit={handleOpenDialog}
+          onDelete={handleDelete}
+        />
 
-        {/* Dialog */}
-        <ModernDialog open={openDialog} onClose={handleCloseDialog} fullWidth>
-          <ModernDialogTitle>
-            {editingDepartement
-              ? "Modifier Département"
-              : "Nouveau Département"}
-            <IconButton onClick={handleCloseDialog}>
-              <CloseIcon />
-            </IconButton>
-          </ModernDialogTitle>
-          <form onSubmit={handleSubmit}>
-            <DialogContent sx={{ p: 3 }}>
-              <Grid container spacing={2.5}>
-                <Grid item xs={12} sm={6}>
-                  <ModernTextField
-                    fullWidth
-                    label="ID *"
-                    value={formData.id_departement}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        id_departement: e.target.value,
-                      })
-                    }
-                    error={!!formErrors.id_departement}
-                    helperText={formErrors.id_departement}
-                    required
-                    disabled={editingDepartement != null}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <ModernTextField
-                    fullWidth
-                    label="Nom *"
-                    value={formData.nom}
-                    onChange={(e) =>
-                      setFormData({ ...formData, nom: e.target.value })
-                    }
-                    error={!!formErrors.nom}
-                    helperText={formErrors.nom}
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <ModernTextField
-                    fullWidth
-                    label="Responsable *"
-                    value={formData.responsable}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        responsable: e.target.value,
-                      })
-                    }
-                    error={!!formErrors.responsable}
-                    helperText={formErrors.responsable}
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <ModernTextField
-                    fullWidth
-                    label="Nombre d'employés"
-                    type="number"
-                    value={0} // Toujours afficher 0 (lecture seule)
-                    InputProps={{
-                      readOnly: true,
-                    }}
-                    helperText="Calculé automatiquement"
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <ModernTextField
-                    fullWidth
-                    label="Description"
-                    value={formData.description}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        description: e.target.value,
-                      })
-                    }
-                    multiline
-                    rows={3}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <ModernTextField
-                    fullWidth
-                    label="Localisation"
-                    value={formData.localisation}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        localisation: e.target.value,
-                      })
-                    }
-                  />
-                </Grid>
-              </Grid>
-            </DialogContent>
-            <DialogActions sx={{ p: 3, justifyContent: "space-between" }}>
-              <ModernButton
-                onClick={handleCloseDialog}
-                color="inherit"
-                variant="outlined"
-              >
-                Annuler
-              </ModernButton>
-              <ModernButton
-                type="submit"
-                variant="contained"
-                color="primary"
-                startIcon={<SaveIcon />}
-              >
-                {editingDepartement ? "Mettre à jour" : "Enregistrer"}
-              </ModernButton>
-            </DialogActions>
-          </form>
-        </ModernDialog>
+        {/* Modal */}
+        <DepartementModal
+          open={openDialog}
+          onClose={handleCloseDialog}
+          editingDepartement={editingDepartement}
+          formData={formData}
+          setFormData={setFormData}
+          formErrors={formErrors}
+          onSubmit={handleSubmit}
+        />
 
         {/* Snackbar */}
         <Snackbar

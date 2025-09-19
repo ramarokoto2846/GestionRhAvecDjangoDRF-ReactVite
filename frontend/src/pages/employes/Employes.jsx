@@ -1,31 +1,9 @@
 import React, { useState, useEffect } from "react";
 import {
-  Toolbar,
   Box,
   Typography,
   IconButton,
-  Avatar,
-  Button,
-  Drawer,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Divider,
   Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
-  Chip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   TextField,
   Grid,
   InputAdornment,
@@ -35,45 +13,29 @@ import {
   Card,
   CardContent,
   CircularProgress,
-  alpha,
-  MenuItem,
-  Tooltip,
-  useTheme,
   FormControl,
   InputLabel,
-  Select
+  Select,
+  MenuItem,
+  useTheme
 } from "@mui/material";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
-  Apartment as ApartmentIcon,
-  People as PeopleIcon,
   Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
   Search as SearchIcon,
   Close as CloseIcon,
-  Home as HomeIcon,
-  AccessTime as AccessTimeIcon,
-  BeachAccess as BeachAccessIcon,
-  Block as BlockIcon,
-  EventAvailable as EventAvailableIcon,
-  Person as PersonIcon,
-  Email as EmailIcon,
-  Phone as PhoneIcon,
-  Work as WorkIcon,
-  Business as BusinessIcon,
   FilterList as FilterIcon
 } from "@mui/icons-material";
 import axios from "axios";
 import { getEmployes, createEmploye, updateEmploye, deleteEmploye, getDepartements } from "../../services/api";
 import Header, { triggerNotificationsRefresh } from "../../components/Header";
+import Sidebar from "../../components/Sidebar"; // Importez le Sidebar
 import Swal from "sweetalert2";
-
-const drawerWidth = 240;
+import EmployeTableau from "./EmployeTableau";
+import EmployModal from "./EmployModal";
 
 const Employes = () => {
   const theme = useTheme();
-  const location = useLocation();
   const navigate = useNavigate();
 
   const [open, setOpen] = useState(false);
@@ -103,16 +65,6 @@ const Employes = () => {
   const [departements, setDepartements] = useState([]);
   const [user, setUser] = useState(null);
   const [errors, setErrors] = useState({});
-
-  const menuItems = [
-    { text: "Accueil", path: "/Home", icon: <HomeIcon /> },
-    { text: "Départements", path: "/departements", icon: <ApartmentIcon /> },
-    { text: "Employés", path: "/employes", icon: <PeopleIcon /> },
-    { text: "Pointages", path: "/pointages", icon: <AccessTimeIcon /> },
-    { text: "Congés", path: "/conges", icon: <BeachAccessIcon /> },
-    { text: "Absences", path: "/absences", icon: <BlockIcon /> },
-    { text: "Événements", path: "/evenements", icon: <EventAvailableIcon /> }
-  ];
 
   // --- Récupération utilisateur via JWT ---
   useEffect(() => {
@@ -325,38 +277,10 @@ const Employes = () => {
       />
       
       {/* Sidebar */}
-      <Drawer variant="permanent" sx={{ width: drawerWidth, flexShrink:0, [`& .MuiDrawer-paper`]:{ width:drawerWidth, boxSizing:"border-box"}, display:{ xs:"none", md:"block"} }} open>
-        <Toolbar /><Divider />
-        <List>
-          {menuItems.map(item => (
-            <ListItem key={item.text} disablePadding>
-              <ListItemButton component={Link} to={item.path} selected={location.pathname===item.path}>
-                <ListItemIcon>{item.icon}</ListItemIcon>
-                <ListItemText primary={item.text}/>
-              </ListItemButton>
-            </ListItem>
-          ))}
-        </List>
-      </Drawer>
-
-      {/* Mobile Drawer */}
-      <Drawer anchor="left" open={open} onClose={()=>setOpen(false)} sx={{ display:{md:"none"} ,}}>
-        <Box sx={{ width:drawerWidth }}>
-          <List>
-            {menuItems.map(item => (
-              <ListItem key={item.text} disablePadding>
-                <ListItemButton component={Link} to={item.path} onClick={()=>setOpen(false)} selected={location.pathname===item.path}>
-                  <ListItemIcon>{item.icon}</ListItemIcon>
-                  <ListItemText primary={item.text}/>
-                </ListItemButton>
-              </ListItem>
-            ))}
-          </List>
-        </Box>
-      </Drawer>
+      <Sidebar open={open} setOpen={setOpen} />
 
       {/* Contenu principal */}
-      <Box component="main" sx={{ flexGrow:1, bgcolor:"#f8fafc", minHeight:"100vh", p:3, mt:8, ml:{md:`${drawerWidth}px`}, ml:5 }}>
+      <Box component="main" sx={{ flexGrow:1, bgcolor:"#f8fafc", minHeight:"100vh", p:3, mt:8, ml:{md:`240px`} }}>
         {/* Header */}
         <Box sx={{ display:"flex", justifyContent:"space-between", alignItems:"center", mb:3 }}>
           <Box>
@@ -453,279 +377,34 @@ const Employes = () => {
         </Paper>
 
         {/* Tableau */}
-        <Paper sx={{ width:"100%", overflow:"hidden", borderRadius:3 }}>
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Matricule</TableCell>
-                  <TableCell>Nom et Titre</TableCell>
-                  <TableCell>Contact</TableCell>
-                  <TableCell>Poste</TableCell>
-                  <TableCell>Département</TableCell>
-                  <TableCell>Statut</TableCell>
-                  <TableCell>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {paginatedData.map(employe => (
-                  <TableRow key={employe.matricule} hover>
-                    <TableCell>
-                      <Chip
-                        label={ employe.matricule }
-                        color="primary"
-                        variant="outlined"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Avatar
-                          sx={{
-                            bgcolor: alpha(theme.palette.primary.main, 0.2),
-                            color: theme.palette.primary.main
-                          }}
-                        >
-                          <PersonIcon />
-                        </Avatar>
-                        <Box>
-                          <Typography variant="subtitle2" fontWeight="bold">
-                            {employe.prenom} {employe.nom}
-                          </Typography>
-                          <Chip
-                            label={employe.titre}
-                            size="small"
-                            color={getTitreColor(employe.titre)}
-                            variant="outlined"
-                          />
-                        </Box>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                          <EmailIcon fontSize="small" color="primary" />
-                          <Typography variant="body2">
-                            {employe.email}
-                          </Typography>
-                        </Box>
-                        {employe.telephone && (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <PhoneIcon fontSize="small" color="primary" />
-                            <Typography variant="body2">
-                              {employe.telephone}
-                            </Typography>
-                          </Box>
-                        )}
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <WorkIcon fontSize="small" color="primary" />
-                        <Typography variant="body2">
-                          {employe.poste}
-                        </Typography>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      {employe.departement && (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <BusinessIcon fontSize="small" color="primary" />
-                          <Typography variant="body2">
-                            {employe.departement.nom}
-                          </Typography>
-                        </Box>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={employe.statut}
-                        color={getStatusColor(employe.statut)}
-                        variant="filled"
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display:"flex", gap:1 }}>
-                        <Tooltip title="Modifier">
-                          <IconButton color="primary" onClick={()=>handleOpenDialog(employe)} size="small">
-                            <EditIcon/>
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Supprimer">
-                          <IconButton color="error" onClick={()=>handleDelete(employe.matricule)} size="small">
-                            <DeleteIcon/>
-                          </IconButton>
-                        </Tooltip>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {paginatedData.length===0 && <TableRow><TableCell colSpan={6} align="center">Aucun employé trouvé</TableCell></TableRow>}
-              </TableBody>
-            </Table>
-          </TableContainer>
-          {filteredData.length>0 && <TablePagination rowsPerPageOptions={[5,10,25]} component="div" count={filteredData.length} rowsPerPage={rowsPerPage} page={page} onPageChange={handleChangePage} onRowsPerPageChange={handleChangeRowsPerPage} labelRowsPerPage="Lignes par page"/>}
-        </Paper>
+        <EmployeTableau
+          employes={employes}
+          filteredData={filteredData}
+          paginatedData={paginatedData}
+          page={page}
+          rowsPerPage={rowsPerPage}
+          handleChangePage={handleChangePage}
+          handleChangeRowsPerPage={handleChangeRowsPerPage}
+          handleOpenDialog={handleOpenDialog}
+          handleDelete={handleDelete}
+          getStatusColor={getStatusColor}
+          getTitreColor={getTitreColor}
+          theme={theme}
+        />
 
         {/* Dialog */}
-        <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth
-          PaperProps={{
-            sx: {
-              borderRadius: 3
-            }
-          }}
-        >
-          <DialogTitle sx={{ 
-            backgroundColor: theme.palette.primary.main,
-            color: 'white',
-            fontWeight: 'bold'
-          }}>
-            {editingEmploye ? "Modifier l'employé" : "Nouvel employé"}
-          </DialogTitle>
-          <form onSubmit={handleSubmit}>
-            <DialogContent sx={{ pt: 3 }}>
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Matricule"
-                    name="matricule"
-                    value={formData.matricule}
-                    onChange={handleChange}
-                    error={!!errors.matricule}
-                    helperText={errors.matricule}
-                    disabled={!!editingEmploye}
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Titre"
-                    name="titre"
-                    value={formData.titre}
-                    onChange={handleChange}
-                    select
-                    required
-                  >
-                    <MenuItem value="stagiaire">Stagiaire</MenuItem>
-                    <MenuItem value="employe">Employé Fixe</MenuItem>
-                  </TextField>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Nom"
-                    name="nom"
-                    value={formData.nom}
-                    onChange={handleChange}
-                    error={!!errors.nom}
-                    helperText={errors.nom}
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Prénom"
-                    name="prenom"
-                    value={formData.prenom}
-                    onChange={handleChange}
-                    error={!!errors.prenom}
-                    helperText={errors.prenom}
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Email"
-                    name="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    error={!!errors.email}
-                    helperText={errors.email}
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Téléphone"
-                    name="telephone"
-                    value={formData.telephone}
-                    onChange={handleChange}
-                    error={!!errors.telephone}
-                    helperText={errors.telephone}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Poste"
-                    name="poste"
-                    value={formData.poste}
-                    onChange={handleChange}
-                    error={!!errors.poste}
-                    helperText={errors.poste}
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Département"
-                    name="departement_pk"
-                    value={formData.departement_pk}
-                    onChange={handleChange}
-                    select
-                    required
-                    error={!!errors.departement_pk}
-                    helperText={errors.departement_pk}
-                  >
-                    {departements.map((dept) => (
-                      <MenuItem key={dept.id_departement} value={dept.id_departement}>
-                        {dept.nom}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Statut"
-                    name="statut"
-                    value={formData.statut}
-                    onChange={handleChange}
-                    select
-                    required
-                  >
-                    <MenuItem value="actif">Actif</MenuItem>
-                    <MenuItem value="inactif">Inactif</MenuItem>
-                  </TextField>
-                </Grid>
-              </Grid>
-            </DialogContent>
-            <DialogActions sx={{ p: 3, gap: 1 }}>
-              <Button onClick={handleCloseDialog} color="inherit">
-                Annuler
-              </Button>
-              <Button
-                type="submit"
-                variant="contained"
-                disabled={loading}
-                sx={{
-                  borderRadius: 2,
-                  px: 3,
-                  py: 1
-                }}
-              >
-                {loading ? 'En cours...' : (editingEmploye ? 'Modifier' : 'Créer')}
-              </Button>
-            </DialogActions>
-          </form>
-        </Dialog>
+        <EmployModal
+          openDialog={openDialog}
+          handleCloseDialog={handleCloseDialog}
+          editingEmploye={editingEmploye}
+          formData={formData}
+          errors={errors}
+          handleChange={handleChange}
+          handleSubmit={handleSubmit}
+          loading={loading}
+          departements={departements}
+          theme={theme}
+        />
 
         {/* Snackbar */}
         <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={handleCloseSnackbar} anchorOrigin={{ vertical:"bottom", horizontal:"right" }}>

@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 import {
   Paper,
   Table,
@@ -9,81 +9,46 @@ import {
   TableRow,
   TablePagination,
   Chip,
-  IconButton,
   Box,
   Typography,
   Avatar,
+  IconButton,
   Tooltip,
   alpha,
   useTheme
 } from "@mui/material";
 import {
-  Edit as EditIcon,
-  Delete as DeleteIcon
-} from "@mui/icons-material";
-import {
   Email as EmailIcon,
   Phone as PhoneIcon,
   Work as WorkIcon,
   Business as BusinessIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
   Person as PersonIcon
 } from "@mui/icons-material";
-import Swal from "sweetalert2";
-import { deleteEmploye } from "../../services/api";
 
-const EmployeTable = ({
+const EmployeTableau = ({
   employes,
   filteredData,
+  paginatedData,
   page,
   rowsPerPage,
   handleChangePage,
   handleChangeRowsPerPage,
   handleOpenDialog,
-  fetchData,
-  showSnackbar,
+  handleDelete,
+  getStatusColor,
+  getTitreColor,
   theme
 }) => {
-
-  const getStatusColor = (statut) => {
-    return statut === 'actif' ? 'success' : 'error';
-  };
-
-  const getTitreColor = (titre) => {
-    return titre === 'employe' ? 'primary' : 'secondary';
-  };
-
-  const handleDelete = async (matricule) => {
-    const result = await Swal.fire({
-      title: 'Êtes-vous sûr?',
-      text: "Vous ne pourrez pas annuler cette action!",
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#3085d6',
-      cancelButtonColor: '#d33',
-      confirmButtonText: 'Oui, supprimer!',
-      cancelButtonText: 'Annuler',
-      background: theme.palette.background.paper,
-      color: theme.palette.text.primary
-    });
-
-    if (result.isConfirmed) {
-      try {
-        await deleteEmploye(matricule);
-        showSnackbar("Employé supprimé avec succès");
-        fetchData();
-      } catch (err) {
-        showSnackbar("Erreur lors de la suppression", "error");
-      }
-    }
-  };
-
   return (
-    <Paper sx={{ width:"100%", overflow:"hidden", borderRadius:3 }}>
+    <Paper sx={{ width: "100%", overflow: "hidden", borderRadius: 3 }}>
       <TableContainer>
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Employé</TableCell>
+              <TableCell>Matricule</TableCell>
+              <TableCell>Nom et Titre</TableCell>
               <TableCell>Contact</TableCell>
               <TableCell>Poste</TableCell>
               <TableCell>Département</TableCell>
@@ -92,8 +57,15 @@ const EmployeTable = ({
             </TableRow>
           </TableHead>
           <TableBody>
-            {employes.map(employe => (
+            {paginatedData.map(employe => (
               <TableRow key={employe.matricule} hover>
+                <TableCell>
+                  <Chip
+                    label={employe.matricule}
+                    color="primary"
+                    variant="outlined"
+                  />
+                </TableCell>
                 <TableCell>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <Avatar
@@ -107,9 +79,6 @@ const EmployeTable = ({
                     <Box>
                       <Typography variant="subtitle2" fontWeight="bold">
                         {employe.prenom} {employe.nom}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        matricule: {employe.matricule}
                       </Typography>
                       <Chip
                         label={employe.titre}
@@ -165,39 +134,28 @@ const EmployeTable = ({
                   />
                 </TableCell>
                 <TableCell>
-                  <Box sx={{ display:"flex", gap:1 }}>
+                  <Box sx={{ display: "flex", gap: 1 }}>
                     <Tooltip title="Modifier">
-                      <IconButton color="primary" onClick={()=>handleOpenDialog(employe)} size="small">
-                        <EditIcon/>
+                      <IconButton color="primary" onClick={() => handleOpenDialog(employe)} size="small">
+                        <EditIcon />
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Supprimer">
-                      <IconButton color="error" onClick={()=>handleDelete(employe.matricule)} size="small">
-                        <DeleteIcon/>
+                      <IconButton color="error" onClick={() => handleDelete(employe.matricule)} size="small">
+                        <DeleteIcon />
                       </IconButton>
                     </Tooltip>
                   </Box>
                 </TableCell>
               </TableRow>
             ))}
-            {employes.length===0 && <TableRow><TableCell colSpan={6} align="center">Aucun employé trouvé</TableCell></TableRow>}
+            {paginatedData.length === 0 && <TableRow><TableCell colSpan={7} align="center">Aucun employé trouvé</TableCell></TableRow>}
           </TableBody>
         </Table>
       </TableContainer>
-      {filteredData.length>0 && (
-        <TablePagination 
-          rowsPerPageOptions={[5,10,25]} 
-          component="div" 
-          count={filteredData.length} 
-          rowsPerPage={rowsPerPage} 
-          page={page} 
-          onPageChange={handleChangePage} 
-          onRowsPerPageChange={handleChangeRowsPerPage} 
-          labelRowsPerPage="Lignes par page"
-        />
-      )}
+      {filteredData.length > 0 && <TablePagination rowsPerPageOptions={[5, 10, 25]} component="div" count={filteredData.length} rowsPerPage={rowsPerPage} page={page} onPageChange={handleChangePage} onRowsPerPageChange={handleChangeRowsPerPage} labelRowsPerPage="Lignes par page" />}
     </Paper>
   );
 };
 
-export default EmployeTable;
+export default EmployeTableau;

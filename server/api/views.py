@@ -1,13 +1,15 @@
 from rest_framework import viewsets, permissions, filters, status
 from rest_framework.response import Response
-from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
-from datetime import datetime, timedelta
-from .models import CustomUser, Departement, Employe, Pointage, Absence, Conge, Evenement
+from datetime import datetime
+from django.utils import timezone
+from .models import Departement, Employe, Pointage, Absence, Conge, Evenement
 from .serializers import (
     CustomUserSerializer, DepartementSerializer, EmployeSerializer,
     PointageSerializer, AbsenceSerializer, CongeSerializer, EvenementSerializer
 )
+
 
 # -----------------------
 # Utilisateur courant
@@ -137,7 +139,7 @@ class CongeViewSet(viewsets.ModelViewSet):
     def valider(self, request, pk=None):
         conge = self.get_object()
         conge.statut = 'valide'
-        conge.date_decision = datetime.now()
+        conge.date_decision = timezone.now()
         conge.save()
         return Response({
             'status': 'congé validé',
@@ -147,10 +149,17 @@ class CongeViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def refuser(self, request, pk=None):
         conge = self.get_object()
+        motif_refus = request.data.get('motif_refus')
+        
+        if not motif_refus:
+            return Response(
+                {'error': 'La raison du refus est requise.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         conge.statut = 'refuse'
-        conge.date_decision = datetime.now()
-        # Capture motif_refus from request body, if provided
-        conge.motif_refus = request.data.get('motif_refus', '')
+        conge.date_decision = timezone.now()
+        conge.motif_refus = motif_refus
         conge.save()
         return Response({
             'status': 'congé refusé',

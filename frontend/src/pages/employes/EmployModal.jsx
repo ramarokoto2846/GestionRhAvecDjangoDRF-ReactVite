@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -6,72 +6,38 @@ import {
   DialogActions,
   TextField,
   Grid,
-  Button,
   MenuItem,
+  Button,
   useTheme
 } from "@mui/material";
-import { createEmploye, updateEmploye } from "../../services/api";
 
-const EmployeModal = ({
+const EmployModal = ({
   openDialog,
   handleCloseDialog,
   editingEmploye,
   formData,
-  handleChange,
   errors,
-  departements,
+  handleChange,
+  handleSubmit,
   loading,
-  fetchData,
-  showSnackbar
+  departements,
+  theme
 }) => {
-  const theme = useTheme();
-  const [localLoading, setLocalLoading] = useState(false);
-  const [localErrors, setLocalErrors] = useState({});
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      setLocalLoading(true);
-
-      if (editingEmploye) {
-        await updateEmploye(editingEmploye.matricule, formData);
-        showSnackbar("Employé modifié avec succès");
-      } else {
-        await createEmploye(formData);
-        showSnackbar("Employé créé avec succès");
-      }
-
-      handleCloseDialog();
-      fetchData();
-    } catch (err) {
-      if (err.response?.data) {
-        setLocalErrors(err.response.data);
-      } else {
-        showSnackbar("Erreur lors de l'opération", "error");
-      }
-    } finally {
-      setLocalLoading(false);
-    }
-  };
-
   return (
-    <Dialog
-      open={openDialog}
-      onClose={handleCloseDialog}
-      maxWidth="md"
-      fullWidth
-      PaperProps={{ sx: { borderRadius: 3 } }}
+    <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: 3
+        }
+      }}
     >
-      <DialogTitle
-        sx={{
-          backgroundColor: theme.palette.primary.main,
-          color: "white",
-          fontWeight: "bold"
-        }}
-      >
+      <DialogTitle sx={{
+        backgroundColor: theme.palette.primary.main,
+        color: 'white',
+        fontWeight: 'bold'
+      }}>
         {editingEmploye ? "Modifier l'employé" : "Nouvel employé"}
       </DialogTitle>
-
       <form onSubmit={handleSubmit}>
         <DialogContent sx={{ pt: 3 }}>
           <Grid container spacing={2}>
@@ -82,8 +48,8 @@ const EmployeModal = ({
                 name="matricule"
                 value={formData.matricule}
                 onChange={handleChange}
-                error={!!errors.matricule || !!localErrors.matricule}
-                helperText={errors.matricule || localErrors.matricule}
+                error={!!errors.matricule}
+                helperText={errors.matricule}
                 disabled={!!editingEmploye}
                 required
               />
@@ -109,8 +75,8 @@ const EmployeModal = ({
                 name="nom"
                 value={formData.nom}
                 onChange={handleChange}
-                error={!!errors.nom || !!localErrors.nom}
-                helperText={errors.nom || localErrors.nom}
+                error={!!errors.nom}
+                helperText={errors.nom}
                 required
               />
             </Grid>
@@ -121,8 +87,8 @@ const EmployeModal = ({
                 name="prenom"
                 value={formData.prenom}
                 onChange={handleChange}
-                error={!!errors.prenom || !!localErrors.prenom}
-                helperText={errors.prenom || localErrors.prenom}
+                error={!!errors.prenom}
+                helperText={errors.prenom}
                 required
               />
             </Grid>
@@ -134,8 +100,8 @@ const EmployeModal = ({
                 type="email"
                 value={formData.email}
                 onChange={handleChange}
-                error={!!errors.email || !!localErrors.email}
-                helperText={errors.email || localErrors.email}
+                error={!!errors.email}
+                helperText={errors.email}
                 required
               />
             </Grid>
@@ -146,8 +112,8 @@ const EmployeModal = ({
                 name="telephone"
                 value={formData.telephone}
                 onChange={handleChange}
-                error={!!errors.telephone || !!localErrors.telephone}
-                helperText={errors.telephone || localErrors.telephone}
+                error={!!errors.telephone}
+                helperText={errors.telephone}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -157,8 +123,8 @@ const EmployeModal = ({
                 name="poste"
                 value={formData.poste}
                 onChange={handleChange}
-                error={!!errors.poste || !!localErrors.poste}
-                helperText={errors.poste || localErrors.poste}
+                error={!!errors.poste}
+                helperText={errors.poste}
                 required
               />
             </Grid>
@@ -171,8 +137,8 @@ const EmployeModal = ({
                 onChange={handleChange}
                 select
                 required
-                error={!!errors.departement_pk || !!localErrors.departement_pk}
-                helperText={errors.departement_pk || localErrors.departement_pk}
+                error={!!errors.departement_pk}
+                helperText={errors.departement_pk}
               >
                 {departements.map((dept) => (
                   <MenuItem key={dept.id_departement} value={dept.id_departement}>
@@ -197,7 +163,6 @@ const EmployeModal = ({
             </Grid>
           </Grid>
         </DialogContent>
-
         <DialogActions sx={{ p: 3, gap: 1 }}>
           <Button onClick={handleCloseDialog} color="inherit">
             Annuler
@@ -205,14 +170,14 @@ const EmployeModal = ({
           <Button
             type="submit"
             variant="contained"
-            disabled={loading || localLoading}
-            sx={{ borderRadius: 2, px: 3, py: 1 }}
+            disabled={loading}
+            sx={{
+              borderRadius: 2,
+              px: 3,
+              py: 1
+            }}
           >
-            {loading || localLoading
-              ? "En cours..."
-              : editingEmploye
-              ? "Modifier"
-              : "Créer"}
+            {loading ? 'En cours...' : (editingEmploye ? 'Modifier' : 'Créer')}
           </Button>
         </DialogActions>
       </form>
@@ -220,4 +185,4 @@ const EmployeModal = ({
   );
 };
 
-export default EmployeModal;
+export default EmployModal;
