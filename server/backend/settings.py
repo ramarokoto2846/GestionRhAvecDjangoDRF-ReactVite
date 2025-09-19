@@ -139,4 +139,4 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'leondroh.p18@gmail.com'
 EMAIL_HOST_PASSWORD = 'xbkr kmbx pkdx xwkk'
-DEFAULT_FROM_EMAIL = 'leondroh.p18@gmail.com'
+DEFAULT_FROM_EMAIL = 'Responsable RH'
