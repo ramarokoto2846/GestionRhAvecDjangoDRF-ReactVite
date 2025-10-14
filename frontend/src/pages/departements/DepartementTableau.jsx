@@ -11,9 +11,9 @@ import {
   Chip,
   Box,
   IconButton,
-  Typography
+  Typography,
 } from "@mui/material";
-import { Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
+import { Edit as EditIcon, Delete as DeleteIcon, Lock as LockIcon } from "@mui/icons-material";
 
 const DepartementTableau = ({
   data,
@@ -22,12 +22,11 @@ const DepartementTableau = ({
   onPageChange,
   onRowsPerPageChange,
   onEdit,
-  onDelete
+  onDelete,
+  currentUser,
+  isSuperuser,
 }) => {
-  const paginatedData = data.slice(
-    page * rowsPerPage,
-    page * rowsPerPage + rowsPerPage
-  );
+  const paginatedData = data.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   return (
     <Paper sx={{ width: "100%", borderRadius: 3 }}>
@@ -44,45 +43,49 @@ const DepartementTableau = ({
             </TableRow>
           </TableHead>
           <TableBody>
-            {paginatedData.map((row) => (
-              <TableRow key={row.id_departement} hover>
-                <TableCell>
-                  <Chip
-                    label={row.id_departement || "N/A"}
-                    color="primary"
-                    variant="outlined"
-                  />
-                </TableCell>
-                <TableCell>{row.nom || "N/A"}</TableCell>
-                <TableCell>{row.responsable || "Non défini"}</TableCell>
-                <TableCell>{row.localisation || "Non défini"}</TableCell>
-                <TableCell>
-                  <Chip
-                    label={row.nbr_employe || 0}
-                    color={
-                      row.nbr_employe > 20 ? "success" : "default"
-                    }
-                    variant="filled"
-                  />
-                </TableCell>
-                <TableCell>
-                  <Box sx={{ display: "flex", gap: 1 }}>
-                    <IconButton
-                      color="primary"
-                      onClick={() => onEdit(row)}
-                    >
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton
-                      color="error"
-                      onClick={() => onDelete(row.id_departement)}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  </Box>
-                </TableCell>
-              </TableRow>
-            ))}
+            {paginatedData.map((row) => {
+              // Vérifier si l'utilisateur peut modifier/supprimer (créateur ou superutilisateur)
+              const canEditOrDelete = isSuperuser || (currentUser && row.created_by === currentUser.id);
+
+              return (
+                <TableRow key={row.id_departement} hover>
+                  <TableCell>
+                    <Chip label={row.id_departement || "N/A"} color="primary" variant="outlined" />
+                  </TableCell>
+                  <TableCell>{row.nom || "N/A"}</TableCell>
+                  <TableCell>{row.responsable || "Non défini"}</TableCell>
+                  <TableCell>{row.localisation || "Non défini"}</TableCell>
+                  <TableCell>
+                    <Chip
+                      label={row.nbr_employe || 0}
+                      color={row.nbr_employe > 20 ? "success" : "default"}
+                      variant="filled"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Box sx={{ display: "flex", gap: 1 }}>
+                      {canEditOrDelete ? (
+                        <>
+                          <IconButton color="primary" onClick={() => onEdit(row)}>
+                            <EditIcon />
+                          </IconButton>
+                          <IconButton
+                            color="error"
+                            onClick={() => onDelete(row.id_departement)}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </>
+                      ) : (
+                        <IconButton color="default" disabled title="Non autorisé">
+                          <LockIcon />
+                        </IconButton>
+                      )}
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
             {paginatedData.length === 0 && (
               <TableRow>
                 <TableCell colSpan={6} align="center" sx={{ py: 4 }}>

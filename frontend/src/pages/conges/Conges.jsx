@@ -483,6 +483,7 @@ const Conges = () => {
             onValider={handleValider}
             onRefuser={handleRefuser}
             theme={theme}
+            user={user} // Pass user to CongeTable
           />
         </Paper>
 

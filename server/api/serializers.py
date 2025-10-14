@@ -1,240 +1,4 @@
-# # from rest_framework import serializers
-# # from .models import CustomUser, Departement, Employe, Pointage, Absence, Conge, Evenement
-# # from django.contrib.auth.hashers import make_password
-
-# # # -----------------------
-# # # CustomUser
-# # # -----------------------
-# # class CustomUserSerializer(serializers.ModelSerializer):
-# #     password = serializers.CharField(write_only=True, required=True, min_length=8)
-
-# #     class Meta:
-# #         model = CustomUser
-# #         fields = ['id', 'email', 'password', 'nom', 'is_staff', 'is_superuser']
-# #         read_only_fields = ['is_staff', 'is_superuser']
-
-# #     def create(self, validated_data):
-# #         validated_data['password'] = make_password(validated_data.get('password'))
-# #         return super().create(validated_data)
-
-# #     def update(self, instance, validated_data):
-# #         if 'password' in validated_data:
-# #             validated_data['password'] = make_password(validated_data.get('password'))
-# #         return super().update(instance, validated_data)
-
-
-# # # -----------------------
-# # # Departement
-# # # -----------------------
-# # class DepartementSerializer(serializers.ModelSerializer):
-# #     class Meta:
-# #         model = Departement
-# #         fields = '__all__'
-
-
-# # # ========================
-# # # Employe Serializer
-# # # ========================
-# # class EmployeSerializer(serializers.ModelSerializer):
-# #     departement = serializers.PrimaryKeyRelatedField(
-# #         queryset=Departement.objects.all()
-# #     )
-
-# #     class Meta:
-# #         model = Employe
-# #         fields = '__all__'
-
-# # # -----------------------
-# # # Pointage
-# # # -----------------------
-# # class PointageSerializer(serializers.ModelSerializer):
-# #     duree_travail = serializers.DurationField(read_only=True)
-# #     employe_nom = serializers.CharField(source='employe.nom_complet', read_only=True)
-# #     employe_matricule = serializers.CharField(source='employe.matricule', read_only=True)
-
-# #     class Meta:
-# #         model = Pointage
-# #         fields = '__all__'
-
-# #     def validate(self, data):
-# #         if data.get('heure_sortie') and data.get('heure_entree'):
-# #             if data['heure_sortie'] <= data['heure_entree']:
-# #                 raise serializers.ValidationError("L'heure de sortie doit être après l'heure d'entrée")
-# #         return data
-
-
-# # # -----------------------
-# # # Absence
-# # # -----------------------
-# # class AbsenceSerializer(serializers.ModelSerializer):
-# #     nbr_jours = serializers.IntegerField(read_only=True)
-# #     employe_nom = serializers.CharField(source='employe.nom_complet', read_only=True)
-
-# #     class Meta:
-# #         model = Absence
-# #         fields = '__all__'
-
-# #     def validate(self, data):
-# #         if data['date_fin_absence'] < data['date_debut_absence']:
-# #             raise serializers.ValidationError("La date de fin doit être après la date de début")
-# #         return data
-
-
-# # # -----------------------
-# # # Conge
-# # # -----------------------
-# # class CongeSerializer(serializers.ModelSerializer):
-# #     nbr_jours = serializers.IntegerField(read_only=True)
-# #     employe_nom = serializers.CharField(source='employe.nom_complet', read_only=True)
-
-# #     class Meta:
-# #         model = Conge
-# #         fields = '__all__'
-# #         read_only_fields = ['date_demande', 'date_decision']
-
-# #     def validate(self, data):
-# #         if data['date_fin'] < data['date_debut']:
-# #             raise serializers.ValidationError("La date de fin doit être après la date de début")
-# #         return data
-
-
-# # # -----------------------
-# # # Evenement
-# # # -----------------------
-# # class EvenementSerializer(serializers.ModelSerializer):
-# #     duree = serializers.DurationField(read_only=True)
-
-# #     class Meta:
-# #         model = Evenement
-# #         fields = '__all__'
-
-# #     def validate(self, data):
-# #         if data['date_fin'] < data['date_debut']:
-# #             raise serializers.ValidationError("La date de fin doit être après la date de début")
-# #         return data
-
-# from rest_framework import serializers
-# from .models import CustomUser, Departement, Employe, Pointage, Absence, Conge, Evenement
-# from django.contrib.auth.hashers import make_password
-
-# # -----------------------
-# # CustomUser
-# # -----------------------
-# class CustomUserSerializer(serializers.ModelSerializer):
-#     password = serializers.CharField(write_only=True, required=True, min_length=8)
-
-#     class Meta:
-#         model = CustomUser
-#         fields = ['id', 'email', 'password', 'nom', 'is_staff', 'is_superuser']
-#         read_only_fields = ['is_staff', 'is_superuser']
-
-#     def create(self, validated_data):
-#         validated_data['password'] = make_password(validated_data.get('password'))
-#         return super().create(validated_data)
-
-#     def update(self, instance, validated_data):
-#         if 'password' in validated_data:
-#             validated_data['password'] = make_password(validated_data.get('password'))
-#         return super().update(instance, validated_data)
-
-
-# # -----------------------
-# # Departement
-# # -----------------------
-# class DepartementSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = Departement
-#         fields = '__all__'
-
-
-# # ========================
-# # Employe Serializer
-# # ========================
-# class EmployeSerializer(serializers.ModelSerializer):
-#     # Lecture → objet complet
-#     departement = DepartementSerializer(read_only=True)
-#     # Écriture → clé primaire
-#     departement_id = serializers.PrimaryKeyRelatedField(
-#         queryset=Departement.objects.all(),
-#         source='departement',
-#         write_only=True
-#     )
-
-#     class Meta:
-#         model = Employe
-#         fields = '__all__'
-
-
-# # -----------------------
-# # Pointage
-# # -----------------------
-# class PointageSerializer(serializers.ModelSerializer):
-#     duree_travail = serializers.DurationField(read_only=True)
-#     employe_nom = serializers.CharField(source='employe.nom_complet', read_only=True)
-#     employe_matricule = serializers.CharField(source='employe.matricule', read_only=True)
-
-#     class Meta:
-#         model = Pointage
-#         fields = '__all__'
-
-#     def validate(self, data):
-#         if data.get('heure_sortie') and data.get('heure_entree'):
-#             if data['heure_sortie'] <= data['heure_entree']:
-#                 raise serializers.ValidationError("L'heure de sortie doit être après l'heure d'entrée")
-#         return data
-
-
-# # -----------------------
-# # Absence
-# # -----------------------
-# class AbsenceSerializer(serializers.ModelSerializer):
-#     nbr_jours = serializers.IntegerField(read_only=True)
-#     employe_nom = serializers.CharField(source='employe.nom_complet', read_only=True)
-
-#     class Meta:
-#         model = Absence
-#         fields = '__all__'
-
-#     def validate(self, data):
-#         if data['date_fin_absence'] < data['date_debut_absence']:
-#             raise serializers.ValidationError("La date de fin doit être après la date de début")
-#         return data
-
-
-# # -----------------------
-# # Conge
-# # -----------------------
-# class CongeSerializer(serializers.ModelSerializer):
-#     nbr_jours = serializers.IntegerField(read_only=True)
-#     employe_nom = serializers.CharField(source='employe.nom_complet', read_only=True)
-
-#     class Meta:
-#         model = Conge
-#         fields = '__all__'
-#         read_only_fields = ['date_demande', 'date_decision']
-
-#     def validate(self, data):
-#         if data['date_fin'] < data['date_debut']:
-#             raise serializers.ValidationError("La date de fin doit être après la date de début")
-#         return data
-
-
-# # -----------------------
-# # Evenement
-# # -----------------------
-# class EvenementSerializer(serializers.ModelSerializer):
-#     duree = serializers.DurationField(read_only=True)
-
-#     class Meta:
-#         model = Evenement
-#         fields = '__all__'
-
-#     def validate(self, data):
-#         if data['date_fin'] < data['date_debut']:
-#             raise serializers.ValidationError("La date de fin doit être après la date de début")
-#         return data
-
-
+# serializers.py
 from rest_framework import serializers
 from .models import CustomUser, Departement, Employe, Pointage, Absence, Conge, Evenement
 from django.contrib.auth.hashers import make_password
@@ -259,34 +23,34 @@ class CustomUserSerializer(serializers.ModelSerializer):
             validated_data['password'] = make_password(validated_data.get('password'))
         return super().update(instance, validated_data)
 
-
 # -----------------------
 # Departement
 # -----------------------
 class DepartementSerializer(serializers.ModelSerializer):
+    created_by = serializers.PrimaryKeyRelatedField(read_only=True)
+
     class Meta:
         model = Departement
         fields = '__all__'
 
-
-# ========================
-# Employe Serializer
-# ========================
+# -----------------------
+# Employe
+# -----------------------
 class EmployeSerializer(serializers.ModelSerializer):
-    # Lecture → objet complet
     departement = DepartementSerializer(read_only=True)
-    # Écriture → clé primaire
     departement_pk = serializers.PrimaryKeyRelatedField(
         queryset=Departement.objects.all(),
-        source='departement',  # mappe sur le champ departement du modèle
+        source='departement',
         write_only=True
     )
+    created_by = serializers.PrimaryKeyRelatedField(read_only=True)
+    user = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
         model = Employe
         fields = [
             'matricule', 'titre', 'nom', 'prenom', 'email', 'telephone', 'poste',
-            'statut', 'departement', 'departement_pk'
+            'statut', 'departement', 'departement_pk', 'user', 'created_by'
         ]
 
 # -----------------------
@@ -296,6 +60,7 @@ class PointageSerializer(serializers.ModelSerializer):
     duree_travail = serializers.DurationField(read_only=True)
     employe_nom = serializers.CharField(source='employe.nom_complet', read_only=True)
     employe_matricule = serializers.CharField(source='employe.matricule', read_only=True)
+    created_by = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
         model = Pointage
@@ -311,13 +76,13 @@ class PointageSerializer(serializers.ModelSerializer):
                 })
         return data
 
-
 # -----------------------
 # Absence
 # -----------------------
 class AbsenceSerializer(serializers.ModelSerializer):
     nbr_jours = serializers.IntegerField(read_only=True)
     employe_nom = serializers.CharField(source='employe.nom_complet', read_only=True)
+    created_by = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
         model = Absence
@@ -328,30 +93,30 @@ class AbsenceSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("La date de fin doit être après la date de début")
         return data
 
-
 # -----------------------
 # Conge
 # -----------------------
 class CongeSerializer(serializers.ModelSerializer):
     nbr_jours = serializers.IntegerField(read_only=True)
     employe_nom = serializers.CharField(source='employe.nom_complet', read_only=True)
+    created_by = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
         model = Conge
         fields = '__all__'
-        read_only_fields = ['date_demande', 'date_decision', 'nbr_jours', 'employe_nom']
+        read_only_fields = ['date_demande', 'date_decision', 'nbr_jours', 'employe_nom', 'created_by']
 
     def validate(self, data):
         if data['date_fin'] < data['date_debut']:
             raise serializers.ValidationError("La date de fin doit être après la date de début")
         return data
 
-
 # -----------------------
 # Evenement
 # -----------------------
 class EvenementSerializer(serializers.ModelSerializer):
     duree = serializers.DurationField(read_only=True)
+    created_by = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
         model = Evenement

@@ -21,7 +21,7 @@ import EventBusyIcon from '@mui/icons-material/EventBusy';
 
 import { getEvenements, getCurrentUser, deleteEvenement } from "../../services/api";
 import Header from "../../components/Header";
-import Sidebar from "../../components/Sidebar"; // Importez le Sidebar
+import Sidebar from "../../components/Sidebar";
 import EvenementTable from "./EvenementTable";
 import EvenementModal from "./EvenementModal";
 
@@ -398,6 +398,7 @@ const Evenements = () => {
           onEdit={handleOpenDialog}
           onDelete={handleDelete}
           getEventStatus={getEventStatus}
+          user={user} // Pass user to EvenementTable
         />
 
         <EvenementModal

@@ -1,3 +1,4 @@
+# models.py
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.base_user import BaseUserManager
@@ -52,12 +53,12 @@ class Departement(models.Model):
     description = models.TextField(blank=True, null=True)
     nbr_employe = models.IntegerField(default=0)
     localisation = models.TextField()
+    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_departements')
 
     def __str__(self):
         return self.nom
 
     def save(self, *args, **kwargs):
-        # Mettre à jour le nombre d'employés
         if self.pk:
             self.nbr_employe = self.employes.count()
         super().save(*args, **kwargs)
@@ -93,6 +94,8 @@ class Employe(models.Model):
     poste = models.CharField(max_length=100)
     departement = models.ForeignKey(Departement, on_delete=models.CASCADE, related_name="employes")
     statut = models.CharField(max_length=20, choices=STATUT_VALIDE, default='actif')
+    user = models.OneToOneField(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='employe_profile')
+    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_employes')
 
     def __str__(self):
         return f"{self.nom} {self.prenom} ({self.matricule})"
@@ -101,7 +104,6 @@ class Employe(models.Model):
         is_new = self._state.adding
         old_departement = None
 
-        # If this is an update, get the current department from the database
         if not is_new:
             try:
                 old_instance = Employe.objects.get(pk=self.matricule)
@@ -109,14 +111,11 @@ class Employe(models.Model):
             except Employe.DoesNotExist:
                 pass
 
-        # Save the employee (updates or creates the record)
         super().save(*args, **kwargs)
 
-        # Update the new department's employee count
         if self.departement_id:
             self.departement.save()
 
-        # If the department changed, update the old department's employee count
         if not is_new and old_departement and old_departement.id_departement != self.departement_id:
             old_departement.save()
 
@@ -131,6 +130,7 @@ class Pointage(models.Model):
     heure_sortie = models.TimeField(null=True, blank=True)
     remarque = models.TextField(null=True, blank=True, default="Sans remarque.")
     duree_travail = models.DurationField(null=True, blank=True, editable=False)
+    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_pointages')
 
     class Meta:
         unique_together = ('employe', 'date_pointage')
@@ -140,7 +140,6 @@ class Pointage(models.Model):
             if self.heure_sortie <= self.heure_entree:
                 raise ValidationError("L'heure de sortie doit être après l'heure d'entrée.")
         
-        # Vérifier s'il existe déjà un pointage pour cet employé à cette date
         if Pointage.objects.filter(
             employe=self.employe, 
             date_pointage=self.date_pointage
@@ -150,7 +149,6 @@ class Pointage(models.Model):
         super().clean()
 
     def save(self, *args, **kwargs):
-        # Calcul automatique de la durée de travail
         if self.heure_entree and self.heure_sortie:
             entree_dt = datetime.combine(self.date_pointage, self.heure_entree)
             sortie_dt = datetime.combine(self.date_pointage, self.heure_sortie)
@@ -174,12 +172,12 @@ class Absence(models.Model):
     nbr_jours = models.IntegerField(editable=False)
     motif = models.TextField()
     justifiee = models.BooleanField(default=False)
+    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_absences')
 
     def clean(self):
         if self.date_fin_absence < self.date_debut_absence:
             raise ValidationError("La date de fin doit être après la date de début")
         
-        # Vérifier les chevauchements d'absences
         overlapping_absences = Absence.objects.filter(
             employe=self.employe,
             date_debut_absence__lte=self.date_fin_absence,
@@ -215,16 +213,16 @@ class Conge(models.Model):
     date_fin = models.DateField()
     nbr_jours = models.IntegerField(editable=False)
     motif = models.TextField()
-    motif_refus = models.TextField(null=True, blank=True)  # Raison du refus
+    motif_refus = models.TextField(null=True, blank=True)
     statut = models.CharField(max_length=20, choices=STATUT_VALIDE, default='en_attente')
     date_demande = models.DateTimeField(auto_now_add=True)
     date_decision = models.DateTimeField(null=True, blank=True)
+    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_conges')
 
     def clean(self):
         if self.date_fin < self.date_debut:
             raise ValidationError("La date de fin doit être après la date de début")
         
-        # Vérifier chevauchement
         overlapping_conges = Conge.objects.filter(
             employe=self.employe,
             date_debut__lte=self.date_fin,
@@ -237,34 +235,28 @@ class Conge(models.Model):
         super().clean()
 
     def save(self, *args, **kwargs):
-        # Calcul du nombre de jours
         delta = self.date_fin - self.date_debut
         self.nbr_jours = delta.days + 1
 
         old_status = None
         is_update = False
 
-        # Vérifie si l'objet existe déjà en base
         if self.pk and Conge.objects.filter(pk=self.pk).exists():
             old_instance = Conge.objects.get(pk=self.pk)
             old_status = old_instance.statut
             is_update = True
 
-        # Mettre à jour la date_decision si le statut passe à "valide" ou "refuse"
         if self.statut in ['valide', 'refuse'] and not self.date_decision:
             from django.utils import timezone
             self.date_decision = timezone.now()
 
         super().save(*args, **kwargs)
 
-        # Notification si nouveau congé ou changement de statut
         if not is_update or (is_update and old_status != self.statut):
             self._send_notification_email()
 
     def _send_notification_email(self):
-        """Envoyer une notification par email à l'employé en fonction du statut."""
         subject = f"Statut de votre demande de congé #{self.id_conge}"
-
         if self.statut == 'en_attente':
             message = (
                 f"Bonjour {self.employe.nom} {self.employe.prenom},\n\n"
@@ -297,7 +289,6 @@ class Conge(models.Model):
         try:
             from django.core.mail import send_mail
             from django.conf import settings
-
             send_mail(
                 subject=subject,
                 message=message,
@@ -311,7 +302,6 @@ class Conge(models.Model):
     def __str__(self):
         return f"Congé {self.id_conge} - {self.employe} ({self.statut})"
 
-
 # ========================
 # Evenement
 # ========================
@@ -323,6 +313,7 @@ class Evenement(models.Model):
     date_fin = models.DateTimeField()
     duree = models.DurationField(editable=False, null=True, blank=True)
     lieu = models.CharField(max_length=200, blank=True, null=True)
+    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_evenements')
 
     def clean(self):
         if self.date_fin < self.date_debut:

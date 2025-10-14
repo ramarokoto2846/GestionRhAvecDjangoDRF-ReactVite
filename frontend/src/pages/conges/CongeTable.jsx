@@ -23,7 +23,8 @@ import {
   Delete as DeleteIcon,
   Check as CheckIcon,
   Close as CloseIcon,
-  Person as PersonIcon
+  Person as PersonIcon,
+  Lock as LockIcon
 } from "@mui/icons-material";
 
 const CongeTable = ({
@@ -35,7 +36,8 @@ const CongeTable = ({
   onDelete,
   onValider,
   onRefuser,
-  theme
+  theme,
+  user // Add user prop to check creator
 }) => {
   const getStatutColor = (statut) => {
     switch (statut) {
@@ -82,82 +84,121 @@ const CongeTable = ({
           </TableRow>
         </TableHead>
         <TableBody>
-          {conges.map((conge) => (
-            <TableRow key={conge.id_conge} hover>
-              <TableCell>
-                <Chip
-                  label={conge.id_conge}
-                  color="primary"
-                  variant="outlined"
-                />
-              </TableCell>
-              <TableCell>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.2), color: theme.palette.primary.main }}>
-                    <PersonIcon />
-                  </Avatar>
-                  <Box>
-                    <Typography variant="subtitle2" fontWeight="bold">
-                      {conge.employe_nom || conge.employe || "Inconnu"}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {conge.employe_matricule || conge.employe}
-                    </Typography>
+          {conges.map((conge) => {
+            const isCreator = user && conge.created_by === user.id; // Check if user is creator
+            return (
+              <TableRow key={conge.id_conge} hover>
+                <TableCell>
+                  <Chip
+                    label={conge.id_conge}
+                    color="primary"
+                    variant="outlined"
+                  />
+                </TableCell>
+                <TableCell>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.2), color: theme.palette.primary.main }}>
+                      <PersonIcon />
+                    </Avatar>
+                    <Box>
+                      <Typography variant="subtitle2" fontWeight="bold">
+                        {conge.employe_nom || conge.employe || "Inconnu"}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {conge.employe_matricule || conge.employe}
+                      </Typography>
+                    </Box>
                   </Box>
-                </Box>
-              </TableCell>
-              <TableCell>
-                {conge.date_debut && isValid(parseISO(conge.date_debut))
-                  ? format(parseISO(conge.date_debut), "dd MMMM yyyy", { locale: fr })
-                  : "-"}
-              </TableCell>
-              <TableCell>
-                {conge.date_fin && isValid(parseISO(conge.date_fin))
-                  ? format(parseISO(conge.date_fin), "dd MMMM yyyy", { locale: fr })
-                  : "-"}
-              </TableCell>
-              <TableCell>{conge.motif || "-"}</TableCell>
-              <TableCell>
-                {conge.statut === "en_attente" ? "En attente d'approbation" : conge.motif_refus || "-"}
-              </TableCell>
-              <TableCell>
-                <Chip
-                  label={conge.statut || "Inconnu"}
-                  color={getStatutColor(conge.statut)}
-                  variant="filled"
-                  size="small"
-                />
-              </TableCell>
-              <TableCell align="center">
-                <Box sx={{ display: "flex", gap: 1 }}>
-                  <Tooltip title="Modifier">
-                    <IconButton color="primary" onClick={() => onEdit(conge)} disabled={actionLoading}>
-                      <EditIcon />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Supprimer">
-                    <IconButton color="error" onClick={() => onDelete(conge.id_conge)} disabled={actionLoading}>
-                      {actionLoading && deletingId === conge.id_conge ? <CircularProgress size={24} /> : <DeleteIcon />}
-                    </IconButton>
-                  </Tooltip>
-                  {conge.statut === "en_attente" && (
-                    <>
-                      <Tooltip title="Valider">
-                        <IconButton color="success" onClick={() => onValider(conge.id_conge)} disabled={actionLoading}>
-                          <CheckIcon />
-                        </IconButton>
+                </TableCell>
+                <TableCell>
+                  {conge.date_debut && isValid(parseISO(conge.date_debut))
+                    ? format(parseISO(conge.date_debut), "dd MMMM yyyy", { locale: fr })
+                    : "-"}
+                </TableCell>
+                <TableCell>
+                  {conge.date_fin && isValid(parseISO(conge.date_fin))
+                    ? format(parseISO(conge.date_fin), "dd MMMM yyyy", { locale: fr })
+                    : "-"}
+                </TableCell>
+                <TableCell>{conge.motif || "-"}</TableCell>
+                <TableCell>
+                  {conge.statut === "en_attente" ? "En attente d'approbation" : conge.motif_refus || "-"}
+                </TableCell>
+                <TableCell>
+                  <Chip
+                    label={conge.statut || "Inconnu"}
+                    color={getStatutColor(conge.statut)}
+                    variant="filled"
+                    size="small"
+                  />
+                </TableCell>
+                <TableCell align="center">
+                  <Box sx={{ display: "flex", gap: 1 }}>
+                    {isCreator ? (
+                      <>
+                        <Tooltip title="Modifier">
+                          <span>
+                            <IconButton
+                              color="primary"
+                              onClick={() => onEdit(conge)}
+                              disabled={actionLoading}
+                            >
+                              <EditIcon />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                        <Tooltip title="Supprimer">
+                          <span>
+                            <IconButton
+                              color="error"
+                              onClick={() => onDelete(conge.id_conge)}
+                              disabled={actionLoading}
+                            >
+                              {actionLoading && deletingId === conge.id_conge ? (
+                                <CircularProgress size={24} />
+                              ) : (
+                                <DeleteIcon />
+                              )}
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                      </>
+                    ) : (
+                      <Tooltip title="Modifications non autorisées">
+                        <span>
+                          <IconButton disabled>
+                            <LockIcon />
+                          </IconButton>
+                        </span>
                       </Tooltip>
-                      <Tooltip title="Refuser">
-                        <IconButton color="error" onClick={() => onRefuer(conge.id_conge)} disabled={actionLoading}>
-                          <CloseIcon />
-                        </IconButton>
-                      </Tooltip>
-                    </>
-                  )}
-                </Box>
-              </TableCell>
-            </TableRow>
-          ))}
+                    )}
+                    {conge.statut === "en_attente" && (
+                      <>
+                        <Tooltip title="Valider">
+                          <IconButton
+                            color="success"
+                            onClick={() => onValider(conge.id_conge)}
+                            disabled={actionLoading}
+                          >
+                            <CheckIcon />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Refuser">
+                          <IconButton
+                            color="error"
+                            onClick={() => onRefuser(conge.id_conge)}
+                            disabled={actionLoading}
+                          >
+                            <CloseIcon />
+                          </IconButton>
+                        </Tooltip>
+                      </>
+                    )}
+                  </Box>
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </TableContainer>

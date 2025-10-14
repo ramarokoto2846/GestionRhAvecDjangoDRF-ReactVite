@@ -1,11 +1,13 @@
-// src/components/PrivateRoute.jsx
 import React from "react";
 import { Navigate } from "react-router-dom";
 
-const PrivateRoute = ({ children }) => {
-  const token = localStorage.getItem("access_token");
-  if (!token) return <Navigate to="/" replace />;
-  return children;
+const PrivateRoute = ({ isAuthenticated, isSuperuser, children }) => {
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+  
+  // Cloner l'élément enfant en passant isSuperuser comme prop
+  return React.cloneElement(children, { isSuperuser });
 };
 
 export default PrivateRoute;

@@ -53,7 +53,7 @@ const Absences = () => {
   const [stats, setStats] = useState({ total: 0, justifiees: 0, nonJustifiees: 0 });
 
   const initialFormData = {
-    id_absence: "",
+    id_absence: `A${Date.now()}`,
     employe: "",
     date_debut_absence: format(new Date(), "yyyy-MM-dd"),
     date_fin_absence: format(new Date(), "yyyy-MM-dd"),
@@ -79,9 +79,11 @@ const Absences = () => {
         }
         setLoading(true);
         const userData = await getCurrentUser();
+        console.log("Données de l'utilisateur actuel:", userData);
         setUser(userData);
         await fetchData();
       } catch (error) {
+        console.error("Erreur lors de l'initialisation:", error);
         setError(error.message || "Erreur lors de l'initialisation des données.");
         navigate("/");
       } finally {
@@ -94,26 +96,45 @@ const Absences = () => {
   const fetchData = async () => {
     try {
       setError(null);
+      setLoading(true);
       const [absencesData, employesData] = await Promise.all([
         getAbsences(),
         getEmployes()
       ]);
 
-      const formattedAbsences = absencesData.map(absence => {
-        const dateDebut = parseISO(absence.date_debut_absence);
-        const dateFin = parseISO(absence.date_fin_absence);
-        const nbrJours = isValid(dateDebut) && isValid(dateFin)
-          ? Math.max(differenceInDays(dateFin, dateDebut) + 1, 1)
-          : null;
-        return {
-          ...absence,
-          employe_nom: employesData.find(emp => emp.matricule === absence.employe)?.nom_complet ||
-                       `${employesData.find(emp => emp.matricule === absence.employe)?.prenom || ''} ${employesData.find(emp => emp.matricule === absence.employe)?.nom || ''}`.trim() ||
-                       absence.employe || 'Inconnu',
-          nbr_jours: nbrJours
-        };
-      });
+      console.log("Données des absences brutes:", absencesData);
+      console.log("Données des employés:", employesData);
 
+      const formattedAbsences = absencesData
+        .filter(absence => {
+          if (!absence || !absence.id_absence || !absence.employe) {
+            console.warn("Absence invalide filtrée:", absence);
+            return false;
+          }
+          return true;
+        })
+        .map(absence => {
+          const employe = employesData.find(emp => emp.matricule === absence.employe) || {};
+          const employeNom = absence.employe_nom ||
+            employe.nom_complet ||
+            `${employe.prenom || ''} ${employe.nom || ''}`.trim() ||
+            absence.employe ||
+            'Inconnu';
+          const dateDebut = parseISO(absence.date_debut_absence);
+          const dateFin = parseISO(absence.date_fin_absence);
+          const nbrJours = isValid(dateDebut) && isValid(dateFin)
+            ? Math.max(differenceInDays(dateFin, dateDebut) + 1, 1)
+            : null;
+          return {
+            ...absence,
+            employe_nom: String(employeNom),
+            employe_matricule: String(absence.employe_matricule || absence.employe || 'Inconnu'),
+            employe_details: employe,
+            nbr_jours: nbrJours
+          };
+        });
+
+      console.log("Absences formatées:", formattedAbsences);
       setAbsences(formattedAbsences);
       setEmployes(employesData);
 
@@ -123,9 +144,12 @@ const Absences = () => {
         nonJustifiees: formattedAbsences.filter(a => !a.justifiee).length
       });
     } catch (error) {
+      console.error("Erreur lors du chargement des données:", error);
       const errorMessage = error.message || "Erreur lors du chargement des données.";
       setError(errorMessage);
       showSnackbar(errorMessage, "error");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -150,7 +174,7 @@ const Absences = () => {
       });
     } else {
       setEditingAbsence(null);
-      setFormData(initialFormData);
+      setFormData({ ...initialFormData, id_absence: `A${Date.now()}` });
     }
     setOpenDialog(true);
   };
@@ -211,9 +235,13 @@ const Absences = () => {
       let errorMessage = error.message || "Erreur lors de l'opération.";
       if (error.response?.data) {
         const errors = error.response.data;
-        errorMessage = Object.keys(errors)
-          .map(key => `${key}: ${Array.isArray(errors[key]) ? errors[key].join(", ") : errors[key]}`)
-          .join("; ");
+        if (errors.non_field_errors) {
+          errorMessage = errors.non_field_errors.join(", ");
+        } else {
+          errorMessage = Object.keys(errors)
+            .map(key => `${key}: ${Array.isArray(errors[key]) ? errors[key].join(", ") : errors[key]}`)
+            .join("; ");
+        }
       }
       showSnackbar(errorMessage, "error");
     } finally {
@@ -246,9 +274,13 @@ const Absences = () => {
         let errorMessage = error.message || "Erreur lors de la suppression.";
         if (error.response?.data) {
           const errors = error.response.data;
-          errorMessage = Object.keys(errors)
-            .map(key => `${key}: ${Array.isArray(errors[key]) ? errors[key].join(", ") : errors[key]}`)
-            .join("; ");
+          if (errors.non_field_errors) {
+            errorMessage = errors.non_field_errors.join(", ");
+          } else {
+            errorMessage = Object.keys(errors)
+              .map(key => `${key}: ${Array.isArray(errors[key]) ? errors[key].join(", ") : errors[key]}`)
+              .join("; ");
+          }
         }
         showSnackbar(errorMessage, "error");
       } finally {
@@ -259,6 +291,10 @@ const Absences = () => {
   };
 
   const filteredData = absences.filter(absence => {
+    if (!absence || !absence.id_absence || !absence.employe) {
+      console.warn("Absence invalide dans filteredData:", absence);
+      return false;
+    }
     // Search filter
     const matchesSearch =
       (absence.employe_nom || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -280,31 +316,13 @@ const Absences = () => {
     return matchesSearch && matchesJustification && matchesMonth;
   });
 
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <Box sx={{ display: "flex", justifyContent: "center", mt: 10 }}>
-        <Typography color="error">{error}</Typography>
-      </Box>
-    );
-  }
-
   return (
     <Box sx={{ display: "flex" }}>
       <Header
         user={user}
         onMenuToggle={() => setOpen(!open)}
       />
-      
       <Sidebar open={open} setOpen={setOpen} />
-
       <Box component="main" sx={{ flexGrow: 1, bgcolor: "#f8fafc", minHeight: "100vh", p: 3, mt: 8, ml: { md: `240px` } }}>
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
@@ -334,7 +352,6 @@ const Absences = () => {
             Nouvelle Absence
           </Fab>
         </Box>
-
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid item xs={12} sm={6} md={3}>
             <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
@@ -361,7 +378,6 @@ const Absences = () => {
             </Card>
           </Grid>
         </Grid>
-
         <Paper sx={{ p: 2, mb: 3, borderRadius: 3 }}>
           <Grid container spacing={2}>
             <Grid item xs={12} sm={4}>
@@ -407,7 +423,6 @@ const Absences = () => {
             </Grid>
           </Grid>
         </Paper>
-
         <Paper sx={{ width: "100%", overflow: "hidden", borderRadius: 3 }}>
           <AbsenceTable
             absences={filteredData}
@@ -417,9 +432,9 @@ const Absences = () => {
             onEdit={handleOpenDialog}
             onDelete={handleDelete}
             theme={theme}
+            currentUser={user}
           />
         </Paper>
-
         <AbsenceModal
           open={openDialog}
           onClose={handleCloseDialog}
@@ -430,7 +445,6 @@ const Absences = () => {
           onSubmit={handleSubmit}
           onInputChange={handleInputChange}
         />
-
         <Snackbar
           open={snackbar.open}
           autoHideDuration={6000}

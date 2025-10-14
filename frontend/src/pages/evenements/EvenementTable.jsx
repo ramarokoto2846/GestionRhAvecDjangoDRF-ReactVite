@@ -11,6 +11,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import AddIcon from '@mui/icons-material/Add';
+import LockIcon from '@mui/icons-material/Lock';
 
 const EvenementTable = ({
   evenements,
@@ -20,7 +21,8 @@ const EvenementTable = ({
   onRowsPerPageChange,
   onEdit,
   onDelete,
-  getEventStatus
+  getEventStatus,
+  user // Add user prop to check creator
 }) => {
   const theme = useTheme();
 
@@ -75,6 +77,7 @@ const EvenementTable = ({
           <TableBody>
             {evenements.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((evenement) => {
               const status = getEventStatus(evenement);
+              const isCreator = user && evenement.created_by === user.id; // Check if user is creator
               return (
                 <TableRow key={evenement.id_evenement} hover>
                   <TableCell>
@@ -111,12 +114,34 @@ const EvenementTable = ({
                   <TableCell>{evenement.lieu || "Non spécifié"}</TableCell>
                   <TableCell align="center">
                     <Box sx={{ display: "flex", gap: 1 }}>
-                      <IconButton color="primary" onClick={() => onEdit(evenement)}>
-                        <EditIcon />
-                      </IconButton>
-                      <IconButton color="error" onClick={() => onDelete(evenement.id_evenement)}>
-                        <DeleteIcon />
-                      </IconButton>
+                      {isCreator ? (
+                        <>
+                        <span>
+                          <IconButton
+                            color="primary"
+                            onClick={() => isCreator && onEdit(evenement)}
+                            disabled={!isCreator}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                        </span>
+                        <span>
+                          <IconButton
+                            color="error"
+                            onClick={() => isCreator && onDelete(evenement.id_evenement)}
+                            disabled={!isCreator}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </span>
+                        </>
+                      ) : (
+                        <span>
+                          <IconButton disabled>
+                            <LockIcon />
+                          </IconButton>
+                        </span>
+                      )}
                     </Box>
                   </TableCell>
                 </TableRow>

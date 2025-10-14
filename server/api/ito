@@ -1,3 +1,205 @@
+# models.py
+from django.db import models
+from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.base_user import BaseUserManager
+from django.core.validators import RegexValidator
+from django.core.exceptions import ValidationError
+from datetime import datetime, time, date
+
+# ========================
+# Custom User
+# ========================
+class CustomUserManager(BaseUserManager):
+    def create_user(self, email, password=None, **extra_fields):
+        if not email:
+            raise ValueError('Email is required field')
+        email = self.normalize_email(email)
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+    
+    def create_superuser(self, email, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError('Superuser must have is_staff=True.')
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError('Superuser must have is_superuser=True.')
+
+        return self.create_user(email, password, **extra_fields)
+
+class CustomUser(AbstractUser):
+    username = None
+    email = models.EmailField(max_length=200, unique=True)
+    nom = models.CharField(max_length=100, null=True, blank=True)
+
+    objects = CustomUserManager()
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = []
+
+    def __str__(self):
+        return self.email
+
+# ========================
+# Departement
+# ========================
+class Departement(models.Model):
+    id_departement = models.CharField(max_length=10, primary_key=True)
+    nom = models.CharField(max_length=100)
+    responsable = models.TextField()
+    description = models.TextField(blank=True, null=True)
+    nbr_employe = models.IntegerField(default=0)
+    localisation = models.TextField()
+    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_departements')
+
+    def __str__(self):
+        return self.nom
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            self.nbr_employe = self.employes.count()
+        super().save(*args, **kwargs)
+
+# ========================
+# Employe
+# ========================
+class Employe(models.Model):
+    STATUT_VALIDE = [
+        ('actif', 'Actif'),
+        ('inactif', 'Inactif')
+    ]
+
+    TITRE_VALIDE = [
+        ('stagiaire', 'Stagiaire'),
+        ('employe', 'Employe Fixe')
+    ]
+
+    matricule = models.CharField(
+        max_length=6,
+        primary_key=True,
+        validators=[RegexValidator(r'^\d{6}$', 'Le matricule doit contenir exactement 6 chiffres')]
+    )
+    titre = models.CharField(
+        max_length=20,
+        choices=TITRE_VALIDE,
+        default='stagiaire'
+    )
+    nom = models.CharField(max_length=100)
+    prenom = models.CharField(max_length=100)
+    email = models.EmailField(unique=True)
+    telephone = models.CharField(max_length=50, blank=True, null=True)
+    poste = models.CharField(max_length=100)
+    departement = models.ForeignKey(Departement, on_delete=models.CASCADE, related_name="employes")
+    statut = models.CharField(max_length=20, choices=STATUT_VALIDE, default='actif')
+    user = models.OneToOneField(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='employe_profile')
+    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_employes')
+
+    def __str__(self):
+        return f"{self.nom} {self.prenom} ({self.matricule})"
+
+    def save(self, *args, **kwargs):
+        is_new = self._state.adding
+        old_departement = None
+
+        if not is_new:
+            try:
+                old_instance = Employe.objects.get(pk=self.matricule)
+                old_departement = old_instance.departement
+            except Employe.DoesNotExist:
+                pass
+
+        super().save(*args, **kwargs)
+
+        if self.departement_id:
+            self.departement.save()
+
+        if not is_new and old_departement and old_departement.id_departement != self.departement_id:
+            old_departement.save()
+
+# ========================
+# Pointage
+# ========================
+class Pointage(models.Model):
+    id_pointage = models.CharField(max_length=10, primary_key=True)
+    employe = models.ForeignKey('Employe', on_delete=models.CASCADE, related_name="pointages")
+    date_pointage = models.DateField(default=date.today)
+    heure_entree = models.TimeField()
+    heure_sortie = models.TimeField(null=True, blank=True)
+    remarque = models.TextField(null=True, blank=True, default="Sans remarque.")
+    duree_travail = models.DurationField(null=True, blank=True, editable=False)
+    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_pointages')
+
+    class Meta:
+        unique_together = ('employe', 'date_pointage')
+
+    def clean(self):
+        if self.heure_sortie and self.heure_entree:
+            if self.heure_sortie <= self.heure_entree:
+                raise ValidationError("L'heure de sortie doit être après l'heure d'entrée.")
+        
+        if Pointage.objects.filter(
+            employe=self.employe, 
+            date_pointage=self.date_pointage
+        ).exclude(id_pointage=self.id_pointage).exists():
+            raise ValidationError("Un pointage existe déjà pour cet employé à cette date.")
+        
+        super().clean()
+
+    def save(self, *args, **kwargs):
+        if self.heure_entree and self.heure_sortie:
+            entree_dt = datetime.combine(self.date_pointage, self.heure_entree)
+            sortie_dt = datetime.combine(self.date_pointage, self.heure_sortie)
+            self.duree_travail = sortie_dt - entree_dt
+        else:
+            self.duree_travail = None
+
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Pointage {self.id_pointage} - {self.employe}"
+
+# ========================
+# Absence
+# ========================
+class Absence(models.Model):
+    id_absence = models.CharField(max_length=10, primary_key=True)
+    employe = models.ForeignKey(Employe, on_delete=models.CASCADE, related_name="absences")
+    date_debut_absence = models.DateField()
+    date_fin_absence = models.DateField()
+    nbr_jours = models.IntegerField(editable=False)
+    motif = models.TextField()
+    justifiee = models.BooleanField(default=False)
+    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_absences')
+
+    def clean(self):
+        if self.date_fin_absence < self.date_debut_absence:
+            raise ValidationError("La date de fin doit être après la date de début")
+        
+        overlapping_absences = Absence.objects.filter(
+            employe=self.employe,
+            date_debut_absence__lte=self.date_fin_absence,
+            date_fin_absence__gte=self.date_debut_absence
+        ).exclude(id_absence=self.id_absence)
+        
+        if overlapping_absences.exists():
+            raise ValidationError("Cet employé a déjà une absence sur cette période.")
+        
+        super().clean()
+
+    def save(self, *args, **kwargs):
+        delta = self.date_fin_absence - self.date_debut_absence
+        self.nbr_jours = delta.days + 1
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Absence {self.id_absence} - {self.employe}"
+
+# ========================
+# Conge
+# ========================
 class Conge(models.Model):
     STATUT_VALIDE = [
         ('en_attente', 'En attente'),
@@ -11,16 +213,16 @@ class Conge(models.Model):
     date_fin = models.DateField()
     nbr_jours = models.IntegerField(editable=False)
     motif = models.TextField()
-    motif_refus = models.TextField(null=True, blank=True)  # Raison du refus
+    motif_refus = models.TextField(null=True, blank=True)
     statut = models.CharField(max_length=20, choices=STATUT_VALIDE, default='en_attente')
     date_demande = models.DateTimeField(auto_now_add=True)
     date_decision = models.DateTimeField(null=True, blank=True)
+    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_conges')
 
     def clean(self):
         if self.date_fin < self.date_debut:
             raise ValidationError("La date de fin doit être après la date de début")
         
-        # Vérifier chevauchement
         overlapping_conges = Conge.objects.filter(
             employe=self.employe,
             date_debut__lte=self.date_fin,
@@ -33,34 +235,28 @@ class Conge(models.Model):
         super().clean()
 
     def save(self, *args, **kwargs):
-        # Calcul du nombre de jours
         delta = self.date_fin - self.date_debut
         self.nbr_jours = delta.days + 1
 
         old_status = None
         is_update = False
 
-        # Vérifie si l'objet existe déjà en base
         if self.pk and Conge.objects.filter(pk=self.pk).exists():
             old_instance = Conge.objects.get(pk=self.pk)
             old_status = old_instance.statut
             is_update = True
 
-        # Mettre à jour la date_decision si le statut passe à "valide" ou "refuse"
         if self.statut in ['valide', 'refuse'] and not self.date_decision:
             from django.utils import timezone
             self.date_decision = timezone.now()
 
         super().save(*args, **kwargs)
 
-        # Notification si nouveau congé ou changement de statut
         if not is_update or (is_update and old_status != self.statut):
             self._send_notification_email()
 
     def _send_notification_email(self):
-        """Envoyer une notification par email à l'employé en fonction du statut."""
         subject = f"Statut de votre demande de congé #{self.id_conge}"
-
         if self.statut == 'en_attente':
             message = (
                 f"Bonjour {self.employe.nom} {self.employe.prenom},\n\n"
@@ -93,7 +289,6 @@ class Conge(models.Model):
         try:
             from django.core.mail import send_mail
             from django.conf import settings
-
             send_mail(
                 subject=subject,
                 message=message,
@@ -107,391 +302,411 @@ class Conge(models.Model):
     def __str__(self):
         return f"Congé {self.id_conge} - {self.employe} ({self.statut})"
 
+# ========================
+# Evenement
+# ========================
+class Evenement(models.Model):
+    id_evenement = models.CharField(max_length=10, primary_key=True)
+    titre = models.CharField(max_length=200)
+    description = models.TextField(blank=True, null=True)
+    date_debut = models.DateTimeField()
+    date_fin = models.DateTimeField()
+    duree = models.DurationField(editable=False, null=True, blank=True)
+    lieu = models.CharField(max_length=200, blank=True, null=True)
+    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_evenements')
 
+    def clean(self):
+        if self.date_fin < self.date_debut:
+            raise ValidationError("La date de fin doit être après la date de début")
+        super().clean()
+
+    def save(self, *args, **kwargs):
+        self.duree = self.date_fin - self.date_debut
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.titre} ({self.date_debut} - {self.date_fin})"
+
+
+        from rest_framework import permissions
+
+class IsOwnerOrAdminForWrite(permissions.BasePermission):
+    """
+    Permission personnalisée :
+    - Tous les utilisateurs authentifiés peuvent voir les données (GET, HEAD, OPTIONS).
+    - Seuls le créateur de l'objet, un superutilisateur, ou le responsable du département peuvent modifier/supprimer (PUT, PATCH, DELETE).
+    - Pour les congés, les responsables du département de l'employé peuvent valider/refuser.
+    """
+    def has_permission(self, request, view):
+        # Tous les utilisateurs authentifiés ont accès en lecture
+        return request.user and request.user.is_authenticated
+
+    def has_object_permission(self, request, view, obj):
+        # Autoriser les méthodes de lecture pour tous
+        if request.method in permissions.SAFE_METHODS:
+            return True
+
+        # Autoriser les superutilisateurs pour toutes les actions
+        if request.user.is_superuser:
+            return True
+
+        # Autoriser la modification/suppression pour le créateur
+        if hasattr(obj, 'created_by') and obj.created_by == request.user:
+            return True
+
+        # Autoriser si l'utilisateur est l'employé concerné (pour Pointage, Absence, Conge)
+        if hasattr(obj, 'employe') and obj.employe.user == request.user:
+            return True
+
+        # Autoriser les responsables du département pour les congés, absences, et pointages
+        if hasattr(obj, 'employe') and obj.employe.departement.responsable == request.user.email:
+            return True
+
+            # serializers.py
+from rest_framework import serializers
+from .models import CustomUser, Departement, Employe, Pointage, Absence, Conge, Evenement
+from django.contrib.auth.hashers import make_password
+
+# -----------------------
+# CustomUser
+# -----------------------
+class CustomUserSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=True, min_length=8)
+
+    class Meta:
+        model = CustomUser
+        fields = ['id', 'email', 'password', 'nom', 'is_staff', 'is_superuser']
+        read_only_fields = ['is_staff', 'is_superuser']
+
+    def create(self, validated_data):
+        validated_data['password'] = make_password(validated_data.get('password'))
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        if 'password' in validated_data:
+            validated_data['password'] = make_password(validated_data.get('password'))
+        return super().update(instance, validated_data)
+
+# -----------------------
+# Departement
+# -----------------------
+class DepartementSerializer(serializers.ModelSerializer):
+    created_by = serializers.PrimaryKeyRelatedField(read_only=True)
+
+    class Meta:
+        model = Departement
+        fields = '__all__'
+
+# -----------------------
+# Employe
+# -----------------------
+class EmployeSerializer(serializers.ModelSerializer):
+    departement = DepartementSerializer(read_only=True)
+    departement_pk = serializers.PrimaryKeyRelatedField(
+        queryset=Departement.objects.all(),
+        source='departement',
+        write_only=True
+    )
+    created_by = serializers.PrimaryKeyRelatedField(read_only=True)
+    user = serializers.PrimaryKeyRelatedField(read_only=True)
+
+    class Meta:
+        model = Employe
+        fields = [
+            'matricule', 'titre', 'nom', 'prenom', 'email', 'telephone', 'poste',
+            'statut', 'departement', 'departement_pk', 'user', 'created_by'
+        ]
+
+# -----------------------
+# Pointage
+# -----------------------
+class PointageSerializer(serializers.ModelSerializer):
+    duree_travail = serializers.DurationField(read_only=True)
+    employe_nom = serializers.CharField(source='employe.nom_complet', read_only=True)
+    employe_matricule = serializers.CharField(source='employe.matricule', read_only=True)
+    created_by = serializers.PrimaryKeyRelatedField(read_only=True)
+
+    class Meta:
+        model = Pointage
+        fields = '__all__'
+
+    def validate(self, data):
+        heure_entree = data.get('heure_entree')
+        heure_sortie = data.get('heure_sortie')
+        if heure_entree and heure_sortie:
+            if heure_sortie <= heure_entree:
+                raise serializers.ValidationError({
+                    'heure_sortie': "L'heure de sortie doit être après l'heure d'entrée"
+                })
+        return data
+
+# -----------------------
+# Absence
+# -----------------------
+class AbsenceSerializer(serializers.ModelSerializer):
+    nbr_jours = serializers.IntegerField(read_only=True)
+    employe_nom = serializers.CharField(source='employe.nom_complet', read_only=True)
+    created_by = serializers.PrimaryKeyRelatedField(read_only=True)
+
+    class Meta:
+        model = Absence
+        fields = '__all__'
+
+    def validate(self, data):
+        if data['date_fin_absence'] < data['date_debut_absence']:
+            raise serializers.ValidationError("La date de fin doit être après la date de début")
+        return data
+
+# -----------------------
+# Conge
+# -----------------------
 class CongeSerializer(serializers.ModelSerializer):
     nbr_jours = serializers.IntegerField(read_only=True)
     employe_nom = serializers.CharField(source='employe.nom_complet', read_only=True)
+    created_by = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
         model = Conge
         fields = '__all__'
-        read_only_fields = ['date_demande', 'date_decision', 'nbr_jours', 'employe_nom']
+        read_only_fields = ['date_demande', 'date_decision', 'nbr_jours', 'employe_nom', 'created_by']
 
     def validate(self, data):
         if data['date_fin'] < data['date_debut']:
             raise serializers.ValidationError("La date de fin doit être après la date de début")
         return data
 
+# -----------------------
+# Evenement
+# -----------------------
+class EvenementSerializer(serializers.ModelSerializer):
+    duree = serializers.DurationField(read_only=True)
+    created_by = serializers.PrimaryKeyRelatedField(read_only=True)
 
+    class Meta:
+        model = Evenement
+        fields = '__all__'
+
+    def validate(self, data):
+        if data['date_fin'] < data['date_debut']:
+            raise serializers.ValidationError("La date de fin doit être après la date de début")
+        return data
+
+        from rest_framework import viewsets, permissions, filters, status
+from rest_framework.response import Response
+from rest_framework.decorators import action
+from rest_framework.views import APIView
+from django_filters.rest_framework import DjangoFilterBackend
+from datetime import datetime
+from django.utils import timezone
+from .models import Departement, Employe, Pointage, Absence, Conge, Evenement
+from .serializers import (
+    CustomUserSerializer, DepartementSerializer, EmployeSerializer,
+    PointageSerializer, AbsenceSerializer, CongeSerializer, EvenementSerializer
+)
+from .permissions import IsOwnerOrAdminForWrite
+import logging
+
+# Définir le logger au début du fichier
+logger = logging.getLogger(__name__)
+
+# -----------------------
+# Utilisateur courant
+# -----------------------
+class CurrentUserView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        serializer = CustomUserSerializer(request.user)
+        return Response(serializer.data)
+
+# -----------------------
+# Inscription
+# -----------------------
+class RegisterViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.AllowAny]
+
+    def create(self, request):
+        serializer = CustomUserSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+            return Response(CustomUserSerializer(user).data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# -----------------------
+# Departement
+# -----------------------
+class DepartementViewSet(viewsets.ModelViewSet):
+    queryset = Departement.objects.all()
+    serializer_class = DepartementSerializer
+    permission_classes = [IsOwnerOrAdminForWrite]
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend, filters.OrderingFilter]
+    search_fields = ['nom', 'responsable', 'localisation']
+    filterset_fields = ['nom']
+    ordering_fields = ['nom', 'nbr_employe']
+    ordering = ['nom']
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
+# -----------------------
+# Employe
+# -----------------------
+class EmployeViewSet(viewsets.ModelViewSet):
+    queryset = Employe.objects.select_related('departement').all()
+    serializer_class = EmployeSerializer
+    permission_classes = [IsOwnerOrAdminForWrite]
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend, filters.OrderingFilter]
+    search_fields = ['nom', 'prenom', 'email', 'matricule', 'poste']
+    filterset_fields = ['departement', 'statut', 'titre']
+    ordering_fields = ['nom', 'prenom', 'matricule']
+    ordering = ['nom', 'prenom']
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
+    @action(detail=False, methods=['get'])
+    def stats(self, request):
+        total_employes = Employe.objects.count()
+        employes_actifs = Employe.objects.filter(statut='actif').count()
+        employes_inactifs = Employe.objects.filter(statut='inactif').count()
+        return Response({
+            'total_employes': total_employes,
+            'employes_actifs': employes_actifs,
+            'employes_inactifs': employes_inactifs
+        })
+
+# -----------------------
+# Pointage
+# -----------------------
+class PointageViewSet(viewsets.ModelViewSet):
+    queryset = Pointage.objects.select_related('employe').all()
+    serializer_class = PointageSerializer
+    permission_classes = [IsOwnerOrAdminForWrite]
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend, filters.OrderingFilter]
+    search_fields = ['employe__nom', 'employe__prenom', 'remarque']
+    filterset_fields = ['date_pointage', 'employe']
+    ordering_fields = ['date_pointage', 'heure_entree']
+    ordering = ['-date_pointage', 'heure_entree']
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
+    @action(detail=False, methods=['get'])
+    def stats_mensuelles(self, request):
+        mois = int(request.query_params.get('mois', datetime.now().month))
+        annee = int(request.query_params.get('annee', datetime.now().year))
+        pointages = Pointage.objects.filter(
+            date_pointage__year=annee,
+            date_pointage__month=mois,
+            duree_travail__isnull=False
+        )
+        total_heures = sum([p.duree_travail.total_seconds() for p in pointages]) / 3600
+        return Response({
+            'mois': mois,
+            'annee': annee,
+            'total_heures': total_heures,
+            'nombre_pointages': pointages.count()
+        })
+
+# -----------------------
+# Absence
+# -----------------------
+class AbsenceViewSet(viewsets.ModelViewSet):
+    queryset = Absence.objects.select_related('employe').all()
+    serializer_class = AbsenceSerializer
+    permission_classes = [IsOwnerOrAdminForWrite]
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend, filters.OrderingFilter]
+    search_fields = ['employe__nom', 'employe__prenom', 'motif']
+    filterset_fields = ['date_debut_absence', 'date_fin_absence', 'justifiee', 'employe']
+    ordering_fields = ['date_debut_absence', 'date_fin_absence']
+    ordering = ['-date_debut_absence']
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
+# -----------------------
+# Conge
+# -----------------------
 class CongeViewSet(viewsets.ModelViewSet):
     queryset = Conge.objects.select_related('employe').all()
     serializer_class = CongeSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsOwnerOrAdminForWrite]
     filter_backends = [filters.SearchFilter, DjangoFilterBackend, filters.OrderingFilter]
     search_fields = ['employe__nom', 'employe__prenom', 'motif']
     filterset_fields = ['date_debut', 'date_fin', 'statut', 'employe']
     ordering_fields = ['date_debut', 'date_fin', 'statut']
     ordering = ['-date_demande']
 
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
     @action(detail=True, methods=['post'])
     def valider(self, request, pk=None):
-        conge = self.get_object()
-        conge.statut = 'valide'
-        conge.date_decision = datetime.now()
-        conge.save()
-        return Response({
-            'status': 'congé validé',
-            'message': f"Un email de notification a été envoyé à {conge.employe.email}."
-        })
+        logger.info(f"Requête reçue pour valider le congé {pk} par l'utilisateur {request.user.email}")
+        try:
+            conge = self.get_object()
+            conge.statut = 'valide'
+            conge.date_decision = timezone.now()
+            conge.save()
+            logger.info(f"Congé {pk} validé avec succès")
+            return Response({
+                'status': 'congé validé',
+                'message': f"Un email de notification a été envoyé à {conge.employe.email}."
+            })
+        except Exception as e:
+            logger.error(f"Erreur lors de la validation du congé {pk}: {str(e)}")
+            return Response(
+                {'error': f"Erreur lors de la validation du congé: {str(e)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
     @action(detail=True, methods=['post'])
     def refuser(self, request, pk=None):
-        conge = self.get_object()
-        conge.statut = 'refuse'
-        conge.date_decision = datetime.now()
-        # Capture motif_refus from request body, if provided
-        conge.motif_refus = request.data.get('motif_refus', '')
-        conge.save()
-        return Response({
-            'status': 'congé refusé',
-            'message': f"Un email de notification a été envoyé à {conge.employe.email}.",
-            'motif_refus': conge.motif_refus or 'Non spécifiée'
-        })
-    
+        logger.info(f"Requête reçue pour refuser le congé {pk} par l'utilisateur {request.user.email}")
+        try:
+            conge = self.get_object()
+            motif_refus = request.data.get('motif_refus')
+            if not motif_refus:
+                logger.error("Motif de refus non fourni")
+                return Response(
+                    {'error': 'La raison du refus est requise.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            conge.statut = 'refuse'
+            conge.date_decision = timezone.now()
+            conge.motif_refus = motif_refus
+            conge.save()
+            logger.info(f"Congé {pk} refusé avec succès")
+            return Response({
+                'status': 'congé refusé',
+                'message': f"Un email de notification a été envoyé à {conge.employe.email}.",
+                'motif_refus': conge.motif_refus or 'Non spécifiée'
+            })
+        except Exception as e:
+            logger.error(f"Erreur lors du refus du congé {pk}: {str(e)}")
+            return Response(
+                {'error': f"Erreur lors du refus du congé: {str(e)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
+# -----------------------
+# Evenement
+# -----------------------
+class EvenementViewSet(viewsets.ModelViewSet):
+    queryset = Evenement.objects.all()
+    serializer_class = EvenementSerializer
+    permission_classes = [IsOwnerOrAdminForWrite]
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend, filters.OrderingFilter]
+    search_fields = ['titre', 'description', 'lieu']
+    filterset_fields = ['date_debut', 'date_fin']
+    ordering_fields = ['date_debut', 'date_fin']
+    ordering = ['date_debut']
 
-et voila l api.js
-import axios from "axios";
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
 
-const BASE_URL = "http://localhost:8000/api";
-
-// ========================
-// UTILITAIRES
-// ========================
-
-// Obtenir l'en-tête d'authentification
-const getAuthHeader = () => {
-  const token = localStorage.getItem("access_token");
-  if (!token) {
-    throw new Error("Aucun token d'authentification trouvé. Veuillez vous connecter.");
-  }
-  return { Authorization: `Bearer ${token}` };
-};
-
-// Gestion générique des erreurs
-const handleError = (error, defaultMessage) => {
-  let errorMessage = defaultMessage;
-  if (error.response?.data) {
-    const data = error.response.data;
-    if (typeof data === "string") {
-      errorMessage = data;
-    } else if (data.detail) {
-      errorMessage = data.detail;
-    } else if (data.non_field_errors) {
-      errorMessage = data.non_field_errors[0];
-    } else {
-      const fieldErrors = Object.values(data).flat().join(", ");
-      if (fieldErrors) errorMessage = fieldErrors;
-    }
-  } else if (error.message) {
-    errorMessage = error.message;
-  }
-  console.error("Erreur API:", error.response?.data || error.message);
-  throw new Error(errorMessage);
-};
-
-// Extraction des données (compatibilité DRF pagination)
-const extractData = (responseData) => {
-  if (Array.isArray(responseData)) {
-    return responseData;
-  } else if (responseData.results && Array.isArray(responseData.results)) {
-    return responseData.results;
-  } else {
-    console.warn("Structure de données inattendue, retourne array vide");
-    return [];
-  }
-};
-
-// ========================
-// AUTHENTIFICATION
-// ========================
-
-// Connexion
-export const login = async (email, password) => {
-  try {
-    const response = await axios.post(`${BASE_URL}/token/`, { email, password });
-    return response.data;
-  } catch (error) {
-    handleError(error, "Erreur lors de la connexion.");
-  }
-};
-
-// Rafraîchir le token
-export const refreshToken = async (refreshToken) => {
-  try {
-    const response = await axios.post(`${BASE_URL}/token/refresh/`, { refresh: refreshToken });
-    return response.data;
-  } catch (error) {
-    handleError(error, "Erreur lors du rafraîchissement du token.");
-  }
-};
-
-// Récupérer l'utilisateur courant
-export const getCurrentUser = async () => {
-  try {
-    const response = await axios.get(`${BASE_URL}/users/me/`, { headers: getAuthHeader() });
-    return response.data;
-  } catch (error) {
-    handleError(error, "Erreur lors de la récupération de l'utilisateur.");
-  }
-};
-
-// Inscription
-export const register = async (userData) => {
-  try {
-    const response = await axios.post(`${BASE_URL}/register/`, userData);
-    return response.data;
-  } catch (error) {
-    handleError(error, "Erreur lors de l'inscription.");
-  }
-};
-
-// ========================
-// CRUD GÉNÉRIQUE
-// ========================
-
-const createCrudFunctions = (endpoint, idField) => {
-  return {
-    getAll: async (params = {}) => {
-      try {
-        const response = await axios.get(`${BASE_URL}/${endpoint}/`, {
-          headers: getAuthHeader(),
-          params,
-        });
-        return extractData(response.data);
-      } catch (error) {
-        handleError(error, `Erreur lors de la récupération des ${endpoint}.`);
-      }
-    },
-    getOne: async (id) => {
-      try {
-        const response = await axios.get(`${BASE_URL}/${endpoint}/${id}/`, {
-          headers: getAuthHeader(),
-        });
-        return response.data;
-      } catch (error) {
-        handleError(error, `Erreur lors de la récupération de ${endpoint.slice(0, -1)} avec ID ${id}.`);
-      }
-    },
-    create: async (data) => {
-      try {
-        const response = await axios.post(`${BASE_URL}/${endpoint}/`, data, {
-          headers: getAuthHeader(),
-        });
-        return response.data;
-      } catch (error) {
-        handleError(error, `Erreur lors de la création de ${endpoint.slice(0, -1)}.`);
-      }
-    },
-    update: async (id, data) => {
-      try {
-        const response = await axios.put(`${BASE_URL}/${endpoint}/${id}/`, data, {
-          headers: getAuthHeader(),
-        });
-        return response.data;
-      } catch (error) {
-        handleError(error, `Erreur lors de la mise à jour de ${endpoint.slice(0, -1)} avec ID ${id}.`);
-      }
-    },
-    deleteOne: async (id) => {
-      try {
-        const response = await axios.delete(`${BASE_URL}/${endpoint}/${id}/`, {
-          headers: getAuthHeader(),
-        });
-        return response.data;
-      } catch (error) {
-        handleError(error, `Erreur lors de la suppression de ${endpoint.slice(0, -1)} avec ID ${id}.`);
-      }
-    },
-  };
-};
-
-// ========================
-// DÉPARTEMENTS
-// ========================
-const departementsCrud = createCrudFunctions("departements", "id_departement");
-export const getDepartements = departementsCrud.getAll;
-export const getDepartement = departementsCrud.getOne;
-export const createDepartement = departementsCrud.create;
-export const updateDepartement = departementsCrud.update;
-export const deleteDepartement = departementsCrud.deleteOne;
-
-// ========================
-// EMPLOYÉS
-// ========================
-const employesCrud = createCrudFunctions("employes", "matricule");
-export const getEmployes = employesCrud.getAll;
-export const getEmploye = employesCrud.getOne;
-export const createEmploye = employesCrud.create;
-export const updateEmploye = employesCrud.update;
-export const deleteEmploye = employesCrud.deleteOne;
-
-// Statistiques des employés
-export const getEmployesStats = async () => {
-  try {
-    const response = await axios.get(`${BASE_URL}/employes/stats/`, {
-      headers: getAuthHeader(),
-    });
-    return response.data;
-  } catch (error) {
-    handleError(error, "Erreur lors de la récupération des statistiques des employés.");
-  }
-};
-
-// ========================
-// POINTAGES
-// ========================
-const pointagesCrud = createCrudFunctions("pointages", "id_pointage");
-export const getPointages = pointagesCrud.getAll;
-export const getPointage = pointagesCrud.getOne;
-export const createPointage = pointagesCrud.create;
-export const updatePointage = pointagesCrud.update;
-export const deletePointage = pointagesCrud.deleteOne;
-
-// Statistiques mensuelles des pointages
-export const getPointagesStatsMensuelles = async (mois, annee) => {
-  try {
-    const response = await axios.get(`${BASE_URL}/pointages/stats_mensuelles/`, {
-      headers: getAuthHeader(),
-      params: { mois, annee },
-    });
-    return response.data;
-  } catch (error) {
-    console.error("Erreur lors de la récupération des statistiques mensuelles :", error.response || error.message);
-    handleError(error, "Erreur lors de la récupération des statistiques mensuelles des pointages.");
-  }
-};
-
-// ========================
-// ABSENCES
-// ========================
-const absencesCrud = createCrudFunctions("absences", "id_absence");
-export const getAbsences = absencesCrud.getAll;
-export const getAbsence = absencesCrud.getOne;
-export const createAbsence = absencesCrud.create;
-export const updateAbsence = absencesCrud.update;
-export const deleteAbsence = absencesCrud.deleteOne;
-
-// ========================
-// CONGÉS
-// ========================
-const congesCrud = createCrudFunctions("conges", "id_conge");
-export const getConges = congesCrud.getAll;
-export const getConge = congesCrud.getOne;
-export const createConge = congesCrud.create;
-export const updateConge = congesCrud.update;
-export const deleteConge = congesCrud.deleteOne;
-
-// Valider un congé
-export const validerConge = async (id) => {
-  try {
-    const response = await axios.post(`${BASE_URL}/conges/${id}/valider/`, {}, {
-      headers: getAuthHeader(),
-    });
-    return response.data;
-     // Retourne { status: 'congé validé', message: 'Un email a été envoyé...' }
-  } catch (error) {
-    handleError(error, "Erreur lors de la validation du congé.");
-  }
-};
-
-// Refuser un congé
-export const refuserConge = async (id) => {
-  try {
-    const response = await axios.post(`${BASE_URL}/conges/${id}/refuser/`, {}, {
-      headers: getAuthHeader(),
-    });
-    return response.data; // Retourne { status: 'congé refusé', message: 'Un email a été envoyé...' }
-  } catch (error) {
-    handleError(error, "Erreur lors du refus du congé.");
-  }
-};
-
-// ========================
-// ÉVÉNEMENTS
-// ========================
-const evenementsCrud = createCrudFunctions("evenements", "id_evenement");
-export const getEvenements = evenementsCrud.getAll;
-export const getEvenement = evenementsCrud.getOne;
-export const createEvenement = evenementsCrud.create;
-export const updateEvenement = evenementsCrud.update;
-export const deleteEvenement = evenementsCrud.deleteOne;
-
-// Événements à venir
-export const getEvenementsAVenir = async () => {
-  try {
-    const response = await axios.get(`${BASE_URL}/evenements/a_venir/`, {
-      headers: getAuthHeader(),
-    });
-    return extractData(response.data);
-  } catch (error) {
-    handleError(error, "Erreur lors de la récupération des événements à venir.");
-  }
-};
-
-// ========================
-// EXPORT PAR DÉFAUT
-// ========================
-export default {
-  login,
-  refreshToken,
-  getCurrentUser,
-  register,
-
-  // Départements
-  getDepartements,
-  getDepartement,
-  createDepartement,
-  updateDepartement,
-  deleteDepartement,
-
-  // Employés
-  getEmployes,
-  getEmploye,
-  createEmploye,
-  updateEmploye,
-  deleteEmploye,
-  getEmployesStats,
-
-  // Pointages
-  getPointages,
-  getPointage,
-  createPointage,
-  updatePointage,
-  deletePointage,
-  getPointagesStatsMensuelles,
-
-  // Absences
-  getAbsences,
-  getAbsence,
-  createAbsence,
-  updateAbsence,
-  deleteAbsence,
-
-  // Congés
-  getConges,
-  getConge,
-  createConge,
-  updateConge,
-  deleteConge,
-  validerConge,
-  refuserConge,
-
-  // Événements
-  getEvenements,
-  getEvenement,
-  createEvenement,
-  updateEvenement,
-  deleteEvenement,
-  getEvenementsAVenir,
-};
+    @action(detail=False, methods=['get'])
+    def a_venir(self, request):
+        evenements = Evenement.objects.filter(date_debut__gte=datetime.now())
+        serializer = self.get_serializer(evenements, many=True)
+        return Response(serializer.data)

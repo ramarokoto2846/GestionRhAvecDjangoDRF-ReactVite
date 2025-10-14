@@ -4,7 +4,7 @@ import {
   Paper, CircularProgress, Alert, Snackbar, FormControl,
   InputLabel, Select, MenuItem, TextField, IconButton,
   InputAdornment, Dialog, DialogTitle, DialogContent,
-  DialogActions, Button, Divider
+  DialogActions, Button, Divider, Chip, Avatar
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { format, parseISO, isValid } from "date-fns";
@@ -14,14 +14,42 @@ import Swal from "sweetalert2";
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import PersonIcon from '@mui/icons-material/Person';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import ExitToAppIcon from '@mui/icons-material/ExitToApp';
+import NotesIcon from '@mui/icons-material/Notes';
+import WorkIcon from '@mui/icons-material/Work';
+import EmailIcon from '@mui/icons-material/Email';
+import PhoneIcon from '@mui/icons-material/Phone';
+import BusinessIcon from '@mui/icons-material/Business';
 
 import { getPointages, createPointage, updatePointage, deletePointage, getEmployes, getCurrentUser } from "../../services/api";
 import Header, { triggerNotificationsRefresh } from "../../components/Header";
 import PointageTable from "./PointageTable";
 import PointageModal from "./PointageModal";
 import Sidebar from "../../components/Sidebar";
+import { useTheme } from "@mui/material/styles";
+
+// Composant pour afficher les éléments de détail
+const DetailItem = ({ icon, label, value, color = "text.primary" }) => (
+  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 1 }}>
+    <Box sx={{ color: 'primary.main', minWidth: 24 }}>
+      {icon}
+    </Box>
+    <Box sx={{ flex: 1 }}>
+      <Typography variant="subtitle2" color="text.secondary" fontSize="0.8rem">
+        {label}
+      </Typography>
+      <Typography variant="body1" color={color} fontWeight="500">
+        {value}
+      </Typography>
+    </Box>
+  </Box>
+);
 
 const Pointages = () => {
+  const theme = useTheme();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [pointages, setPointages] = useState([]);
@@ -60,9 +88,11 @@ const Pointages = () => {
         }
         setLoading(true);
         const userData = await getCurrentUser();
+        console.log("Données de l'utilisateur actuel:", userData);
         setUser(userData);
         await fetchData();
       } catch (error) {
+        console.error("Erreur lors de l'initialisation:", error);
         setError(error.message || "Erreur lors de l'initialisation des données.");
         navigate("/");
       }
@@ -79,14 +109,35 @@ const Pointages = () => {
         getEmployes()
       ]);
 
-      const formattedPointages = pointagesData.map(pointage => ({
-        ...pointage,
-        employe_nom: employesData.find(emp => emp.matricule === pointage.employe)?.nom_complet ||
-                     `${employesData.find(emp => emp.matricule === pointage.employe)?.prenom || ''} ${employesData.find(emp => emp.matricule === pointage.employe)?.nom || ''}`.trim() ||
-                     pointage.employe || 'Inconnu',
-        employe_details: employesData.find(emp => emp.matricule === pointage.employe) || {}
-      }));
+      console.log("Données des pointages brutes:", pointagesData);
+      console.log("Données des employés:", employesData);
 
+      // Valider et filtrer les pointages
+      const formattedPointages = pointagesData
+        .filter(pointage => {
+          if (!pointage || !pointage.id_pointage || !pointage.employe) {
+            console.warn("Pointage invalide filtré:", pointage);
+            return false;
+          }
+          return true;
+        })
+        .map(pointage => {
+          const employe = employesData.find(emp => emp.matricule === pointage.employe) || {};
+          const employeNom = pointage.employe_nom ||
+            employe.nom_complet ||
+            `${employe.prenom || ''} ${employe.nom || ''}`.trim() ||
+            pointage.employe ||
+            'Inconnu';
+          
+          return {
+            ...pointage,
+            employe_nom: String(employeNom),
+            employe_matricule: String(pointage.employe_matricule || pointage.employe || 'Inconnu'),
+            employe_details: employe
+          };
+        });
+
+      console.log("Pointages formatés:", formattedPointages);
       setPointages(formattedPointages);
       setEmployes(employesData);
 
@@ -96,6 +147,7 @@ const Pointages = () => {
         withoutExit: formattedPointages.filter(p => !p.heure_sortie).length
       });
     } catch (error) {
+      console.error("Erreur lors du chargement des données:", error);
       const errorMessage = error.message || "Erreur lors du chargement des données.";
       setError(errorMessage);
       showSnackbar(errorMessage, "error");
@@ -213,6 +265,32 @@ const Pointages = () => {
     }
   };
 
+  // FONCTION AJOUTÉE POUR LA MISE À JOUR DES SORTIES
+  const handleUpdatePointage = async (idPointage, updateData) => {
+    setActionLoading(true);
+    try {
+      await updatePointage(idPointage, updateData);
+      showSnackbar("Sortie enregistrée avec succès !", "success");
+      await fetchData();
+      triggerNotificationsRefresh();
+    } catch (error) {
+      let errorMessage = error.message || "Erreur lors de l'enregistrement de la sortie.";
+      if (error.response?.data) {
+        const errors = error.response.data;
+        if (errors.non_field_errors) {
+          errorMessage = errors.non_field_errors.join(", ");
+        } else {
+          errorMessage = Object.keys(errors)
+            .map(key => `${key}: ${Array.isArray(errors[key]) ? errors[key].join(", ") : errors[key]}`)
+            .join("; ");
+        }
+      }
+      showSnackbar(errorMessage, "error");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleDelete = async (id) => {
     const result = await Swal.fire({
       title: "Êtes-vous sûr ?",
@@ -260,15 +338,50 @@ const Pointages = () => {
     setDetailView(null);
   };
 
-  const filteredPointages = pointages.filter(pointage =>
-    (
-      (pointage.employe_nom || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (pointage.id_pointage || "").includes(searchTerm)
-    ) &&
-    (exitFilter === "all" ||
-     (exitFilter === "working" && !pointage.heure_sortie) ||
-     (exitFilter === "exited" && pointage.heure_sortie))
-  );
+  // Fonction pour calculer la durée de travail
+  const calculateWorkingHours = (heureEntree, heureSortie) => {
+    if (!heureEntree || !heureSortie) return "-";
+    
+    const [entreeHours, entreeMinutes] = heureEntree.split(':').map(Number);
+    const [sortieHours, sortieMinutes] = heureSortie.split(':').map(Number);
+    
+    const entreeTotalMinutes = entreeHours * 60 + entreeMinutes;
+    const sortieTotalMinutes = sortieHours * 60 + sortieMinutes;
+    
+    const diffMinutes = sortieTotalMinutes - entreeTotalMinutes;
+    const hours = Math.floor(diffMinutes / 60);
+    const minutes = diffMinutes % 60;
+    
+    return `${hours}h ${minutes}min`;
+  };
+
+  // Fonction pour obtenir la couleur du statut
+  const getStatusColor = (heureSortie) => {
+    return heureSortie ? "success" : "warning";
+  };
+
+  // Fonction pour obtenir le texte du statut
+  const getStatusText = (heureSortie) => {
+    return heureSortie ? "Terminé" : "En cours";
+  };
+
+  const filteredPointages = pointages.filter(pointage => {
+    if (!pointage || !pointage.id_pointage || !pointage.employe) {
+      console.warn("Pointage invalide dans filteredPointages:", pointage);
+      return false;
+    }
+    const employeNom = String(pointage.employe_nom || "");
+    const idPointage = String(pointage.id_pointage || "");
+    return (
+      (
+        employeNom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        idPointage.includes(searchTerm)
+      ) &&
+      (exitFilter === "all" ||
+       (exitFilter === "working" && !pointage.heure_sortie) ||
+       (exitFilter === "exited" && pointage.heure_sortie))
+    );
+  });
 
   return (
     <Box sx={{ display: "flex" }}>
@@ -276,9 +389,7 @@ const Pointages = () => {
         user={user}
         onMenuToggle={() => setOpen(!open)}
       />
-      
       <Sidebar open={open} setOpen={setOpen} />
-
       <Box component="main" sx={{ flexGrow: 1, bgcolor: "#f8fafc", minHeight: "100vh", p: 3, mt: 8, ml: { md: `240px` } }}>
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
@@ -308,7 +419,6 @@ const Pointages = () => {
             Nouveau Pointage
           </Fab>
         </Box>
-
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid item xs={12} sm={6} md={3}>
             <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
@@ -335,7 +445,6 @@ const Pointages = () => {
             </Card>
           </Grid>
         </Grid>
-
         <Paper sx={{ p: 2, mb: 3, borderRadius: 3 }}>
           <Grid container spacing={2} alignItems="center">
             <Grid item xs={12} sm={6}>
@@ -367,7 +476,6 @@ const Pointages = () => {
             </Grid>
           </Grid>
         </Paper>
-
         <Paper sx={{ width: "100%", overflow: "hidden", borderRadius: 3 }}>
           <PointageTable
             pointages={filteredPointages}
@@ -377,9 +485,11 @@ const Pointages = () => {
             onEdit={handleOpenDialog}
             onDelete={handleDelete}
             onViewDetails={showDetails}
+            onUpdatePointage={handleUpdatePointage} // ← PROP AJOUTÉE ICI
+            theme={theme}
+            currentUser={user}
           />
         </Paper>
-
         <PointageModal
           open={openDialog}
           editingPointage={editingPointage}
@@ -390,79 +500,203 @@ const Pointages = () => {
           onSubmit={handleSubmit}
           onInputChange={handleInputChange}
         />
-
+        
+        {/* Dialog des détails stylisé */}
         <Dialog
           open={!!detailView}
           onClose={closeDetails}
           maxWidth="md"
           fullWidth
-          PaperProps={{ sx: { borderRadius: 3 } }}
+          PaperProps={{ 
+            sx: { 
+              borderRadius: 3,
+              background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)'
+            }
+          }}
         >
-          <DialogTitle>Détails du pointage #{detailView?.id_pointage}</DialogTitle>
-          <DialogContent sx={{ pt: 3 }}>
+          <DialogTitle sx={{ 
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white',
+            py: 3
+          }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)' }}>
+                <AccessTimeIcon />
+              </Avatar>
+              <Box>
+                <Typography variant="h5" fontWeight="bold">
+                  Détails du Pointage
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                  #{detailView?.id_pointage || "Inconnu"}
+                </Typography>
+              </Box>
+            </Box>
+          </DialogTitle>
+          
+          <DialogContent sx={{ pt: 4, pb: 2 }}>
             {detailView && (
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
-                  <Typography variant="subtitle2" color="text.secondary">ID Pointage</Typography>
-                  <Typography variant="body1">{detailView.id_pointage}</Typography>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <Typography variant="subtitle2" color="text.secondary">Matricule Employé</Typography>
-                  <Typography variant="body1">{detailView.employe}</Typography>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <Typography variant="subtitle2" color="text.secondary">Nom Employé</Typography>
-                  <Typography variant="body1">{detailView.employe_nom || "Inconnu"}</Typography>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <Typography variant="subtitle2" color="text.secondary">Date</Typography>
-                  <Typography variant="body1">
-                    {detailView.date_pointage && isValid(parseISO(detailView.date_pointage))
-                      ? format(parseISO(detailView.date_pointage), "dd MMMM yyyy", { locale: fr })
-                      : "-"}
-                  </Typography>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <Typography variant="subtitle2" color="text.secondary">Heure d'Entrée</Typography>
-                  <Typography variant="body1">{detailView.heure_entree || "-"}</Typography>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <Typography variant="subtitle2" color="text.secondary">Heure de Sortie</Typography>
-                  <Typography variant="body1">{detailView.heure_sortie || "-"}</Typography>
-                </Grid>
+              <Grid container spacing={3}>
+                {/* En-tête avec statut */}
                 <Grid item xs={12}>
-                  <Typography variant="subtitle2" color="text.secondary">Remarque</Typography>
-                  <Typography variant="body1">{detailView.remarque || "Aucune remarque"}</Typography>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Chip
+                      icon={<AccessTimeIcon />}
+                      label={getStatusText(detailView.heure_sortie)}
+                      color={getStatusColor(detailView.heure_sortie)}
+                      variant="filled"
+                      sx={{ fontWeight: 'bold', fontSize: '0.9rem' }}
+                    />
+                    {detailView.heure_sortie && (
+                      <Typography variant="h6" color="primary" fontWeight="bold">
+                        Durée: {calculateWorkingHours(detailView.heure_entree, detailView.heure_sortie)}
+                      </Typography>
+                    )}
+                  </Box>
                 </Grid>
+
+                {/* Informations principales */}
+                <Grid item xs={12} md={6}>
+                  <Card sx={{ borderRadius: 2, boxShadow: 2, height: '100%' }}>
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <CalendarTodayIcon color="primary" />
+                        Informations du Pointage
+                      </Typography>
+                      <Box sx={{ mt: 2 }}>
+                        <DetailItem 
+                          icon={<AccessTimeIcon />}
+                          label="Heure d'Entrée"
+                          value={detailView.heure_entree || "-"}
+                          color="success"
+                        />
+                        <DetailItem 
+                          icon={<ExitToAppIcon />}
+                          label="Heure de Sortie"
+                          value={detailView.heure_sortie || "-"}
+                          color="info"
+                        />
+                        <DetailItem 
+                          icon={<CalendarTodayIcon />}
+                          label="Date"
+                          value={
+                            detailView.date_pointage && isValid(parseISO(detailView.date_pointage))
+                              ? format(parseISO(detailView.date_pointage), "EEEE dd MMMM yyyy", { locale: fr })
+                              : "-"
+                          }
+                        />
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+
+                {/* Informations de l'employé */}
+                <Grid item xs={12} md={6}>
+                  <Card sx={{ borderRadius: 2, boxShadow: 2, height: '100%' }}>
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <PersonIcon color="primary" />
+                        Informations de l'Employé
+                      </Typography>
+                      <Box sx={{ mt: 2 }}>
+                        <DetailItem 
+                          icon={<PersonIcon />}
+                          label="Nom Complet"
+                          value={detailView.employe_nom || "Inconnu"}
+                        />
+                        <DetailItem 
+                          icon={<BusinessIcon />}
+                          label="Matricule"
+                          value={detailView.employe_matricule || detailView.employe || "Inconnu"}
+                        />
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+
+                {/* Remarques */}
+                {detailView.remarque && (
+                  <Grid item xs={12}>
+                    <Card sx={{ borderRadius: 2, boxShadow: 2 }}>
+                      <CardContent>
+                        <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <NotesIcon color="primary" />
+                          Remarques
+                        </Typography>
+                        <Paper 
+                          variant="outlined" 
+                          sx={{ 
+                            p: 2, 
+                            mt: 1, 
+                            bgcolor: 'grey.50',
+                            borderColor: 'grey.300',
+                            borderRadius: 2
+                          }}
+                        >
+                          <Typography variant="body1" fontStyle="italic">
+                            "{detailView.remarque}"
+                          </Typography>
+                        </Paper>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                )}
+
+                {/* Informations détaillées de l'employé */}
                 {detailView.employe_details && Object.keys(detailView.employe_details).length > 0 && (
-                  <>
-                    <Grid item xs={12}>
-                      <Divider sx={{ my: 2 }} />
-                      <Typography variant="h6">Informations sur l'employé</Typography>
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <Typography variant="subtitle2" color="text.secondary">Département</Typography>
-                      <Typography variant="body1">{detailView.employe_details.departement || "Non spécifié"}</Typography>
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <Typography variant="subtitle2" color="text.secondary">Poste</Typography>
-                      <Typography variant="body1">{detailView.employe_details.poste || "Non spécifié"}</Typography>
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <Typography variant="subtitle2" color="text.secondary">Email</Typography>
-                      <Typography variant="body1">{detailView.employe_details.email || "Non spécifié"}</Typography>
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <Typography variant="subtitle2" color="text.secondary">Téléphone</Typography>
-                      <Typography variant="body1">{detailView.employe_details.telephone || "Non spécifié"}</Typography>
-                    </Grid>
-                  </>
+                  <Grid item xs={12}>
+                    <Card sx={{ borderRadius: 2, boxShadow: 2 }}>
+                      <CardContent>
+                        <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <WorkIcon color="primary" />
+                          Détails de l'Employé
+                        </Typography>
+                        <Grid container spacing={2} sx={{ mt: 1 }}>
+                          <Grid item xs={12} md={6}>
+                            <DetailItem 
+                              icon={<BusinessIcon />}
+                              label="Département"
+                              value={detailView.employe_details.departement?.nom || "Non spécifié"}
+                            />
+                          </Grid>
+                          <Grid item xs={12} md={6}>
+                            <DetailItem 
+                              icon={<WorkIcon />}
+                              label="Poste"
+                              value={detailView.employe_details.poste || "Non spécifié"}
+                            />
+                          </Grid>
+                          <Grid item xs={12} md={6}>
+                            <DetailItem 
+                              icon={<EmailIcon />}
+                              label="Email"
+                              value={detailView.employe_details.email || "Non spécifié"}
+                            />
+                          </Grid>
+                          <Grid item xs={12} md={6}>
+                            <DetailItem 
+                              icon={<PhoneIcon />}
+                              label="Téléphone"
+                              value={detailView.employe_details.telephone || "Non spécifié"}
+                            />
+                          </Grid>
+                        </Grid>
+                      </CardContent>
+                    </Card>
+                  </Grid>
                 )}
               </Grid>
             )}
           </DialogContent>
+          
           <DialogActions sx={{ p: 3, gap: 1 }}>
-            <Button onClick={closeDetails} color="inherit">Fermer</Button>
+            <Button 
+              onClick={closeDetails} 
+              variant="outlined"
+              sx={{ borderRadius: 2, px: 3 }}
+            >
+              Fermer
+            </Button>
           </DialogActions>
         </Dialog>
 

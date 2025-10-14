@@ -13,29 +13,29 @@ import {
   InputAdornment,
   IconButton,
   Snackbar,
-  Alert
+  Alert,
 } from "@mui/material";
-
 import { useNavigate } from "react-router-dom";
 import {
   Add as AddIcon,
   Search as SearchIcon,
-  Close as CloseIcon
+  Close as CloseIcon,
 } from "@mui/icons-material";
-
-import axios from "axios";
+import Swal from "sweetalert2";
 import Header from "../../components/Header";
-import Sidebar from "../../components/Sidebar"; // Import du composant Sidebar
+import Sidebar from "../../components/Sidebar";
 import DepartementTableau from "./DepartementTableau";
 import DepartementModal from "./DepartementModal";
 import {
   getDepartements,
   createDepartement,
   updateDepartement,
-  deleteDepartement
+  deleteDepartement,
+  getCurrentUser,
+  isSuperuser,
 } from "../../services/api";
 
-const Departements = () => {
+const Departements = ({ isSuperuser: isSuperuserProp }) => {
   const theme = useTheme();
   const navigate = useNavigate();
 
@@ -54,7 +54,8 @@ const Departements = () => {
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [formErrors, setFormErrors] = useState({});
   const [departements, setDepartements] = useState([]);
-  const [user, setUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isSuperuserState, setIsSuperuserState] = useState(isSuperuserProp);
   const [notificationsCount, setNotificationsCount] = useState(3);
   const [formData, setFormData] = useState({
     id_departement: "",
@@ -65,26 +66,39 @@ const Departements = () => {
     nbr_employe: 0,
   });
 
-  // --- Récupération utilisateur via JWT ---
+  // --- Récupération utilisateur et statut superutilisateur ---
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchUserAndData = async () => {
       const token = localStorage.getItem("access_token");
-      if (!token) return navigate("/");
+      if (!token) {
+        navigate("/");
+        return;
+      }
 
       try {
-        const res = await axios.get("http://localhost:8000/api/users/me/", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setUser(res.data);
+        // Récupérer les informations de l'utilisateur
+        const user = await getCurrentUser();
+        setCurrentUser(user);
+
+        // Vérifier le statut de superutilisateur si non passé en prop
+        if (!isSuperuserProp) {
+          const superuser = await isSuperuser();
+          setIsSuperuserState(superuser);
+        }
+
+        // Récupérer les départements
+        await fetchDepartements();
       } catch (err) {
-        console.error(err);
+        console.error("Erreur lors de la récupération de l'utilisateur:", err);
         localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+        setCurrentUser(null);
         navigate("/");
       }
     };
-    fetchUser();
-    fetchDepartements();
-  }, [navigate]);
+
+    fetchUserAndData();
+  }, [navigate, isSuperuserProp]);
 
   // --- CRUD Départements ---
   const fetchDepartements = async () => {
@@ -92,12 +106,11 @@ const Departements = () => {
       setLoading(true);
       setError(null);
       const data = await getDepartements();
-      setDepartements(
-        Array.isArray(data) ? data : Array.isArray(data.data) ? data.data : []
-      );
+      console.log("Données des départements:", data); // Débogage
+      setDepartements(Array.isArray(data) ? data : []);
       setLoading(false);
     } catch (err) {
-      console.error(err);
+      console.error("Erreur lors du chargement des départements:", err);
       setError("Erreur lors du chargement des départements");
       showSnackbar("Impossible de charger les départements");
       setLoading(false);
@@ -122,9 +135,9 @@ const Departements = () => {
   const handleOpenDialog = (departement = null) => {
     if (departement) {
       setEditingDepartement(departement);
-      setFormData({ 
+      setFormData({
         ...departement,
-        nbr_employe: 0 // Toujours initialiser à 0 dans le formulaire
+        nbr_employe: 0, // Toujours initialiser à 0 dans le formulaire
       });
     } else {
       setEditingDepartement(null);
@@ -134,7 +147,7 @@ const Departements = () => {
         responsable: "",
         description: "",
         localisation: "",
-        nbr_employe: 0, // Toujours initialiser à 0
+        nbr_employe: 0,
       });
     }
     setFormErrors({});
@@ -150,7 +163,7 @@ const Departements = () => {
       responsable: "",
       description: "",
       localisation: "",
-      nbr_employe: 0, // Toujours initialiser à 0
+      nbr_employe: 0,
     });
     setFormErrors({});
   };
@@ -174,7 +187,6 @@ const Departements = () => {
         responsable: formData.responsable,
         description: formData.description,
         localisation: formData.localisation,
-        // nbr_employe est géré automatiquement par le backend
       };
 
       if (editingDepartement) {
@@ -201,9 +213,8 @@ const Departements = () => {
       await fetchDepartements();
       handleCloseDialog();
     } catch (err) {
-      console.error(err);
-      const errorMessage =
-        err.response?.data?.message || "Erreur lors de l'opération";
+      console.error("Erreur lors de l'opération:", err);
+      const errorMessage = err.message || "Erreur lors de l'opération";
       showSnackbar(errorMessage);
     }
   };
@@ -233,9 +244,8 @@ const Departements = () => {
         });
         fetchDepartements();
       } catch (err) {
-        console.error(err);
-        const errorMessage =
-          err.response?.data?.message || "Impossible de supprimer";
+        console.error("Erreur lors de la suppression:", err);
+        const errorMessage = err.message || "Impossible de supprimer";
         showSnackbar(errorMessage);
       }
     }
@@ -245,8 +255,9 @@ const Departements = () => {
     setSnackbar({ open: true, message, severity });
   };
 
-  const handleCloseSnackbar = () =>
+  const handleCloseSnackbar = () => {
     setSnackbar({ ...snackbar, open: false });
+  };
 
   const handleChangePage = (event, newPage) => setPage(newPage);
   const handleChangeRowsPerPage = (event) => {
@@ -256,38 +267,37 @@ const Departements = () => {
 
   const filteredData = departements.filter(
     (d) =>
-      (d.id_departement || "")
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
+      (d.id_departement || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       (d.nom || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (d.responsable || "")
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase())
+      (d.responsable || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (loading)
+  if (loading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", mt: 10 }}>
         <CircularProgress />
       </Box>
     );
-  if (error)
+  }
+
+  if (error) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", mt: 10 }}>
         <Typography color="error">{error}</Typography>
       </Box>
     );
+  }
 
   return (
     <Box sx={{ display: "flex" }}>
       {/* Header */}
       <Header
-        user={user}
+        user={currentUser}
         notificationsCount={notificationsCount}
         onMenuToggle={() => setOpen(!open)}
       />
-      
-      {/* Sidebar - Utilisation du composant importé */}
+
+      {/* Sidebar */}
       <Sidebar open={open} setOpen={setOpen} />
 
       {/* Contenu principal */}
@@ -362,10 +372,7 @@ const Departements = () => {
                   variant="h4"
                   sx={{ fontWeight: "bold", color: "secondary.main" }}
                 >
-                  {departements.reduce(
-                    (sum, d) => sum + (d.nbr_employe || 0),
-                    0
-                  )}
+                  {departements.reduce((sum, d) => sum + (d.nbr_employe || 0), 0)}
                 </Typography>
               </CardContent>
             </Card>
@@ -405,6 +412,8 @@ const Departements = () => {
           onRowsPerPageChange={handleChangeRowsPerPage}
           onEdit={handleOpenDialog}
           onDelete={handleDelete}
+          currentUser={currentUser}
+          isSuperuser={isSuperuserState}
         />
 
         {/* Modal */}

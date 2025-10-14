@@ -1,3 +1,4 @@
+// api.js
 import axios from "axios";
 
 const BASE_URL = "http://localhost:8000/api";
@@ -18,9 +19,11 @@ const getAuthHeader = () => {
 // Gestion générique des erreurs
 const handleError = (error, defaultMessage) => {
   let errorMessage = defaultMessage;
-  if (error.response?.data) {
-    const data = error.response.data;
-    if (typeof data === "string") {
+  if (error.response) {
+    const { status, data } = error.response;
+    if (status === 403) {
+      errorMessage = "Vous n'êtes pas autorisé à effectuer cette action.";
+    } else if (typeof data === "string") {
       errorMessage = data;
     } else if (data.detail) {
       errorMessage = data.detail;
@@ -43,9 +46,22 @@ const extractData = (responseData) => {
     return responseData;
   } else if (responseData.results && Array.isArray(responseData.results)) {
     return responseData.results;
+  } else if (typeof responseData === "object" && responseData !== null) {
+    return [responseData]; // Retourner un tableau avec un seul objet si non paginé
   } else {
     console.warn("Structure de données inattendue, retourne array vide");
     return [];
+  }
+};
+
+// Vérifier si l'utilisateur est superutilisateur
+export const isSuperuser = async () => {
+  try {
+    const user = await getCurrentUser();
+    return user.is_superuser;
+  } catch (error) {
+    console.error("Erreur lors de la vérification du statut superutilisateur:", error.message);
+    return false;
   }
 };
 
@@ -145,7 +161,7 @@ const createCrudFunctions = (endpoint, idField) => {
         const response = await axios.delete(`${BASE_URL}/${endpoint}/${id}/`, {
           headers: getAuthHeader(),
         });
-        return response.data;
+        return response.data || { success: true }; // Retourner un objet par défaut si pas de données
       } catch (error) {
         handleError(error, `Erreur lors de la suppression de ${endpoint.slice(0, -1)} avec ID ${id}.`);
       }
@@ -204,7 +220,6 @@ export const getPointagesStatsMensuelles = async (mois, annee) => {
     });
     return response.data;
   } catch (error) {
-    console.error("Erreur lors de la récupération des statistiques mensuelles :", error.response || error.message);
     handleError(error, "Erreur lors de la récupération des statistiques mensuelles des pointages.");
   }
 };
@@ -285,6 +300,7 @@ export default {
   refreshToken,
   getCurrentUser,
   register,
+  isSuperuser,
 
   // Départements
   getDepartements,

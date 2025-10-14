@@ -1,16 +1,15 @@
-// src/App.jsx
-import React, { useState } from "react";
-import { Routes, Route } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Routes, Route, useNavigate } from "react-router-dom";
 import Auth from "./pages/Auth";
 import Home from "./pages/Home";
 import PrivateRoute from "./components/PrivateRoute";
-
 import Employes from "./pages/employes/Employes";
 import Departements from "./pages/departements/Departements";
 import Pointages from "./pages/pointages/Pointages";
 import Absences from "./pages/abscences/Absences";
 import Evenements from "./pages/evenements/Evenements";
 import Conges from "./pages/conges/Conges";
+import { getCurrentUser, isSuperuser } from "./services/api"; // Importer les fonctions nécessaires
 
 const privateRoutes = [
   { path: "/home", element: <Home /> },
@@ -26,6 +25,28 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(
     !!localStorage.getItem("access_token")
   );
+  const [isSuperuserState, setIsSuperuserState] = useState(false);
+  const navigate = useNavigate();
+
+  // Vérifier l'authentification et le statut de superutilisateur au chargement
+  useEffect(() => {
+    const checkAuth = async () => {
+      if (localStorage.getItem("access_token")) {
+        try {
+          await getCurrentUser(); // Vérifie si le token est valide
+          const superuser = await isSuperuser();
+          setIsSuperuserState(superuser);
+        } catch (error) {
+          console.error("Erreur d'authentification:", error.message);
+          localStorage.removeItem("access_token");
+          localStorage.removeItem("refresh_token");
+          setIsAuthenticated(false);
+          navigate("/"); // Rediriger vers la page de connexion
+        }
+      }
+    };
+    checkAuth();
+  }, [navigate]);
 
   return (
     <Routes>
@@ -33,12 +54,15 @@ function App() {
         path="/"
         element={<Auth setIsAuthenticated={setIsAuthenticated} />}
       />
-
       {privateRoutes.map(({ path, element }) => (
         <Route
           key={path}
           path={path}
-          element={<PrivateRoute>{element}</PrivateRoute>}
+          element={
+            <PrivateRoute isAuthenticated={isAuthenticated} isSuperuser={isSuperuserState}>
+              {element}
+            </PrivateRoute>
+          }
         />
       ))}
     </Routes>
