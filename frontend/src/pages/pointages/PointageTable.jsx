@@ -14,6 +14,11 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import PersonIcon from '@mui/icons-material/Person';
 import LockIcon from '@mui/icons-material/Lock';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
+import InfoIcon from '@mui/icons-material/Info';
+import DescriptionIcon from '@mui/icons-material/Description';
+import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
+import AnalyticsIcon from '@mui/icons-material/Analytics';
+import ListAltIcon from '@mui/icons-material/ListAlt';
 
 const PointageTable = ({
   pointages,
@@ -216,13 +221,22 @@ const PointageTable = ({
                               {actionLoading && deletingId === pointage.id_pointage ? <CircularProgress size={24} /> : <DeleteIcon />}
                             </IconButton>
                           </Tooltip>
-                          <Tooltip title="Voir les détails">
+                          <Tooltip title="Détails du pointage">
                             <IconButton 
                               color="info" 
                               onClick={() => onViewDetails(pointage)} 
                               disabled={actionLoading}
+                              sx={{
+                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                color: 'white',
+                                '&:hover': {
+                                  background: 'linear-gradient(135deg, #764ba2 0%, #667eea 100%)',
+                                  transform: 'scale(1.1)',
+                                },
+                                transition: 'all 0.3s ease'
+                              }}
                             >
-                              <PersonIcon />
+                              <ListAltIcon />
                             </IconButton>
                           </Tooltip>
                           {working && (
@@ -238,11 +252,31 @@ const PointageTable = ({
                           )}
                         </Box>
                       ) : (
-                        <Tooltip title="Accès restreint : créé par un autre utilisateur">
-                          <IconButton color="warning" disabled>
-                            <LockIcon />
-                          </IconButton>
-                        </Tooltip>
+                        <Box sx={{ display: "flex", gap: 1, justifyContent: "center" }}>
+                          <Tooltip title="Accès restreint : créé par un autre utilisateur">
+                            <IconButton color="warning" disabled>
+                              <LockIcon />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Voir les détails">
+                            <IconButton 
+                              color="info" 
+                              onClick={() => onViewDetails(pointage)} 
+                              disabled={actionLoading}
+                              sx={{
+                                background: 'linear-gradient(135deg, #00b4db 0%, #0083b0 100%)',
+                                color: 'white',
+                                '&:hover': {
+                                  background: 'linear-gradient(135deg, #0083b0 0%, #00b4db 100%)',
+                                  transform: 'scale(1.1)',
+                                },
+                                transition: 'all 0.3s ease'
+                              }}
+                            >
+                              <InfoIcon />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
                       )}
                     </TableCell>
                   </TableRow>
