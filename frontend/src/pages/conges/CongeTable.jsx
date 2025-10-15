@@ -37,7 +37,8 @@ const CongeTable = ({
   onValider,
   onRefuser,
   theme,
-  user // Add user prop to check creator
+  user,
+  isSuperuser
 }) => {
   const getStatutColor = (statut) => {
     switch (statut) {
@@ -46,6 +47,11 @@ const CongeTable = ({
       case "refuse": return "error";
       default: return "default";
     }
+  };
+
+  // Check if user can edit/delete (creator or superuser)
+  const canEditOrDelete = (conge) => {
+    return isSuperuser || (user && conge.created_by === user.id);
   };
 
   if (loading) {
@@ -85,7 +91,8 @@ const CongeTable = ({
         </TableHead>
         <TableBody>
           {conges.map((conge) => {
-            const isCreator = user && conge.created_by === user.id; // Check if user is creator
+            const canEditDelete = canEditOrDelete(conge);
+            
             return (
               <TableRow key={conge.id_conge} hover>
                 <TableCell>
@@ -133,8 +140,9 @@ const CongeTable = ({
                   />
                 </TableCell>
                 <TableCell align="center">
-                  <Box sx={{ display: "flex", gap: 1 }}>
-                    {isCreator ? (
+                  <Box sx={{ display: "flex", gap: 1, justifyContent: "center", alignItems: "center" }}>
+                    {/* Actions de modification/suppression */}
+                    {canEditDelete ? (
                       <>
                         <Tooltip title="Modifier">
                           <span>
@@ -142,6 +150,7 @@ const CongeTable = ({
                               color="primary"
                               onClick={() => onEdit(conge)}
                               disabled={actionLoading}
+                              size="small"
                             >
                               <EditIcon />
                             </IconButton>
@@ -153,6 +162,7 @@ const CongeTable = ({
                               color="error"
                               onClick={() => onDelete(conge.id_conge)}
                               disabled={actionLoading}
+                              size="small"
                             >
                               {actionLoading && deletingId === conge.id_conge ? (
                                 <CircularProgress size={24} />
@@ -164,14 +174,22 @@ const CongeTable = ({
                         </Tooltip>
                       </>
                     ) : (
-                      <Tooltip title="Modifications non autorisées">
-                        <span>
-                          <IconButton disabled>
-                            <LockIcon />
-                          </IconButton>
-                        </span>
-                      </Tooltip>
+                      <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                        <Tooltip title="Modifications non autorisées">
+                          <span>
+                            <IconButton disabled size="small">
+                              <LockIcon />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                        {/* Nom du créateur */}
+                        <Typography variant="caption" color="text.secondary" sx={{ mt: -0.5 }}>
+                          {conge.created_by_nom || conge.created_by_username || "Utilisateur inconnu"}
+                        </Typography>
+                      </Box>
                     )}
+                    
+                    {/* Actions de validation/refus (toujours disponibles pour les superviseurs) */}
                     {conge.statut === "en_attente" && (
                       <>
                         <Tooltip title="Valider">
@@ -179,6 +197,7 @@ const CongeTable = ({
                             color="success"
                             onClick={() => onValider(conge.id_conge)}
                             disabled={actionLoading}
+                            size="small"
                           >
                             <CheckIcon />
                           </IconButton>
@@ -188,6 +207,7 @@ const CongeTable = ({
                             color="error"
                             onClick={() => onRefuser(conge.id_conge)}
                             disabled={actionLoading}
+                            size="small"
                           >
                             <CloseIcon />
                           </IconButton>

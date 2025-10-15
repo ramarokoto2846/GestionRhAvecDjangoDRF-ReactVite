@@ -19,7 +19,7 @@ import UpcomingIcon from '@mui/icons-material/Upcoming';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
 
-import { getEvenements, getCurrentUser, deleteEvenement } from "../../services/api";
+import { getEvenements, getCurrentUser, deleteEvenement, isSuperuser } from "../../services/api";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import EvenementTable from "./EvenementTable";
@@ -38,6 +38,7 @@ const Evenements = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [user, setUser] = useState(null);
+  const [isSuperuserState, setIsSuperuserState] = useState(false);
   const [statusFilter, setStatusFilter] = useState("tous");
   const [monthFilter, setMonthFilter] = useState("tous");
   const notificationsCount = 3;
@@ -54,6 +55,11 @@ const Evenements = () => {
         setLoading(true);
         const userData = await getCurrentUser();
         setUser(userData);
+        
+        // Vérifier le statut superutilisateur
+        const superuserStatus = await isSuperuser();
+        setIsSuperuserState(superuserStatus);
+        
         await fetchEvenements();
       } catch (error) {
         setError(error.message || "Erreur lors de l'initialisation des données.");
@@ -165,6 +171,34 @@ const Evenements = () => {
     }
   };
 
+  // Fonction pour calculer la durée en format lisible
+  const getEventDuration = (evenement) => {
+    try {
+      const startDate = parseISO(evenement.date_debut);
+      const endDate = parseISO(evenement.date_fin);
+
+      if (!isValid(startDate) || !isValid(endDate)) {
+        return "Durée inconnue";
+      }
+
+      const diffMs = endDate - startDate;
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+      if (diffDays > 0) {
+        return `${diffDays}j ${diffHours}h`;
+      } else if (diffHours > 0) {
+        return `${diffHours}h ${diffMinutes}min`;
+      } else {
+        return `${diffMinutes}min`;
+      }
+    } catch (error) {
+      console.error("Error calculating duration:", error);
+      return "Durée inconnue";
+    }
+  };
+
   const getAvailableMonths = () => {
     const monthsSet = new Set();
     
@@ -191,7 +225,8 @@ const Evenements = () => {
   const filteredEvenements = evenements.filter((evenement) => {
     const matchesSearch =
       (evenement.titre || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (evenement.lieu || "").toLowerCase().includes(searchQuery.toLowerCase());
+      (evenement.lieu || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (evenement.description || "").toLowerCase().includes(searchQuery.toLowerCase());
 
     const eventStatus = getEventStatus(evenement);
     const matchesStatus = statusFilter === "tous" || eventStatus === statusFilter;
@@ -329,12 +364,22 @@ const Evenements = () => {
             <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
-                placeholder="Rechercher..."
+                placeholder="Rechercher par titre, lieu ou description..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 InputProps={{
-                  startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment>,
-                  endAdornment: searchQuery && <InputAdornment position="end"><IconButton onClick={() => setSearchQuery("")}><CloseIcon /></IconButton></InputAdornment>
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon />
+                    </InputAdornment>
+                  ),
+                  endAdornment: searchQuery && (
+                    <InputAdornment position="end">
+                      <IconButton onClick={() => setSearchQuery("")}>
+                        <CloseIcon />
+                      </IconButton>
+                    </InputAdornment>
+                  )
                 }}
               />
             </Grid>
@@ -398,7 +443,9 @@ const Evenements = () => {
           onEdit={handleOpenDialog}
           onDelete={handleDelete}
           getEventStatus={getEventStatus}
-          user={user} // Pass user to EvenementTable
+          getEventDuration={getEventDuration}
+          user={user}
+          isSuperuser={isSuperuserState}
         />
 
         <EvenementModal

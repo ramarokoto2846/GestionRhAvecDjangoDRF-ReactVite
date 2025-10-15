@@ -15,9 +15,6 @@ import PersonIcon from '@mui/icons-material/Person';
 import LockIcon from '@mui/icons-material/Lock';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import InfoIcon from '@mui/icons-material/Info';
-import DescriptionIcon from '@mui/icons-material/Description';
-import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
-import AnalyticsIcon from '@mui/icons-material/Analytics';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 
 const PointageTable = ({
@@ -252,30 +249,37 @@ const PointageTable = ({
                           )}
                         </Box>
                       ) : (
-                        <Box sx={{ display: "flex", gap: 1, justifyContent: "center" }}>
-                          <Tooltip title="Accès restreint : créé par un autre utilisateur">
-                            <IconButton color="warning" disabled>
-                              <LockIcon />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Voir les détails">
-                            <IconButton 
-                              color="info" 
-                              onClick={() => onViewDetails(pointage)} 
-                              disabled={actionLoading}
-                              sx={{
-                                background: 'linear-gradient(135deg, #00b4db 0%, #0083b0 100%)',
-                                color: 'white',
-                                '&:hover': {
-                                  background: 'linear-gradient(135deg, #0083b0 0%, #00b4db 100%)',
-                                  transform: 'scale(1.1)',
-                                },
-                                transition: 'all 0.3s ease'
-                              }}
-                            >
-                              <InfoIcon />
-                            </IconButton>
-                          </Tooltip>
+                        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.5 }}>
+                          <Box sx={{ display: "flex", gap: 1, justifyContent: "center" }}>
+                            <Tooltip title="Accès restreint : créé par un autre utilisateur">
+                              <IconButton color="warning" disabled size="small">
+                                <LockIcon />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Voir les détails">
+                              <IconButton 
+                                color="info" 
+                                onClick={() => onViewDetails(pointage)} 
+                                disabled={actionLoading}
+                                sx={{
+                                  background: 'linear-gradient(135deg, #00b4db 0%, #0083b0 100%)',
+                                  color: 'white',
+                                  '&:hover': {
+                                    background: 'linear-gradient(135deg, #0083b0 0%, #00b4db 100%)',
+                                    transform: 'scale(1.1)',
+                                  },
+                                  transition: 'all 0.3s ease'
+                                }}
+                                size="small"
+                              >
+                                <InfoIcon />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                          {/* Ajout du nom du créateur */}
+                          <Typography variant="caption" color="text.secondary" sx={{ mt: -0.5 }}>
+                            {pointage.created_by_nom || pointage.created_by_username || "Utilisateur inconnu"}
+                          </Typography>
                         </Box>
                       )}
                     </TableCell>

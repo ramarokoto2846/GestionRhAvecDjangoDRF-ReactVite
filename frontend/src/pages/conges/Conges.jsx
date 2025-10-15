@@ -30,7 +30,17 @@ import {
   Close as CloseIcon
 } from "@mui/icons-material";
 
-import { getConges, getEmployes, createConge, updateConge, deleteConge, validerConge, refuserConge, getCurrentUser } from "../../services/api";
+import { 
+  getConges, 
+  getEmployes, 
+  createConge, 
+  updateConge, 
+  deleteConge, 
+  validerConge, 
+  refuserConge, 
+  getCurrentUser, 
+  isSuperuser
+} from "../../services/api";
 import Header, { triggerNotificationsRefresh } from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import CongeTable from "./CongeTable";
@@ -50,6 +60,7 @@ const Conges = () => {
   const [deletingId, setDeletingId] = useState(null);
   const [error, setError] = useState(null);
   const [user, setUser] = useState(null);
+  const [isSuperuserState, setIsSuperuserState] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [stats, setStats] = useState({ total: 0, enAttente: 0, valides: 0, refuses: 0 });
@@ -76,6 +87,11 @@ const Conges = () => {
         setLoading(true);
         const userData = await getCurrentUser();
         setUser(userData);
+        
+        // Vérifier le statut superutilisateur
+        const superuserStatus = await isSuperuser();
+        setIsSuperuserState(superuserStatus);
+        
         await fetchData();
       } catch (error) {
         setError(error.message || "Erreur lors de l'initialisation des données.");
@@ -483,7 +499,8 @@ const Conges = () => {
             onValider={handleValider}
             onRefuser={handleRefuser}
             theme={theme}
-            user={user} // Pass user to CongeTable
+            user={user}
+            isSuperuser={isSuperuserState}
           />
         </Paper>
 

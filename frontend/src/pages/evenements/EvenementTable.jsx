@@ -1,7 +1,8 @@
 import React from "react";
 import {
   Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  TablePagination, IconButton, Box, Typography, Avatar, Chip, Card, CardContent, Fab
+  TablePagination, IconButton, Box, Typography, Avatar, Chip, Card, CardContent, Fab,
+  Tooltip
 } from "@mui/material";
 import { alpha, useTheme } from "@mui/material/styles";
 import { format, parseISO } from "date-fns";
@@ -12,6 +13,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import AddIcon from '@mui/icons-material/Add';
 import LockIcon from '@mui/icons-material/Lock';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
 
 const EvenementTable = ({
   evenements,
@@ -22,7 +24,9 @@ const EvenementTable = ({
   onEdit,
   onDelete,
   getEventStatus,
-  user // Add user prop to check creator
+  getEventDuration,
+  user,
+  isSuperuser
 }) => {
   const theme = useTheme();
 
@@ -30,6 +34,11 @@ const EvenementTable = ({
     if (!dateString) return "";
     const date = parseISO(dateString);
     return format(date, "dd MMMM yyyy HH:mm", { locale: fr });
+  };
+
+  // Vérifier si l'utilisateur peut modifier/supprimer (créateur ou superutilisateur)
+  const canEditOrDelete = (evenement) => {
+    return isSuperuser || (user && evenement.created_by === user.id);
   };
 
   if (evenements.length === 0) {
@@ -70,6 +79,7 @@ const EvenementTable = ({
               <TableCell>Description</TableCell>
               <TableCell>Début</TableCell>
               <TableCell>Fin</TableCell>
+              <TableCell>Durée</TableCell>
               <TableCell>Lieu</TableCell>
               <TableCell align="center">Actions</TableCell>
             </TableRow>
@@ -77,7 +87,9 @@ const EvenementTable = ({
           <TableBody>
             {evenements.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((evenement) => {
               const status = getEventStatus(evenement);
-              const isCreator = user && evenement.created_by === user.id; // Check if user is creator
+              const duration = getEventDuration(evenement);
+              const canEditDelete = canEditOrDelete(evenement);
+              
               return (
                 <TableRow key={evenement.id_evenement} hover>
                   <TableCell>
@@ -111,36 +123,54 @@ const EvenementTable = ({
                   <TableCell>{evenement.description || "Aucune description"}</TableCell>
                   <TableCell>{formatDateForDisplay(evenement.date_debut)}</TableCell>
                   <TableCell>{formatDateForDisplay(evenement.date_fin)}</TableCell>
+                  <TableCell>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <AccessTimeIcon fontSize="small" color="primary" />
+                      <Typography variant="body2">
+                        {duration}
+                      </Typography>
+                    </Box>
+                  </TableCell>
                   <TableCell>{evenement.lieu || "Non spécifié"}</TableCell>
                   <TableCell align="center">
-                    <Box sx={{ display: "flex", gap: 1 }}>
-                      {isCreator ? (
+                    <Box sx={{ display: "flex", gap: 1, alignItems: "center", justifyContent: "center" }}>
+                      {canEditDelete ? (
                         <>
-                        <span>
-                          <IconButton
-                            color="primary"
-                            onClick={() => isCreator && onEdit(evenement)}
-                            disabled={!isCreator}
-                          >
-                            <EditIcon />
-                          </IconButton>
-                        </span>
-                        <span>
-                          <IconButton
-                            color="error"
-                            onClick={() => isCreator && onDelete(evenement.id_evenement)}
-                            disabled={!isCreator}
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                        </span>
+                          <Tooltip title="Modifier">
+                            <span>
+                              <IconButton
+                                color="primary"
+                                onClick={() => onEdit(evenement)}
+                              >
+                                <EditIcon />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                          <Tooltip title="Supprimer">
+                            <span>
+                              <IconButton
+                                color="error"
+                                onClick={() => onDelete(evenement.id_evenement)}
+                              >
+                                <DeleteIcon />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
                         </>
                       ) : (
-                        <span>
-                          <IconButton disabled>
-                            <LockIcon />
-                          </IconButton>
-                        </span>
+                        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                          <Tooltip title="Non autorisé - Créé par un autre utilisateur">
+                            <span>
+                              <IconButton disabled>
+                                <LockIcon />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                          {/* Nom du créateur */}
+                          <Typography variant="caption" color="text.secondary" sx={{ mt: -0.5 }}>
+                            {evenement.created_by_nom || evenement.created_by_username || "Utilisateur inconnu"}
+                          </Typography>
+                        </Box>
                       )}
                     </Box>
                   </TableCell>

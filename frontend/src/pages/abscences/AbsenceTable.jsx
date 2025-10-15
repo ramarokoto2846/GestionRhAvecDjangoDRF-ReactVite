@@ -33,25 +33,26 @@ const AbsenceTable = ({
   onEdit,
   onDelete,
   theme,
-  currentUser
+  currentUser,
+  isSuperuser
 }) => {
   const hasPermission = (absence) => {
-    if (!currentUser || !absence || !absence.id_absence || !absence.employe) {
+    if (!currentUser || !absence || !absence.id_absence) {
       console.warn("Permission refusée: utilisateur ou absence invalide", { currentUser, absence });
       return false;
     }
-    const isSuperuser = currentUser.is_superuser;
+    
+    // CORRECTION : Utiliser correctement la prop isSuperuser
+    const userIsSuperuser = isSuperuser || currentUser?.is_superuser;
     const isCreator = absence.created_by === currentUser.id;
-    // Note: employe.departement n'est pas disponible car employe est une chaîne
-    // Ajouter employe = EmployeSerializer dans serializers.py pour activer ceci
-    // const isDepartementResponsable = absence.employe?.departement?.responsable === currentUser.email;
-    console.log(`Permissions pour absence ${absence.id_absence}:`, {
-      isSuperuser,
-      isCreator,
-      created_by: absence.created_by,
-      currentUserId: currentUser.id
-    });
-    return isSuperuser || isCreator;
+    
+    return userIsSuperuser || isCreator;
+  };
+
+  // Fonction sécurisée pour obtenir le nom du créateur
+  const getCreatorName = (absence) => {
+    if (!absence) return "Utilisateur inconnu";
+    return absence.created_by_nom || absence.created_by_username || "Utilisateur inconnu";
   };
 
   return (
@@ -84,10 +85,13 @@ const AbsenceTable = ({
             </TableRow>
           ) : (
             absences.map((absence, index) => {
-              if (!absence || !absence.id_absence || !absence.employe) {
+              if (!absence || !absence.id_absence) {
                 console.warn(`Absence invalide à l'index ${index}:`, absence);
                 return null;
               }
+              
+              const canEdit = hasPermission(absence);
+              
               return (
                 <TableRow key={absence.id_absence} hover>
                   <TableCell>
@@ -124,27 +128,50 @@ const AbsenceTable = ({
                   </TableCell>
                   <TableCell>{absence.nbr_jours || "-"}</TableCell>
                   <TableCell>{absence.motif || "-"}</TableCell>
-                  <TableCell>{absence.justifiee ? "Oui" : "Non"}</TableCell>
+                  <TableCell>
+                    <Chip
+                      label={absence.justifiee ? "Oui" : "Non"}
+                      color={absence.justifiee ? "success" : "error"}
+                      variant="filled"
+                      size="small"
+                    />
+                  </TableCell>
                   <TableCell align="center">
-                    {hasPermission(absence) ? (
-                      <Box sx={{ display: "flex", gap: 1 }}>
+                    {canEdit ? (
+                      <Box sx={{ display: "flex", gap: 1, justifyContent: "center" }}>
                         <Tooltip title="Modifier">
-                          <IconButton color="primary" onClick={() => onEdit(absence)} disabled={actionLoading}>
+                          <IconButton 
+                            color="primary" 
+                            onClick={() => onEdit(absence)} 
+                            disabled={actionLoading}
+                            size="small"
+                          >
                             <EditIcon />
                           </IconButton>
                         </Tooltip>
                         <Tooltip title="Supprimer">
-                          <IconButton color="error" onClick={() => onDelete(absence.id_absence)} disabled={actionLoading}>
+                          <IconButton 
+                            color="error" 
+                            onClick={() => onDelete(absence.id_absence)} 
+                            disabled={actionLoading}
+                            size="small"
+                          >
                             {actionLoading && deletingId === absence.id_absence ? <CircularProgress size={24} /> : <DeleteIcon />}
                           </IconButton>
                         </Tooltip>
                       </Box>
                     ) : (
-                      <Tooltip title="Accès restreint : créé par un autre utilisateur">
-                        <IconButton color="warning" disabled>
-                          <LockIcon />
-                        </IconButton>
-                      </Tooltip>
+                      <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                        <Tooltip title="Accès restreint : créé par un autre utilisateur">
+                          <IconButton color="warning" disabled size="small">
+                            <LockIcon />
+                          </IconButton>
+                        </Tooltip>
+                        {/* Nom du créateur */}
+                        <Typography variant="caption" color="text.secondary" sx={{ mt: -0.5 }}>
+                          {getCreatorName(absence)}
+                        </Typography>
+                      </Box>
                     )}
                   </TableCell>
                 </TableRow>

@@ -133,7 +133,7 @@ const EmployeTableau = ({
                     />
                   </TableCell>
                   <TableCell>
-                    <Box sx={{ display: "flex", gap: 1 }}>
+                    <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
                       {canEditOrDelete ? (
                         <>
                           <Tooltip title="Modifier">
@@ -156,11 +156,16 @@ const EmployeTableau = ({
                           </Tooltip>
                         </>
                       ) : (
-                        <Tooltip title="Non autorisé">
-                          <IconButton color="default" disabled size="small">
-                            <LockIcon />
-                          </IconButton>
-                        </Tooltip>
+                        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                          <Tooltip title="Non autorisé">
+                            <IconButton color="default" disabled size="small">
+                              <LockIcon />
+                            </IconButton>
+                          </Tooltip>
+                          <Typography variant="caption" color="text.secondary" sx={{ mt: -0.5 }}>
+                            {employe.created_by_nom || employe.created_by_username || "Utilisateur inconnu"}
+                          </Typography>
+                        </Box>
                       )}
                     </Box>
                   </TableCell>

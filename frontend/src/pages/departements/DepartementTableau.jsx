@@ -12,6 +12,7 @@ import {
   Box,
   IconButton,
   Typography,
+  Tooltip,
 } from "@mui/material";
 import { Edit as EditIcon, Delete as DeleteIcon, Lock as LockIcon } from "@mui/icons-material";
 
@@ -25,8 +26,22 @@ const DepartementTableau = ({
   onDelete,
   currentUser,
   isSuperuser,
+  getCreatorName,
 }) => {
   const paginatedData = data.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
+  // Fonction sécurisée pour obtenir le nom du créateur
+  const getCreatorDisplayName = (row) => {
+    try {
+      if (getCreatorName && typeof getCreatorName === 'function') {
+        return getCreatorName(row);
+      }
+      return row.created_by_name || row.created_by_username || "Utilisateur inconnu";
+    } catch (error) {
+      console.error("Erreur lors de la récupération du nom du créateur:", error);
+      return "Utilisateur inconnu";
+    }
+  };
 
   return (
     <Paper sx={{ width: "100%", borderRadius: 3 }}>
@@ -63,7 +78,7 @@ const DepartementTableau = ({
                     />
                   </TableCell>
                   <TableCell>
-                    <Box sx={{ display: "flex", gap: 1 }}>
+                    <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
                       {canEditOrDelete ? (
                         <>
                           <IconButton color="primary" onClick={() => onEdit(row)}>
@@ -77,9 +92,16 @@ const DepartementTableau = ({
                           </IconButton>
                         </>
                       ) : (
-                        <IconButton color="default" disabled title="Non autorisé">
-                          <LockIcon />
-                        </IconButton>
+                        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                          <Tooltip title="Non autorisé">
+                            <IconButton color="default" disabled>
+                              <LockIcon />
+                            </IconButton>
+                          </Tooltip>
+                          <Typography variant="caption" color="text.secondary" sx={{ mt: -0.5 }}>
+                            Creé par : {row.created_by_nom || row.created_by_username || "Utilisateur inconnu"}
+                          </Typography>
+                        </Box>
                       )}
                     </Box>
                   </TableCell>

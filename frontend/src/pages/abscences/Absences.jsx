@@ -27,7 +27,15 @@ import {
   Close as CloseIcon
 } from "@mui/icons-material";
 
-import { getAbsences, createAbsence, updateAbsence, deleteAbsence, getEmployes, getCurrentUser } from "../../services/api";
+import { 
+  getAbsences, 
+  createAbsence, 
+  updateAbsence, 
+  deleteAbsence, 
+  getEmployes, 
+  getCurrentUser, 
+  isSuperuser 
+} from "../../services/api";
 import Header, { triggerNotificationsRefresh } from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import AbsenceTable from "./AbsenceTable";
@@ -47,6 +55,7 @@ const Absences = () => {
   const [deletingId, setDeletingId] = useState(null);
   const [error, setError] = useState(null);
   const [user, setUser] = useState(null);
+  const [isSuperuserState, setIsSuperuserState] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [justificationFilter, setJustificationFilter] = useState("all");
   const [monthFilter, setMonthFilter] = useState("all");
@@ -81,6 +90,11 @@ const Absences = () => {
         const userData = await getCurrentUser();
         console.log("Données de l'utilisateur actuel:", userData);
         setUser(userData);
+        
+        // Vérifier le statut superutilisateur
+        const superuserStatus = await isSuperuser();
+        setIsSuperuserState(superuserStatus);
+        
         await fetchData();
       } catch (error) {
         console.error("Erreur lors de l'initialisation:", error);
@@ -433,6 +447,7 @@ const Absences = () => {
             onDelete={handleDelete}
             theme={theme}
             currentUser={user}
+            isSuperuser={isSuperuserState}
           />
         </Paper>
         <AbsenceModal

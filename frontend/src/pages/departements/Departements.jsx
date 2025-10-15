@@ -33,6 +33,7 @@ import {
   deleteDepartement,
   getCurrentUser,
   isSuperuser,
+  getEmployes,
 } from "../../services/api";
 
 const Departements = ({ isSuperuser: isSuperuserProp }) => {
@@ -65,6 +66,7 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
     localisation: "",
     nbr_employe: 0,
   });
+  const [usersMap, setUsersMap] = useState({}); // Map pour stocker les infos des utilisateurs
 
   // --- Récupération utilisateur et statut superutilisateur ---
   useEffect(() => {
@@ -86,6 +88,9 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
           setIsSuperuserState(superuser);
         }
 
+        // Récupérer les employés pour mapper les créateurs
+        await fetchUsersMap();
+        
         // Récupérer les départements
         await fetchDepartements();
       } catch (err) {
@@ -100,6 +105,28 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
     fetchUserAndData();
   }, [navigate, isSuperuserProp]);
 
+  // Récupérer la map des utilisateurs
+  const fetchUsersMap = async () => {
+    try {
+      const employes = await getEmployes();
+      const users = {};
+      
+      // Créer une map ID utilisateur -> nom complet
+      employes.forEach(emp => {
+        if (emp.id) {
+          // Utiliser le même format que dans le Header
+          const nomComplet = emp.nom || emp.prenom ? `${emp.prenom || ''} ${emp.nom || ''}`.trim() : emp.email || `Employé ${emp.id}`;
+          users[emp.id] = nomComplet;
+        }
+      });
+      
+      setUsersMap(users);
+      console.log("Map des utilisateurs:", users); // Debug
+    } catch (err) {
+      console.error("Erreur lors du chargement des utilisateurs:", err);
+    }
+  };
+
   // --- CRUD Départements ---
   const fetchDepartements = async () => {
     try {
@@ -107,6 +134,7 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
       setError(null);
       const data = await getDepartements();
       console.log("Données des départements:", data); // Débogage
+      
       setDepartements(Array.isArray(data) ? data : []);
       setLoading(false);
     } catch (err) {
@@ -115,6 +143,35 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
       showSnackbar("Impossible de charger les départements");
       setLoading(false);
     }
+  };
+
+  // Fonction pour obtenir le nom du créateur
+  const getCreatorName = (departement) => {
+    if (!departement.created_by) {
+      return "Utilisateur inconnu";
+    }
+
+    // Si l'API retourne directement le nom du créateur
+    if (departement.created_by_name) {
+      return departement.created_by_name;
+    }
+
+    // Si l'API retourne created_by_username
+    if (departement.created_by_username) {
+      return departement.created_by_username;
+    }
+
+    // Utiliser la map des utilisateurs
+    if (usersMap[departement.created_by]) {
+      return usersMap[departement.created_by];
+    }
+
+    // Si c'est l'utilisateur courant
+    if (currentUser && departement.created_by === currentUser.id) {
+      return currentUser.nom || currentUser.prenom ? `${currentUser.prenom || ''} ${currentUser.nom || ''}`.trim() : currentUser.email || "Vous";
+    }
+
+    return `Utilisateur ${departement.created_by}`;
   };
 
   const validateForm = () => {
@@ -269,7 +326,8 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
     (d) =>
       (d.id_departement || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       (d.nom || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (d.responsable || "").toLowerCase().includes(searchTerm.toLowerCase())
+      (d.responsable || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (getCreatorName(d) || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (loading) {
@@ -383,7 +441,7 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
         <Paper sx={{ p: 2, mb: 3, borderRadius: 3 }}>
           <TextField
             fullWidth
-            placeholder="Rechercher par ID, nom ou responsable..."
+            placeholder="Rechercher par ID, nom, responsable ou créateur..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             InputProps={{
@@ -414,6 +472,7 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
           onDelete={handleDelete}
           currentUser={currentUser}
           isSuperuser={isSuperuserState}
+          getCreatorName={getCreatorName}
         />
 
         {/* Modal */}
