@@ -9,7 +9,15 @@ import Pointages from "./pages/pointages/Pointages";
 import Absences from "./pages/abscences/Absences";
 import Evenements from "./pages/evenements/Evenements";
 import Conges from "./pages/conges/Conges";
-import { getCurrentUser, isSuperuser } from "./services/api"; // Importer les fonctions nécessaires
+import { getCurrentUser, isSuperuser } from "./services/api";
+
+// Import des pages de statistiques
+import StatisticsOverview from "./pages/statistiques/StatisticsOverview";
+import EmployeeStatistics from "./pages/statistiques/EmployeeStatistics";
+import DepartmentStatistics from "./pages/statistiques/DepartmentStatistics";
+import StatisticsAnalysis from "./pages/statistiques/StatisticsAnalysis"; // ← CORRECTION ICI
+import StatisticsReports from "./pages/statistiques/StatisticsReports";
+import StatisticsHistory from "./pages/statistiques/StatisticsHistory";
 
 const privateRoutes = [
   { path: "/home", element: <Home /> },
@@ -19,6 +27,13 @@ const privateRoutes = [
   { path: "/conges", element: <Conges /> },
   { path: "/absences", element: <Absences /> },
   { path: "/evenements", element: <Evenements /> },
+  // Routes des statistiques
+  { path: "/statistiques/overview", element: <StatisticsOverview /> },
+  { path: "/statistiques/employes", element: <EmployeeStatistics /> },
+  { path: "/statistiques/departements", element: <DepartmentStatistics /> },
+  { path: "/statistiques/analyses", element: <StatisticsAnalysis /> },
+  { path: "/statistiques/rapports", element: <StatisticsReports /> },
+  { path: "/statistiques/historique", element: <StatisticsHistory /> },
 ];
 
 function App() {
@@ -26,6 +41,8 @@ function App() {
     !!localStorage.getItem("access_token")
   );
   const [isSuperuserState, setIsSuperuserState] = useState(false);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   // Vérifier l'authentification et le statut de superutilisateur au chargement
@@ -33,34 +50,73 @@ function App() {
     const checkAuth = async () => {
       if (localStorage.getItem("access_token")) {
         try {
-          await getCurrentUser(); // Vérifie si le token est valide
+          const userData = await getCurrentUser();
+          setUser(userData);
           const superuser = await isSuperuser();
           setIsSuperuserState(superuser);
+          setIsAuthenticated(true);
         } catch (error) {
           console.error("Erreur d'authentification:", error.message);
-          localStorage.removeItem("access_token");
-          localStorage.removeItem("refresh_token");
-          setIsAuthenticated(false);
-          navigate("/"); // Rediriger vers la page de connexion
+          handleLogout();
         }
       }
+      setLoading(false);
     };
     checkAuth();
   }, [navigate]);
+
+  const handleLogin = (userData) => {
+    setIsAuthenticated(true);
+    setUser(userData);
+    isSuperuser().then(superuser => {
+      setIsSuperuserState(superuser);
+    });
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    setIsAuthenticated(false);
+    setUser(null);
+    setIsSuperuserState(false);
+    navigate("/");
+  };
+
+  if (loading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh' 
+      }}>
+        <div>Chargement...</div>
+      </div>
+    );
+  }
 
   return (
     <Routes>
       <Route
         path="/"
-        element={<Auth setIsAuthenticated={setIsAuthenticated} />}
+        element={<Auth setIsAuthenticated={setIsAuthenticated} onLogin={handleLogin} />}
       />
       {privateRoutes.map(({ path, element }) => (
         <Route
           key={path}
           path={path}
           element={
-            <PrivateRoute isAuthenticated={isAuthenticated} isSuperuser={isSuperuserState}>
-              {element}
+            <PrivateRoute 
+              isAuthenticated={isAuthenticated} 
+              isSuperuser={isSuperuserState}
+              user={user}
+              onLogout={handleLogout}
+            >
+              {React.cloneElement(element, { 
+                user,
+                isSuperuser: isSuperuserState,
+                onLogout: handleLogout 
+              })}
             </PrivateRoute>
           }
         />

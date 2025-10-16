@@ -326,43 +326,11 @@ class Evenement(models.Model):
 
     def __str__(self):
         return f"{self.titre} ({self.date_debut} - {self.date_fin})"
+    
 
 
-        from rest_framework import permissions
 
-class IsOwnerOrAdminForWrite(permissions.BasePermission):
-    """
-    Permission personnalisée :
-    - Tous les utilisateurs authentifiés peuvent voir les données (GET, HEAD, OPTIONS).
-    - Seuls le créateur de l'objet, un superutilisateur, ou le responsable du département peuvent modifier/supprimer (PUT, PATCH, DELETE).
-    - Pour les congés, les responsables du département de l'employé peuvent valider/refuser.
-    """
-    def has_permission(self, request, view):
-        # Tous les utilisateurs authentifiés ont accès en lecture
-        return request.user and request.user.is_authenticated
-
-    def has_object_permission(self, request, view, obj):
-        # Autoriser les méthodes de lecture pour tous
-        if request.method in permissions.SAFE_METHODS:
-            return True
-
-        # Autoriser les superutilisateurs pour toutes les actions
-        if request.user.is_superuser:
-            return True
-
-        # Autoriser la modification/suppression pour le créateur
-        if hasattr(obj, 'created_by') and obj.created_by == request.user:
-            return True
-
-        # Autoriser si l'utilisateur est l'employé concerné (pour Pointage, Absence, Conge)
-        if hasattr(obj, 'employe') and obj.employe.user == request.user:
-            return True
-
-        # Autoriser les responsables du département pour les congés, absences, et pointages
-        if hasattr(obj, 'employe') and obj.employe.departement.responsable == request.user.email:
-            return True
-
-            # serializers.py
+    # serializers.py
 from rest_framework import serializers
 from .models import CustomUser, Departement, Employe, Pointage, Absence, Conge, Evenement
 from django.contrib.auth.hashers import make_password
@@ -392,11 +360,16 @@ class CustomUserSerializer(serializers.ModelSerializer):
 # -----------------------
 class DepartementSerializer(serializers.ModelSerializer):
     created_by = serializers.PrimaryKeyRelatedField(read_only=True)
+    created_by_username = serializers.CharField(source='created_by.email', read_only=True)
+    created_by_nom = serializers.CharField(source='created_by.nom', read_only=True)
 
     class Meta:
         model = Departement
-        fields = '__all__'
-
+        fields = [
+            'id_departement', 'nom', 'responsable', 'description', 
+            'nbr_employe', 'localisation', 'created_by', 
+            'created_by_username', 'created_by_nom'  # Ajoutez ces champs
+        ]
 # -----------------------
 # Employe
 # -----------------------
@@ -408,13 +381,16 @@ class EmployeSerializer(serializers.ModelSerializer):
         write_only=True
     )
     created_by = serializers.PrimaryKeyRelatedField(read_only=True)
+    created_by_username = serializers.CharField(source='created_by.email', read_only=True)
+    created_by_nom = serializers.CharField(source='created_by.nom', read_only=True)
     user = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
         model = Employe
         fields = [
             'matricule', 'titre', 'nom', 'prenom', 'email', 'telephone', 'poste',
-            'statut', 'departement', 'departement_pk', 'user', 'created_by'
+            'statut', 'departement', 'departement_pk', 'user', 'created_by',
+            'created_by_username', 'created_by_nom'  # Ajoutez ces champs
         ]
 
 # -----------------------
@@ -425,20 +401,12 @@ class PointageSerializer(serializers.ModelSerializer):
     employe_nom = serializers.CharField(source='employe.nom_complet', read_only=True)
     employe_matricule = serializers.CharField(source='employe.matricule', read_only=True)
     created_by = serializers.PrimaryKeyRelatedField(read_only=True)
+    created_by_username = serializers.CharField(source='created_by.email', read_only=True)
+    created_by_nom = serializers.CharField(source='created_by.nom', read_only=True)
 
     class Meta:
         model = Pointage
         fields = '__all__'
-
-    def validate(self, data):
-        heure_entree = data.get('heure_entree')
-        heure_sortie = data.get('heure_sortie')
-        if heure_entree and heure_sortie:
-            if heure_sortie <= heure_entree:
-                raise serializers.ValidationError({
-                    'heure_sortie': "L'heure de sortie doit être après l'heure d'entrée"
-                })
-        return data
 
 # -----------------------
 # Absence
@@ -447,15 +415,12 @@ class AbsenceSerializer(serializers.ModelSerializer):
     nbr_jours = serializers.IntegerField(read_only=True)
     employe_nom = serializers.CharField(source='employe.nom_complet', read_only=True)
     created_by = serializers.PrimaryKeyRelatedField(read_only=True)
+    created_by_username = serializers.CharField(source='created_by.email', read_only=True)
+    created_by_nom = serializers.CharField(source='created_by.nom', read_only=True)
 
     class Meta:
         model = Absence
         fields = '__all__'
-
-    def validate(self, data):
-        if data['date_fin_absence'] < data['date_debut_absence']:
-            raise serializers.ValidationError("La date de fin doit être après la date de début")
-        return data
 
 # -----------------------
 # Conge
@@ -464,16 +429,13 @@ class CongeSerializer(serializers.ModelSerializer):
     nbr_jours = serializers.IntegerField(read_only=True)
     employe_nom = serializers.CharField(source='employe.nom_complet', read_only=True)
     created_by = serializers.PrimaryKeyRelatedField(read_only=True)
+    created_by_username = serializers.CharField(source='created_by.email', read_only=True)
+    created_by_nom = serializers.CharField(source='created_by.nom', read_only=True)
 
     class Meta:
         model = Conge
         fields = '__all__'
         read_only_fields = ['date_demande', 'date_decision', 'nbr_jours', 'employe_nom', 'created_by']
-
-    def validate(self, data):
-        if data['date_fin'] < data['date_debut']:
-            raise serializers.ValidationError("La date de fin doit être après la date de début")
-        return data
 
 # -----------------------
 # Evenement
@@ -481,17 +443,17 @@ class CongeSerializer(serializers.ModelSerializer):
 class EvenementSerializer(serializers.ModelSerializer):
     duree = serializers.DurationField(read_only=True)
     created_by = serializers.PrimaryKeyRelatedField(read_only=True)
+    created_by_username = serializers.CharField(source='created_by.email', read_only=True)
+    created_by_nom = serializers.CharField(source='created_by.nom', read_only=True)
 
     class Meta:
         model = Evenement
         fields = '__all__'
 
-    def validate(self, data):
-        if data['date_fin'] < data['date_debut']:
-            raise serializers.ValidationError("La date de fin doit être après la date de début")
-        return data
 
-        from rest_framework import viewsets, permissions, filters, status
+
+        # views.py
+from rest_framework import viewsets, permissions, filters, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.views import APIView
@@ -710,3 +672,66 @@ class EvenementViewSet(viewsets.ModelViewSet):
         evenements = Evenement.objects.filter(date_debut__gte=datetime.now())
         serializer = self.get_serializer(evenements, many=True)
         return Response(serializer.data)
+    
+
+
+    # urls.py
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import (
+    RegisterViewSet, DepartementViewSet, EmployeViewSet, 
+    PointageViewSet, AbsenceViewSet, CongeViewSet, EvenementViewSet, CurrentUserView
+)
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+
+router = DefaultRouter()
+router.register('register', RegisterViewSet, basename='register')
+router.register('departements', DepartementViewSet)
+router.register('employes', EmployeViewSet)
+router.register('pointages', PointageViewSet)
+router.register('absences', AbsenceViewSet)
+router.register('conges', CongeViewSet)
+router.register('evenements', EvenementViewSet)
+
+urlpatterns = [
+    path('api/', include(router.urls)),
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/users/me/', CurrentUserView.as_view(), name='current-user'),
+]
+
+
+# permissions.py
+from rest_framework import permissions
+
+class IsOwnerOrAdminForWrite(permissions.BasePermission):
+    """
+    Permission personnalisée :
+    - Tous les utilisateurs authentifiés peuvent voir les données (GET, HEAD, OPTIONS).
+    - Seuls le créateur de l'objet, un superutilisateur, ou le responsable du département peuvent modifier/supprimer (PUT, PATCH, DELETE).
+    - Pour les congés, les responsables du département de l'employé peuvent valider/refuser.
+    """
+    def has_permission(self, request, view):
+        # Tous les utilisateurs authentifiés ont accès en lecture
+        return request.user and request.user.is_authenticated
+
+    def has_object_permission(self, request, view, obj):
+        # Autoriser les méthodes de lecture pour tous
+        if request.method in permissions.SAFE_METHODS:
+            return True
+
+        # Autoriser les superutilisateurs pour toutes les actions
+        if request.user.is_superuser:
+            return True
+
+        # Autoriser la modification/suppression pour le créateur
+        if hasattr(obj, 'created_by') and obj.created_by == request.user:
+            return True
+
+        # Autoriser si l'utilisateur est l'employé concerné (pour Pointage, Absence, Conge)
+        if hasattr(obj, 'employe') and obj.employe.user == request.user:
+            return True
+
+        # Autoriser les responsables du département pour les congés, absences, et pointages
+        if hasattr(obj, 'employe') and obj.employe.departement.responsable == request.user.email:
+            return True

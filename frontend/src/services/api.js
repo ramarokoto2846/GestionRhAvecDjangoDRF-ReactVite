@@ -293,6 +293,450 @@ export const getEvenementsAVenir = async () => {
 };
 
 // ========================
+// STATISTIQUES
+// ========================
+
+// Statistiques employé
+export const getEmployeeStatistics = async (matricule = null, params = {}) => {
+  try {
+    let url = `${BASE_URL}/statistiques/employe/`;
+    if (matricule) {
+      url = `${BASE_URL}/statistiques/employe/${matricule}/`;
+    }
+    const response = await axios.get(url, {
+      headers: getAuthHeader(),
+      params,
+    });
+    return response.data;
+  } catch (error) {
+    handleError(error, "Erreur lors de la récupération des statistiques employé.");
+  }
+};
+
+// Statistiques département
+export const getDepartmentStatistics = async (departementId = null, params = {}) => {
+  try {
+    let url = `${BASE_URL}/statistiques/departement/`;
+    if (departementId) {
+      url = `${BASE_URL}/statistiques/departement/${departementId}/`;
+    }
+    const response = await axios.get(url, {
+      headers: getAuthHeader(),
+      params,
+    });
+    return response.data;
+  } catch (error) {
+    handleError(error, "Erreur lors de la récupération des statistiques département.");
+  }
+};
+
+// Statistiques globales
+export const getGlobalStatistics = async (params = {}) => {
+  try {
+    const response = await axios.get(`${BASE_URL}/statistiques/global/`, {
+      headers: getAuthHeader(),
+      params,
+    });
+    return response.data;
+  } catch (error) {
+    handleError(error, "Erreur lors de la récupération des statistiques globales.");
+  }
+};
+
+// Statistiques détaillées par type
+export const getDetailedStatistics = async (params = {}) => {
+  try {
+    const response = await axios.get(`${BASE_URL}/statistiques/detaillees/`, {
+      headers: getAuthHeader(),
+      params,
+    });
+    return response.data;
+  } catch (error) {
+    handleError(error, "Erreur lors de la récupération des statistiques détaillées.");
+  }
+};
+
+// Statistiques sauvegardées
+export const getSavedStatistics = async (params = {}) => {
+  try {
+    const response = await axios.get(`${BASE_URL}/statistiques/sauvegardees/`, {
+      headers: getAuthHeader(),
+      params,
+    });
+    return extractData(response.data);
+  } catch (error) {
+    handleError(error, "Erreur lors de la récupération des statistiques sauvegardées.");
+  }
+};
+
+// Supprimer une statistique sauvegardée
+export const deleteSavedStatistics = async (id) => {
+  try {
+    const response = await axios.delete(`${BASE_URL}/statistiques/sauvegardees/${id}/`, {
+      headers: getAuthHeader(),
+    });
+    return response.data || { success: true };
+  } catch (error) {
+    handleError(error, "Erreur lors de la suppression de la statistique sauvegardée.");
+  }
+};
+
+// Export PDF des statistiques
+export const exportStatisticsPDF = async (exportType, params = {}) => {
+  try {
+    const response = await axios.get(`${BASE_URL}/statistiques/export-pdf/`, {
+      headers: getAuthHeader(),
+      params: {
+        type: exportType,
+        ...params
+      },
+      responseType: 'blob' // Important pour les fichiers binaires
+    });
+    
+    // Créer un blob URL pour télécharger le PDF
+    const blob = new Blob([response.data], { type: 'application/pdf' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    
+    // Générer un nom de fichier basé sur le type et la date
+    const date = new Date().toISOString().split('T')[0];
+    link.download = `statistiques_${exportType}_${date}.pdf`;
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    
+    return { success: true, message: "PDF exporté avec succès" };
+  } catch (error) {
+    handleError(error, "Erreur lors de l'export PDF des statistiques.");
+  }
+};
+
+// ========================
+// RAPPORTS ET ANALYSES
+// ========================
+
+// Historique des rapports PDF générés
+export const getReportHistory = async (params = {}) => {
+  try {
+    const response = await axios.get(`${BASE_URL}/rapports/historique/`, {
+      headers: getAuthHeader(),
+      params,
+    });
+    return extractData(response.data);
+  } catch (error) {
+    handleError(error, "Erreur lors de la récupération de l'historique des rapports.");
+  }
+};
+
+// Générer un nouveau rapport
+export const generateReport = async (params = {}) => {
+  try {
+    const response = await axios.post(`${BASE_URL}/rapports/generer/`, params, {
+      headers: getAuthHeader(),
+    });
+    return response.data;
+  } catch (error) {
+    handleError(error, "Erreur lors de la génération du rapport.");
+  }
+};
+
+// Télécharger un rapport existant
+export const downloadReport = async (reportId) => {
+  try {
+    const response = await axios.get(`${BASE_URL}/rapports/${reportId}/telecharger/`, {
+      headers: getAuthHeader(),
+      responseType: 'blob'
+    });
+    
+    // Créer un blob URL pour télécharger le PDF
+    const blob = new Blob([response.data], { type: 'application/pdf' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    
+    // Utiliser le nom de fichier de la réponse ou générer un nom par défaut
+    const filename = response.headers['content-disposition'] 
+      ? response.headers['content-disposition'].split('filename=')[1]?.replace(/"/g, '')
+      : `rapport_${reportId}.pdf`;
+    
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    
+    return { success: true, message: "Rapport téléchargé avec succès" };
+  } catch (error) {
+    handleError(error, "Erreur lors du téléchargement du rapport.");
+  }
+};
+
+// Analyses comparatives
+export const getComparativeAnalysis = async (params = {}) => {
+  try {
+    const response = await axios.get(`${BASE_URL}/analyses/comparatives/`, {
+      headers: getAuthHeader(),
+      params,
+    });
+    return response.data;
+  } catch (error) {
+    handleError(error, "Erreur lors de la récupération de l'analyse comparative.");
+  }
+};
+
+// Tendances et évolutions
+export const getTrendsAnalysis = async (params = {}) => {
+  try {
+    const response = await axios.get(`${BASE_URL}/analyses/tendances/`, {
+      headers: getAuthHeader(),
+      params,
+    });
+    return response.data;
+  } catch (error) {
+    handleError(error, "Erreur lors de la récupération de l'analyse des tendances.");
+  }
+};
+
+// ========================
+// NOTIFICATIONS
+// ========================
+
+// Récupérer les notifications
+export const getNotifications = async () => {
+  try {
+    const response = await axios.get(`${BASE_URL}/notifications/`, {
+      headers: getAuthHeader(),
+    });
+    return extractData(response.data);
+  } catch (error) {
+    handleError(error, "Erreur lors de la récupération des notifications.");
+  }
+};
+
+// Marquer une notification comme lue
+export const markNotificationAsRead = async (notificationId) => {
+  try {
+    const response = await axios.patch(
+      `${BASE_URL}/notifications/${notificationId}/`,
+      { lue: true },
+      { headers: getAuthHeader() }
+    );
+    return response.data;
+  } catch (error) {
+    handleError(error, "Erreur lors du marquage de la notification comme lue.");
+  }
+};
+
+// Supprimer une notification
+export const deleteNotification = async (notificationId) => {
+  try {
+    const response = await axios.delete(`${BASE_URL}/notifications/${notificationId}/`, {
+      headers: getAuthHeader(),
+    });
+    return response.data || { success: true };
+  } catch (error) {
+    handleError(error, "Erreur lors de la suppression de la notification.");
+  }
+};
+
+// ========================
+// UTILITAIRES STATISTIQUES
+// ========================
+
+export const StatisticsUtils = {
+  // Formater une durée en chaîne lisible
+  formatDuration: (duration) => {
+    if (!duration) return "0h 00min";
+    
+    // Si c'est une chaîne, essayer de la parser
+    if (typeof duration === 'string') {
+      // Format "HH:MM:SS" ou "X days, HH:MM:SS"
+      const parts = duration.split(/[:, ]/).filter(part => part !== '');
+      
+      if (parts.length >= 2) {
+        const hours = parseInt(parts[parts.length - 3] || '0');
+        const minutes = parseInt(parts[parts.length - 2] || '0');
+        return `${hours}h ${minutes.toString().padStart(2, '0')}min`;
+      }
+      return duration;
+    }
+    
+    // Si c'est un objet Duration (timedelta)
+    try {
+      const totalSeconds = typeof duration === 'number' ? duration : duration.total_seconds();
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      return `${hours}h ${minutes.toString().padStart(2, '0')}min`;
+    } catch (e) {
+      return "0h 00min";
+    }
+  },
+
+  // Formater un pourcentage
+  formatPercentage: (value, decimals = 2) => {
+    if (value === null || value === undefined) return "0%";
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    return `${numValue.toFixed(decimals)}%`;
+  },
+
+  // Calculer le taux de régularité
+  calculateRegularityRate: (regular, total) => {
+    if (!total || total === 0) return 0;
+    return (regular / total) * 100;
+  },
+
+  // Obtenir la couleur basée sur un taux
+  getRateColor: (rate, thresholds = { good: 80, warning: 60 }) => {
+    if (rate >= thresholds.good) return 'success';
+    if (rate >= thresholds.warning) return 'warning';
+    return 'error';
+  },
+
+  // Générer les options de période
+  getPeriodOptions: () => [
+    { value: 'semaine', label: 'Semaine' },
+    { value: 'mois', label: 'Mois' },
+    { value: 'annuel', label: 'Annuel' }
+  ],
+
+  // Obtenir la date de début de période
+  getPeriodStartDate: (periodType, referenceDate = new Date()) => {
+    const date = new Date(referenceDate);
+    
+    switch (periodType) {
+      case 'semaine':
+        // Premier jour de la semaine (lundi)
+        const day = date.getDay();
+        const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+        return new Date(date.setDate(diff));
+      case 'mois':
+        // Premier jour du mois
+        return new Date(date.getFullYear(), date.getMonth(), 1);
+      case 'annuel':
+        // Premier jour de l'année
+        return new Date(date.getFullYear(), 0, 1);
+      default:
+        return date;
+    }
+  },
+
+  // Obtenir la date de fin de période
+  getPeriodEndDate: (periodType, referenceDate = new Date()) => {
+    const startDate = StatisticsUtils.getPeriodStartDate(periodType, referenceDate);
+    
+    switch (periodType) {
+      case 'semaine':
+        // Dernier jour de la semaine (dimanche)
+        return new Date(startDate.getTime() + 6 * 24 * 60 * 60 * 1000);
+      case 'mois':
+        // Dernier jour du mois
+        return new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
+      case 'annuel':
+        // Dernier jour de l'année
+        return new Date(startDate.getFullYear(), 11, 31);
+      default:
+        return startDate;
+    }
+  },
+
+  // Formater une date en français
+  formatDate: (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('fr-FR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  },
+
+  // Formater une date avec l'heure
+  formatDateTime: (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('fr-FR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  },
+
+  // Obtenir le nom du mois
+  getMonthName: (monthNumber) => {
+    const months = [
+      'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+      'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
+    ];
+    return months[monthNumber - 1] || 'Mois inconnu';
+  },
+
+  // Générer les options d'années (5 dernières années)
+  getYearOptions: () => {
+    const currentYear = new Date().getFullYear();
+    return Array.from({ length: 6 }, (_, i) => currentYear - i);
+  },
+
+  // Générer les options de mois
+  getMonthOptions: () => {
+    return [
+      { value: 1, label: 'Janvier' },
+      { value: 2, label: 'Février' },
+      { value: 3, label: 'Mars' },
+      { value: 4, label: 'Avril' },
+      { value: 5, label: 'Mai' },
+      { value: 6, label: 'Juin' },
+      { value: 7, label: 'Juillet' },
+      { value: 8, label: 'Août' },
+      { value: 9, label: 'Septembre' },
+      { value: 10, label: 'Octobre' },
+      { value: 11, label: 'Novembre' },
+      { value: 12, label: 'Décembre' }
+    ];
+  }
+};
+
+// ========================
+// INTERCEPTEUR POUR RAFRAÎCHISSEMENT DU TOKEN
+// ========================
+
+// Intercepteur pour rafraîchir automatiquement le token
+axios.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      
+      const refreshToken = localStorage.getItem('refresh_token');
+      if (refreshToken) {
+        try {
+          const response = await refreshToken(refreshToken);
+          localStorage.setItem('access_token', response.access);
+          
+          // Retenter la requête originale avec le nouveau token
+          originalRequest.headers.Authorization = `Bearer ${response.access}`;
+          return axios(originalRequest);
+        } catch (refreshError) {
+          // Si le rafraîchissement échoue, déconnecter l'utilisateur
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
+          window.location.href = '/login';
+          return Promise.reject(refreshError);
+        }
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
+// ========================
 // EXPORT PAR DÉFAUT
 // ========================
 export default {
@@ -348,4 +792,28 @@ export default {
   updateEvenement,
   deleteEvenement,
   getEvenementsAVenir,
+
+  // Statistiques
+  getEmployeeStatistics,
+  getDepartmentStatistics,
+  getGlobalStatistics,
+  getDetailedStatistics,
+  getSavedStatistics,
+  deleteSavedStatistics,
+  exportStatisticsPDF,
+
+  // Rapports et Analyses
+  getReportHistory,
+  generateReport,
+  downloadReport,
+  getComparativeAnalysis,
+  getTrendsAnalysis,
+
+  // Notifications
+  getNotifications,
+  markNotificationAsRead,
+  deleteNotification,
+
+  // Utilitaires
+  StatisticsUtils,
 };

@@ -326,3 +326,136 @@ class Evenement(models.Model):
 
     def __str__(self):
         return f"{self.titre} ({self.date_debut} - {self.date_fin})"
+    
+
+# ========================
+# Statistiques
+# ========================
+class StatistiquesEmploye(models.Model):
+    PERIODE_TYPE = [
+        ('hebdo', 'Hebdomadaire'),
+        ('mensuel', 'Mensuel'),
+        ('annuel', 'Annuel')
+    ]
+    
+    employe = models.ForeignKey('Employe', on_delete=models.CASCADE, related_name="statistiques")
+    periode_debut = models.DateField()
+    periode_fin = models.DateField()
+    type_periode = models.CharField(max_length=20, choices=PERIODE_TYPE)
+    
+    # Statistiques Pointage
+    heures_travail_total = models.DurationField(null=True, blank=True)
+    jours_travailles = models.IntegerField(default=0)
+    moyenne_heures_quotidiennes = models.DurationField(null=True, blank=True)
+    pointages_reguliers = models.IntegerField(default=0)
+    pointages_irreguliers = models.IntegerField(default=0)
+    
+    # Statistiques Absence
+    taux_absence = models.FloatField(default=0)
+    jours_absence = models.IntegerField(default=0)
+    absences_justifiees = models.IntegerField(default=0)
+    absences_non_justifiees = models.IntegerField(default=0)
+    
+    # Statistiques Congé
+    conges_valides = models.IntegerField(default=0)
+    conges_refuses = models.IntegerField(default=0)
+    conges_en_attente = models.IntegerField(default=0)
+    total_jours_conges = models.IntegerField(default=0)
+    taux_approbation_conges = models.FloatField(default=0)
+    
+    jours_ouvrables = models.IntegerField(default=0)
+    date_calcul = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_statistiques_employe')
+    
+    class Meta:
+        unique_together = ('employe', 'periode_debut', 'periode_fin', 'type_periode')
+        verbose_name = "Statistiques employé"
+        verbose_name_plural = "Statistiques employés"
+        indexes = [
+            models.Index(fields=['employe', 'periode_debut', 'periode_fin']),
+            models.Index(fields=['type_periode', 'periode_debut']),
+        ]
+    
+    def __str__(self):
+        return f"Stats {self.employe} - {self.periode_debut} à {self.periode_fin}"
+
+class StatistiquesDepartement(models.Model):
+    departement = models.ForeignKey('Departement', on_delete=models.CASCADE, related_name="statistiques")
+    mois = models.DateField()
+    
+    # Statistiques Globales
+    taux_absence_moyen = models.FloatField(default=0)
+    heures_travail_moyennes = models.DurationField(null=True, blank=True)
+    total_employes = models.IntegerField(default=0)
+    employes_actifs = models.IntegerField(default=0)
+    
+    # Statistiques Pointage
+    total_heures_travail = models.DurationField(null=True, blank=True)
+    pointages_total = models.IntegerField(default=0)
+    retard_moyen = models.DurationField(null=True, blank=True)
+    
+    # Statistiques Absence
+    total_absences = models.IntegerField(default=0)
+    absences_justifiees = models.IntegerField(default=0)
+    absences_non_justifiees = models.IntegerField(default=0)
+    
+    # Statistiques Congé
+    total_conges_valides = models.IntegerField(default=0)
+    total_conges_refuses = models.IntegerField(default=0)
+    total_conges_en_attente = models.IntegerField(default=0)
+    taux_approbation_conges = models.FloatField(default=0)
+    
+    evenements_count = models.IntegerField(default=0)
+    date_calcul = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_statistiques_departement')
+    
+    class Meta:
+        unique_together = ('departement', 'mois')
+        verbose_name = "Statistiques département"
+        verbose_name_plural = "Statistiques départements"
+        indexes = [
+            models.Index(fields=['departement', 'mois']),
+        ]
+    
+    def __str__(self):
+        return f"Stats {self.departement} - {self.mois.strftime('%Y-%m')}"
+
+class StatistiquesGlobales(models.Model):
+    periode = models.DateField(unique=True)  # Premier jour du mois
+    type_periode = models.CharField(max_length=20, choices=[('mensuel', 'Mensuel'), ('annuel', 'Annuel')])
+    
+    # Statistiques Globales
+    total_employes = models.IntegerField(default=0)
+    total_departements = models.IntegerField(default=0)
+    taux_activite_global = models.FloatField(default=0)
+    
+    # Statistiques Pointage
+    total_pointages = models.IntegerField(default=0)
+    heures_travail_total = models.DurationField(null=True, blank=True)
+    taux_presence = models.FloatField(default=0)
+    
+    # Statistiques Absence
+    total_absences = models.IntegerField(default=0)
+    taux_absence_global = models.FloatField(default=0)
+    absences_justifiees = models.IntegerField(default=0)
+    
+    # Statistiques Congé
+    total_conges = models.IntegerField(default=0)
+    conges_valides = models.IntegerField(default=0)
+    conges_refuses = models.IntegerField(default=0)
+    taux_validation_conges = models.FloatField(default=0)
+    
+    # Statistiques Événements
+    total_evenements = models.IntegerField(default=0)
+    
+    date_calcul = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Statistiques globales"
+        verbose_name_plural = "Statistiques globales"
+        indexes = [
+            models.Index(fields=['periode', 'type_periode']),
+        ]
+    
+    def __str__(self):
+        return f"Stats Globales - {self.periode.strftime('%Y-%m')}"
