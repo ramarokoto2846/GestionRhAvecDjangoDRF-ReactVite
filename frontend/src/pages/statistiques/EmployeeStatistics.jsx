@@ -170,6 +170,7 @@ const EmployeeStatistics = () => {
     }
   };
 
+  // ✅ CORRECTION : Fonction améliorée pour l'export PDF
   const handleExportPDF = async () => {
     if (!selectedEmployee) {
       setError('Veuillez sélectionner un employé');
@@ -180,23 +181,44 @@ const EmployeeStatistics = () => {
       setLoadingPDF(true);
       const formattedDate = `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}`;
       
+      // Récupérer les données de l'employé sélectionné
+      const employeeData = employees.find(emp => emp.matricule === selectedEmployee);
+      if (!employeeData) {
+        setError('Données de l\'employé non trouvées');
+        return;
+      }
+      
       console.log('📄 Export PDF avec params:', {
         matricule: selectedEmployee,
         periode: 'mois',
-        date: formattedDate
+        date: formattedDate,
+        nom_employe: `${employeeData.nom}_${employeeData.prenom}`
       });
       
+      // ✅ NOUVEAU : Appel avec gestion du nom de fichier
       await exportStatisticsPDF('employe', {
         matricule: selectedEmployee,
         periode: 'mois',
-        date: formattedDate
+        date: formattedDate,
+        nom_employe: `${employeeData.nom}_${employeeData.prenom}`
       });
+      
     } catch (err) {
       console.error('❌ Erreur export PDF:', err);
       setError(`Erreur lors de l'export PDF: ${err.message}`);
     } finally {
       setLoadingPDF(false);
     }
+  };
+
+  // ✅ CORRECTION : Fonction utilitaire pour normaliser les noms de fichiers
+  const normalizeFileName = (name) => {
+    return name
+      .normalize('NFD') // Normaliser les caractères accentués
+      .replace(/[\u0300-\u036f]/g, '') // Supprimer les accents
+      .replace(/[^a-zA-Z0-9_]/g, '_') // Remplacer les caractères spéciaux par _
+      .replace(/_+/g, '_') // Éviter les underscores multiples
+      .toLowerCase();
   };
 
   const handleRefresh = () => {

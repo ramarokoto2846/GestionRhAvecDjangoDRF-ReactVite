@@ -1,6 +1,7 @@
 # views.py
 import io
 import logging
+import re
 from datetime import datetime
 from django.utils import timezone
 from django.http import HttpResponse
@@ -717,6 +718,34 @@ class SavedStatisticsViewSet(viewsets.ReadOnlyModelViewSet):
 class ExportStatisticsPDFAPIView(APIView):
     """Export des statistiques en PDF - CORRIGÉ"""
     
+    def _normaliser_nom_fichier(self, nom):
+        """Normalise un nom de fichier en remplaçant les caractères spéciaux"""
+        # Table de correspondance pour les caractères accentués
+        correspondances = {
+            'à': 'a', 'á': 'a', 'â': 'a', 'ã': 'a', 'ä': 'a',
+            'è': 'e', 'é': 'e', 'ê': 'e', 'ë': 'e',
+            'ì': 'i', 'í': 'i', 'î': 'i', 'ï': 'i',
+            'ò': 'o', 'ó': 'o', 'ô': 'o', 'õ': 'o', 'ö': 'o',
+            'ù': 'u', 'ú': 'u', 'û': 'u', 'ü': 'u',
+            'ç': 'c', 'ñ': 'n',
+            'À': 'A', 'Á': 'A', 'Â': 'A', 'Ã': 'A', 'Ä': 'A',
+            'È': 'E', 'É': 'E', 'Ê': 'E', 'Ë': 'E',
+            'Ì': 'I', 'Í': 'I', 'Î': 'I', 'Ï': 'I',
+            'Ò': 'O', 'Ó': 'O', 'Ô': 'O', 'Õ': 'O', 'Ö': 'O',
+            'Ù': 'U', 'Ú': 'U', 'Û': 'U', 'Ü': 'U',
+            'Ç': 'C', 'Ñ': 'N'
+        }
+        
+        # Remplacer les caractères accentués
+        for accent, sans_accent in correspondances.items():
+            nom = nom.replace(accent, sans_accent)
+        
+        # Remplacer les espaces et caractères spéciaux par des underscores
+        nom = re.sub(r'[^\w\s-]', '', nom)
+        nom = re.sub(r'[-\s]+', '_', nom)
+        
+        return nom.strip('_')
+    
     def _export_simple_fallback(self, request, export_type):
         """
         Fallback simple pour l'export PDF en cas d'erreur
@@ -910,38 +939,6 @@ class ExportStatisticsPDFAPIView(APIView):
             elements.append(conge_table)
             elements.append(Spacer(1, 25))
             
-            # Résumé de performance
-            elements.append(Paragraph("📈 RÉSUMÉ DE PERFORMANCE", section_style))
-            elements.append(Spacer(1, 10))
-            
-            # Calcul des indicateurs de performance
-            taux_regularite = (stats.get('pointages_reguliers', 0) / stats.get('jours_travailles', 1) * 100) if stats.get('jours_travailles', 0) > 0 else 0
-            taux_presence = ((stats.get('jours_travailles', 0) / stats.get('jours_ouvrables', 1)) * 100) if stats.get('jours_ouvrables', 0) > 0 else 0
-            
-            performance_data = [
-                ['Indicateur', 'Valeur', 'Évaluation'],
-                ['Taux de régularité', f"{taux_regularite:.1f}%", self._get_evaluation(taux_regularite, 80, 60)],
-                ['Taux de présence', f"{taux_presence:.1f}%", self._get_evaluation(taux_presence, 90, 70)],
-                ['Taux d\'approbation congés', f"{stats.get('taux_approbation_conges', 0):.1f}%", self._get_evaluation(stats.get('taux_approbation_conges', 0), 80, 60)],
-                ['Taux d\'absence', f"{stats.get('taux_absence', 0):.1f}%", self._get_evaluation_absence(stats.get('taux_absence', 0))],
-            ]
-            
-            performance_table = Table(performance_data, colWidths=[70*mm, 40*mm, 50*mm])
-            performance_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4A4A4A')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 11),
-                ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F8F9FA')),
-                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-                ('FONTSIZE', (0, 1), (-1, -1), 10),
-                ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#DDDDDD')),
-                ('PADDING', (0, 0), (-1, -1), 5),
-            ]))
-            elements.append(performance_table)
-            elements.append(Spacer(1, 25))
-            
             # Pied de page
             footer_style = styles['Italic']
             footer = Paragraph(f"Rapport généré le {timezone.now().strftime('%d/%m/%Y à %H:%M')} - Système de Gestion RH", footer_style)
@@ -951,10 +948,15 @@ class ExportStatisticsPDFAPIView(APIView):
             doc.build(elements)
             buffer.seek(0)
             
-            # Créer la réponse HTTP
+            # ✅ CORRECTION : Créer la réponse HTTP avec nom du fichier personnalisé
             response = HttpResponse(buffer, content_type='application/pdf')
-            filename = f"statistiques_employe_{employe.matricule}_{timezone.now().strftime('%Y%m%d_%H%M')}.pdf"
-            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            
+            # Nom du fichier avec nom, prénom et matricule de l'employé
+            nom_employe = f"{employe.nom}_{employe.prenom}"
+            nom_employe_normalise = self._normaliser_nom_fichier(nom_employe)
+            nom_fichier = f"statistiques_{nom_employe_normalise}_{employe.matricule}.pdf"
+            
+            response['Content-Disposition'] = f'attachment; filename="{nom_fichier}"'
             
             logger.info(f"PDF généré avec succès pour l'employé {employe.matricule}")
             return response
@@ -1073,9 +1075,14 @@ class ExportStatisticsPDFAPIView(APIView):
             doc.build(elements)
             buffer.seek(0)
             
+            # ✅ CORRECTION : Créer la réponse HTTP avec nom du fichier personnalisé
             response = HttpResponse(buffer, content_type='application/pdf')
-            filename = f"statistiques_departement_{departement.id_departement}_{timezone.now().strftime('%Y%m%d_%H%M')}.pdf"
-            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            
+            # Nom du fichier avec nom du département
+            nom_departement_normalise = self._normaliser_nom_fichier(departement.nom)
+            nom_fichier = f"statistiques_departement_{nom_departement_normalise}.pdf"
+            
+            response['Content-Disposition'] = f'attachment; filename="{nom_fichier}"'
             
             return response
             
@@ -1150,9 +1157,13 @@ class ExportStatisticsPDFAPIView(APIView):
             doc.build(elements)
             buffer.seek(0)
             
+            # ✅ CORRECTION : Créer la réponse HTTP avec nom du fichier personnalisé
             response = HttpResponse(buffer, content_type='application/pdf')
-            filename = f"statistiques_globales_{timezone.now().strftime('%Y%m%d_%H%M')}.pdf"
-            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            
+            # Nom du fichier avec date
+            nom_fichier = f"statistiques_globales_{timezone.now().strftime('%Y%m%d')}.pdf"
+            
+            response['Content-Disposition'] = f'attachment; filename="{nom_fichier}"'
             
             return response
             

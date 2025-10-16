@@ -381,7 +381,7 @@ export const deleteSavedStatistics = async (id) => {
   }
 };
 
-// Export PDF des statistiques
+// ✅ CORRECTION : Export PDF des statistiques avec nom de fichier personnalisé
 export const exportStatisticsPDF = async (exportType, params = {}) => {
   try {
     const response = await axios.get(`${BASE_URL}/statistiques/export-pdf/`, {
@@ -399,16 +399,72 @@ export const exportStatisticsPDF = async (exportType, params = {}) => {
     const link = document.createElement('a');
     link.href = url;
     
-    // Générer un nom de fichier basé sur le type et la date
-    const date = new Date().toISOString().split('T')[0];
-    link.download = `statistiques_${exportType}_${date}.pdf`;
+    // ✅ CORRECTION : Générer un nom de fichier personnalisé basé sur le type et les paramètres
+    let filename = '';
     
+    // Fonction pour normaliser les noms de fichiers
+    const normalizeFileName = (name) => {
+      if (!name) return '';
+      return name
+        .normalize('NFD') // Normaliser les caractères accentués
+        .replace(/[\u0300-\u036f]/g, '') // Supprimer les accents
+        .replace(/[^a-zA-Z0-9_]/g, '_') // Remplacer les caractères spéciaux par _
+        .replace(/_+/g, '_') // Éviter les underscores multiples
+        .toLowerCase();
+    };
+    
+    // Générer le nom de fichier selon le type
+    switch (exportType) {
+      case 'employe':
+        // Utiliser le nom de l'employé si fourni dans les paramètres
+        if (params.nom_employe) {
+          const nomNormalise = normalizeFileName(params.nom_employe);
+          filename = `statistiques_${nomNormalise}_${params.matricule || 'employe'}.pdf`;
+        } else if (params.matricule) {
+          // Sinon utiliser seulement le matricule
+          filename = `statistiques_employe_${params.matricule}.pdf`;
+        } else {
+          // Fallback avec date
+          const date = new Date().toISOString().split('T')[0];
+          filename = `statistiques_employe_${date}.pdf`;
+        }
+        break;
+        
+      case 'departement':
+        // Utiliser le nom du département si fourni
+        if (params.nom_departement) {
+          const nomNormalise = normalizeFileName(params.nom_departement);
+          filename = `statistiques_departement_${nomNormalise}.pdf`;
+        } else if (params.departement) {
+          // Sinon utiliser l'ID du département
+          filename = `statistiques_departement_${params.departement}.pdf`;
+        } else {
+          // Fallback avec date
+          const date = new Date().toISOString().split('T')[0];
+          filename = `statistiques_departement_${date}.pdf`;
+        }
+        break;
+        
+      case 'global':
+        // Pour les statistiques globales, utiliser la date
+        const date = new Date().toISOString().split('T')[0];
+        filename = `statistiques_globales_${date}.pdf`;
+        break;
+        
+      default:
+        // Fallback générique
+        filename = `statistiques_${exportType}_${new Date().toISOString().split('T')[0]}.pdf`;
+    }
+    
+    link.download = filename;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
     
-    return { success: true, message: "PDF exporté avec succès" };
+    console.log(`✅ PDF exporté: ${filename}`);
+    return { success: true, message: "PDF exporté avec succès", filename };
+    
   } catch (error) {
     handleError(error, "Erreur lors de l'export PDF des statistiques.");
   }
@@ -697,6 +753,51 @@ export const StatisticsUtils = {
       { value: 11, label: 'Novembre' },
       { value: 12, label: 'Décembre' }
     ];
+  },
+
+  // ✅ NOUVEAU : Fonction pour normaliser les noms de fichiers
+  normalizeFileName: (name) => {
+    if (!name) return '';
+    return name
+      .normalize('NFD') // Normaliser les caractères accentués
+      .replace(/[\u0300-\u036f]/g, '') // Supprimer les accents
+      .replace(/[^a-zA-Z0-9_]/g, '_') // Remplacer les caractères spéciaux par _
+      .replace(/_+/g, '_') // Éviter les underscores multiples
+      .toLowerCase();
+  },
+
+  // ✅ NOUVEAU : Générer un nom de fichier pour l'export PDF
+  generatePDFFileName: (type, params = {}) => {
+    const normalize = StatisticsUtils.normalizeFileName;
+    const date = new Date().toISOString().split('T')[0];
+    
+    switch (type) {
+      case 'employe':
+        if (params.nom_employe) {
+          const nomNormalise = normalize(params.nom_employe);
+          return `statistiques_${nomNormalise}_${params.matricule || 'employe'}.pdf`;
+        } else if (params.matricule) {
+          return `statistiques_employe_${params.matricule}.pdf`;
+        } else {
+          return `statistiques_employe_${date}.pdf`;
+        }
+        
+      case 'departement':
+        if (params.nom_departement) {
+          const nomNormalise = normalize(params.nom_departement);
+          return `statistiques_departement_${nomNormalise}.pdf`;
+        } else if (params.departement) {
+          return `statistiques_departement_${params.departement}.pdf`;
+        } else {
+          return `statistiques_departement_${date}.pdf`;
+        }
+        
+      case 'global':
+        return `statistiques_globales_${date}.pdf`;
+        
+      default:
+        return `statistiques_${type}_${date}.pdf`;
+    }
   }
 };
 
