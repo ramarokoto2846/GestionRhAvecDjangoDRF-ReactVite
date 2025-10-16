@@ -15,9 +15,7 @@ import { getCurrentUser, isSuperuser } from "./services/api";
 import StatisticsOverview from "./pages/statistiques/StatisticsOverview";
 import EmployeeStatistics from "./pages/statistiques/EmployeeStatistics";
 import DepartmentStatistics from "./pages/statistiques/DepartmentStatistics";
-import StatisticsAnalysis from "./pages/statistiques/StatisticsAnalysis"; // ← CORRECTION ICI
-import StatisticsReports from "./pages/statistiques/StatisticsReports";
-import StatisticsHistory from "./pages/statistiques/StatisticsHistory";
+import StatisticsAnalysis from "./pages/statistiques/StatisticsAnalysis";
 
 const privateRoutes = [
   { path: "/home", element: <Home /> },
@@ -32,8 +30,6 @@ const privateRoutes = [
   { path: "/statistiques/employes", element: <EmployeeStatistics /> },
   { path: "/statistiques/departements", element: <DepartmentStatistics /> },
   { path: "/statistiques/analyses", element: <StatisticsAnalysis /> },
-  { path: "/statistiques/rapports", element: <StatisticsReports /> },
-  { path: "/statistiques/historique", element: <StatisticsHistory /> },
 ];
 
 function App() {

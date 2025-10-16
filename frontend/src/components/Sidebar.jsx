@@ -10,7 +10,9 @@ import {
   Divider, 
   Toolbar,
   Collapse,
-  Badge
+  Badge,
+  Chip,
+  Typography
 } from "@mui/material";
 import { Link, useLocation } from "react-router-dom";
 import {
@@ -74,18 +76,6 @@ const Sidebar = ({ open, setOpen }) => {
       path: "/statistiques/analyses", 
       icon: <BarChartIcon />,
       description: "Congés, pointages, absences"
-    },
-    { 
-      text: "Rapports PDF", 
-      path: "/statistiques/rapports", 
-      icon: <PieChartIcon />,
-      badge: "Export"
-    },
-    { 
-      text: "Historique", 
-      path: "/statistiques/historique", 
-      icon: <TimelineIcon />,
-      description: "Données sauvegardées"
     }
   ];
 
@@ -96,58 +86,94 @@ const Sidebar = ({ open, setOpen }) => {
     <>
       <Toolbar />
       <Divider />
-      <List>
+      <List sx={{ px: 1 }}>
         {menuItems.map(item => (
-          <ListItem key={item.text} disablePadding>
+          <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
             <ListItemButton 
               component={Link} 
               to={item.path}
               selected={location.pathname === item.path}
               sx={{
+                borderRadius: 2,
                 '&.Mui-selected': {
-                  backgroundColor: 'primary.light',
+                  backgroundColor: 'primary.main',
+                  color: 'white',
                   '&:hover': {
-                    backgroundColor: 'primary.main',
+                    backgroundColor: 'primary.dark',
                   },
+                  '& .MuiListItemIcon-root': {
+                    color: 'white',
+                  }
                 },
+                '&:hover': {
+                  backgroundColor: 'action.hover',
+                }
               }}
             >
-              <ListItemIcon sx={{ color: location.pathname === item.path ? 'primary.main' : 'inherit' }}>
+              <ListItemIcon sx={{ 
+                color: location.pathname === item.path ? 'white' : 'text.secondary',
+                minWidth: 40
+              }}>
                 {item.icon}
               </ListItemIcon>
               <ListItemText 
                 primary={item.text}
                 primaryTypographyProps={{
-                  fontWeight: location.pathname === item.path ? 'bold' : 'normal'
+                  fontWeight: location.pathname === item.path ? '600' : 'normal',
+                  fontSize: '0.9rem'
                 }}
               />
             </ListItemButton>
           </ListItem>
         ))}
         
-        <Divider sx={{ my: 1 }} />
+        <Divider sx={{ my: 2 }}>
+          <Chip 
+            label="ANALYTIQUES" 
+            size="small" 
+            sx={{ 
+              backgroundColor: 'grey.100',
+              color: 'text.secondary',
+              fontWeight: '600',
+              fontSize: '0.7rem'
+            }} 
+          />
+        </Divider>
         
         {/* Section Statistiques */}
-        <ListItem disablePadding>
+        <ListItem disablePadding sx={{ mb: 0.5 }}>
           <ListItemButton 
             onClick={handleStatsClick}
             selected={isStatsSection}
             sx={{
+              borderRadius: 2,
               '&.Mui-selected': {
-                backgroundColor: 'secondary.light',
+                backgroundColor: 'success.light',
+                color: 'success.dark',
                 '&:hover': {
-                  backgroundColor: 'secondary.main',
+                  backgroundColor: 'success.main',
+                  color: 'white'
                 },
+                '& .MuiListItemIcon-root': {
+                  color: 'inherit',
+                }
               },
+              '&:hover': {
+                backgroundColor: 'action.hover',
+              }
             }}
           >
-            <ListItemIcon sx={{ color: isStatsSection ? 'secondary.main' : 'inherit' }}>
+            <ListItemIcon sx={{ 
+              color: isStatsSection ? 'inherit' : 'text.secondary',
+              minWidth: 40
+            }}>
               <AnalyticsIcon />
             </ListItemIcon>
             <ListItemText 
               primary="Statistiques" 
               primaryTypographyProps={{
-                fontWeight: isStatsSection ? 'bold' : 'normal'
+                fontWeight: isStatsSection ? '600' : 'normal',
+                fontSize: '0.9rem'
               }}
             />
             {statsOpen ? <ExpandLess /> : <ExpandMore />}
@@ -155,37 +181,46 @@ const Sidebar = ({ open, setOpen }) => {
         </ListItem>
         
         <Collapse in={statsOpen} timeout="auto" unmountOnExit>
-          <List component="div" disablePadding>
+          <List component="div" disablePadding sx={{ pl: 1 }}>
             {statsItems.map((item) => (
-              <ListItem key={item.text} disablePadding sx={{ pl: 3 }}>
+              <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
                 <ListItemButton 
                   component={Link} 
                   to={item.path}
                   selected={location.pathname === item.path}
                   sx={{
-                    '&.Mui-selected': {
-                      backgroundColor: 'secondary.light',
-                      '&:hover': {
-                        backgroundColor: 'secondary.main',
-                      },
-                    },
+                    borderRadius: 2,
                     pl: 3,
+                    '&.Mui-selected': {
+                      backgroundColor: 'success.main',
+                      color: 'white',
+                      '&:hover': {
+                        backgroundColor: 'success.dark',
+                      },
+                      '& .MuiListItemIcon-root': {
+                        color: 'white',
+                      }
+                    },
+                    '&:hover': {
+                      backgroundColor: 'action.hover',
+                    }
                   }}
                 >
                   <ListItemIcon sx={{ 
-                    minWidth: 40,
-                    color: location.pathname === item.path ? 'secondary.main' : 'inherit' 
+                    minWidth: 35,
+                    color: location.pathname === item.path ? 'white' : 'text.secondary'
                   }}>
                     {item.badge ? (
                       <Badge 
                         badgeContent={item.badge} 
                         color="primary" 
-                        variant="dot"
+                        size="small"
                         sx={{
                           '& .MuiBadge-badge': {
-                            fontSize: '0.6rem',
-                            height: '16px',
-                            minWidth: '16px',
+                            fontSize: '0.5rem',
+                            height: '14px',
+                            minWidth: '14px',
+                            backgroundColor: 'primary.main'
                           }
                         }}
                       >
@@ -195,18 +230,28 @@ const Sidebar = ({ open, setOpen }) => {
                       item.icon
                     )}
                   </ListItemIcon>
-                  <ListItemText 
-                    primary={item.text}
-                    secondary={item.description}
-                    primaryTypographyProps={{
-                      fontSize: '0.9rem',
-                      fontWeight: location.pathname === item.path ? 'bold' : 'normal'
-                    }}
-                    secondaryTypographyProps={{
-                      fontSize: '0.7rem',
-                      lineHeight: 1.2
-                    }}
-                  />
+                  <Box sx={{ flex: 1 }}>
+                    <ListItemText 
+                      primary={item.text}
+                      primaryTypographyProps={{
+                        fontSize: '0.85rem',
+                        fontWeight: location.pathname === item.path ? '600' : 'normal'
+                      }}
+                    />
+                    {item.description && (
+                      <Typography 
+                        variant="caption" 
+                        sx={{ 
+                          color: location.pathname === item.path ? 'white' : 'text.disabled',
+                          lineHeight: 1.2,
+                          display: 'block',
+                          mt: 0.2
+                        }}
+                      >
+                        {item.description}
+                      </Typography>
+                    )}
+                  </Box>
                 </ListItemButton>
               </ListItem>
             ))}
@@ -227,8 +272,10 @@ const Sidebar = ({ open, setOpen }) => {
           [`& .MuiDrawer-paper`]: { 
             width: 280, 
             boxSizing: "border-box",
-            backgroundColor: 'background.paper',
-            backgroundImage: 'linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05))',
+            backgroundColor: 'background.default',
+            borderRight: '1px solid',
+            borderColor: 'divider',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
           }, 
           display: { xs: "none", md: "block" } 
         }} 
