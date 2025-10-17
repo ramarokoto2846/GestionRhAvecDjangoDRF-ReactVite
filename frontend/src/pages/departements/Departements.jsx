@@ -3,7 +3,7 @@ import {
   Box,
   Typography,
   Paper,
-  Grid,
+  Grid, // ← REVENIR À Grid NORMAL
   Fab,
   Card,
   CardContent,
@@ -46,7 +46,7 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
-    severity: "error",
+    severity: "success",
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -66,7 +66,8 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
     localisation: "",
     nbr_employe: 0,
   });
-  const [usersMap, setUsersMap] = useState({}); // Map pour stocker les infos des utilisateurs
+  const [usersMap, setUsersMap] = useState({});
+  const [processing, setProcessing] = useState(false);
 
   // --- Récupération utilisateur et statut superutilisateur ---
   useEffect(() => {
@@ -78,20 +79,15 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
       }
 
       try {
-        // Récupérer les informations de l'utilisateur
         const user = await getCurrentUser();
         setCurrentUser(user);
 
-        // Vérifier le statut de superutilisateur si non passé en prop
         if (!isSuperuserProp) {
           const superuser = await isSuperuser();
           setIsSuperuserState(superuser);
         }
 
-        // Récupérer les employés pour mapper les créateurs
         await fetchUsersMap();
-        
-        // Récupérer les départements
         await fetchDepartements();
       } catch (err) {
         console.error("Erreur lors de la récupération de l'utilisateur:", err);
@@ -111,17 +107,14 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
       const employes = await getEmployes();
       const users = {};
       
-      // Créer une map ID utilisateur -> nom complet
       employes.forEach(emp => {
         if (emp.id) {
-          // Utiliser le même format que dans le Header
           const nomComplet = emp.nom || emp.prenom ? `${emp.prenom || ''} ${emp.nom || ''}`.trim() : emp.email || `Employé ${emp.id}`;
           users[emp.id] = nomComplet;
         }
       });
       
       setUsersMap(users);
-      console.log("Map des utilisateurs:", users); // Debug
     } catch (err) {
       console.error("Erreur lors du chargement des utilisateurs:", err);
     }
@@ -133,14 +126,12 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
       setLoading(true);
       setError(null);
       const data = await getDepartements();
-      console.log("Données des départements:", data); // Débogage
-      
       setDepartements(Array.isArray(data) ? data : []);
-      setLoading(false);
     } catch (err) {
       console.error("Erreur lors du chargement des départements:", err);
       setError("Erreur lors du chargement des départements");
-      showSnackbar("Impossible de charger les départements");
+      showSnackbar("Impossible de charger les départements", "error");
+    } finally {
       setLoading(false);
     }
   };
@@ -151,22 +142,18 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
       return "Utilisateur inconnu";
     }
 
-    // Si l'API retourne directement le nom du créateur
     if (departement.created_by_name) {
       return departement.created_by_name;
     }
 
-    // Si l'API retourne created_by_username
     if (departement.created_by_username) {
       return departement.created_by_username;
     }
 
-    // Utiliser la map des utilisateurs
     if (usersMap[departement.created_by]) {
       return usersMap[departement.created_by];
     }
 
-    // Si c'est l'utilisateur courant
     if (currentUser && departement.created_by === currentUser.id) {
       return currentUser.nom || currentUser.prenom ? `${currentUser.prenom || ''} ${currentUser.nom || ''}`.trim() : currentUser.email || "Vous";
     }
@@ -194,7 +181,7 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
       setEditingDepartement(departement);
       setFormData({
         ...departement,
-        nbr_employe: 0, // Toujours initialiser à 0 dans le formulaire
+        nbr_employe: departement.nbr_employe || 0,
       });
     } else {
       setEditingDepartement(null);
@@ -227,59 +214,109 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log("🚀 Début de handleSubmit", { formData, editingDepartement });
+
     if (!validateForm()) {
-      await Swal.fire({
-        icon: "error",
-        title: "Erreur de validation",
-        text: "Veuillez corriger les erreurs dans le formulaire.",
-        confirmButtonColor: "#1976d2",
-      });
+      console.log("❌ Validation échouée", formErrors);
+      showSnackbar("Veuillez corriger les erreurs dans le formulaire", "error");
       return;
     }
+
+    setProcessing(true);
+    
     try {
-      // Préparer les données à envoyer (sans nbr_employe car calculé automatiquement)
+      // Préparer les données
       const submitData = {
-        id_departement: formData.id_departement,
-        nom: formData.nom,
-        responsable: formData.responsable,
-        description: formData.description,
-        localisation: formData.localisation,
+        id_departement: formData.id_departement.trim(),
+        nom: formData.nom.trim(),
+        responsable: formData.responsable.trim(),
+        description: formData.description?.trim() || "",
+        localisation: formData.localisation?.trim() || "",
       };
 
+      console.log("📤 Données à envoyer:", submitData);
+
+      // SweetAlert de chargement
+      const loadingSwal = Swal.fire({
+        title: editingDepartement ? 'Mise à jour...' : 'Création...',
+        text: 'Traitement en cours',
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
+      // Appel API
       if (editingDepartement) {
+        console.log("🔄 Mode édition");
         await updateDepartement(editingDepartement.id_departement, submitData);
-        await Swal.fire({
-          icon: "success",
-          title: "Succès",
-          text: "Département mis à jour avec succès !",
-          confirmButtonColor: "#1976d2",
-          timer: 2000,
-          timerProgressBar: true,
-        });
       } else {
+        console.log("➕ Mode création");
         await createDepartement(submitData);
-        await Swal.fire({
-          icon: "success",
-          title: "Succès",
-          text: "Département créé avec succès !",
-          confirmButtonColor: "#1976d2",
-          timer: 2000,
-          timerProgressBar: true,
-        });
       }
+
+      // Fermer SweetAlert de chargement
+      await loadingSwal.close();
+
+      // Message de succès
+      await Swal.fire({
+        icon: "success",
+        title: "Succès !",
+        text: editingDepartement ? "Département modifié avec succès" : "Département créé avec succès",
+        confirmButtonColor: "#1976d2",
+        timer: 2000,
+        showConfirmButton: false
+      });
+      
+      // Rafraîchir les données
       await fetchDepartements();
+      
+      // Fermer le modal
       handleCloseDialog();
+      
+      // Snackbar de confirmation
+      showSnackbar(
+        editingDepartement ? "Département modifié avec succès" : "Département créé avec succès", 
+        "success"
+      );
+      
+      console.log("✅ Opération terminée avec succès");
+      
     } catch (err) {
-      console.error("Erreur lors de l'opération:", err);
-      const errorMessage = err.message || "Erreur lors de l'opération";
-      showSnackbar(errorMessage);
+      console.error("❌ Erreur lors de l'opération:", err);
+      
+      let errorMessage = "Erreur lors de l'opération";
+      
+      if (err.response) {
+        errorMessage = err.response.data?.message || `Erreur ${err.response.status}`;
+      } else if (err.request) {
+        errorMessage = "Impossible de contacter le serveur";
+      } else {
+        errorMessage = err.message || errorMessage;
+      }
+      
+      // Fermer SweetAlert de chargement si ouvert
+      Swal.close();
+      
+      // Message d'erreur
+      await Swal.fire({
+        icon: "error",
+        title: "Erreur",
+        text: errorMessage,
+        confirmButtonColor: "#d32f2f",
+      });
+      
+      showSnackbar(errorMessage, "error");
+    } finally {
+      setProcessing(false);
     }
   };
 
   const handleDelete = async (id) => {
     const result = await Swal.fire({
-      title: "Supprimer le département",
-      text: "Voulez-vous vraiment supprimer ce département ?",
+      title: "Êtes-vous sûr ?",
+      text: "Cette action est irréversible !",
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#1976d2",
@@ -288,27 +325,52 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
       cancelButtonText: "Annuler",
       reverseButtons: true,
     });
+    
     if (result.isConfirmed) {
       try {
+        const deleteResult = Swal.fire({
+          title: 'Suppression en cours',
+          text: 'Suppression du département...',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
+
         await deleteDepartement(id);
+        
+        Swal.close();
+        
         await Swal.fire({
           icon: "success",
-          title: "Supprimé",
-          text: "Département supprimé avec succès !",
+          title: "Supprimé !",
+          text: "Département supprimé avec succès",
           confirmButtonColor: "#1976d2",
           timer: 2000,
-          timerProgressBar: true,
+          showConfirmButton: false
         });
-        fetchDepartements();
+        
+        await fetchDepartements();
+        showSnackbar("Département supprimé avec succès", "success");
       } catch (err) {
         console.error("Erreur lors de la suppression:", err);
         const errorMessage = err.message || "Impossible de supprimer";
-        showSnackbar(errorMessage);
+        
+        Swal.close();
+        
+        await Swal.fire({
+          icon: "error",
+          title: "Erreur",
+          text: errorMessage,
+          confirmButtonColor: "#d32f2f",
+        });
+        
+        showSnackbar(errorMessage, "error");
       }
     }
   };
 
-  const showSnackbar = (message, severity = "error") => {
+  const showSnackbar = (message, severity = "success") => {
     setSnackbar({ open: true, message, severity });
   };
 
@@ -317,6 +379,7 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
   };
 
   const handleChangePage = (event, newPage) => setPage(newPage);
+  
   const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
@@ -332,16 +395,8 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
 
   if (loading) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", mt: 10 }}>
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh" }}>
         <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <Box sx={{ display: "flex", justifyContent: "center", mt: 10 }}>
-        <Typography color="error">{error}</Typography>
       </Box>
     );
   }
@@ -367,7 +422,11 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
           minHeight: "100vh",
           p: 3,
           mt: 8,
-          ml: { md: `240px` },
+          ml: { md: open ? `240px` : 0 },
+          transition: theme.transitions.create(['margin', 'width'], {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.leavingScreen,
+          }),
         }}
       >
         {/* Titre + bouton */}
@@ -375,13 +434,14 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
           sx={{
             display: "flex",
             justifyContent: "space-between",
+            alignItems: "flex-start",
             flexWrap: "wrap",
             gap: 2,
             mb: 3,
           }}
         >
           <Box>
-            <Typography variant="h4" sx={{ fontWeight: "bold" }}>
+            <Typography variant="h4" sx={{ fontWeight: "bold", mb: 1 }}>
               Gestion des Départements
             </Typography>
             <Typography color="text.secondary">
@@ -391,13 +451,12 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
           <Fab
             color="primary"
             onClick={() => handleOpenDialog()}
+            disabled={processing}
+            variant="extended"
             sx={{
               borderRadius: 2,
-              width: 300,
+              minWidth: 200,
               px: 3,
-              textTransform: "none",
-              fontWeight: "bold",
-              fontSize: "1rem",
             }}
           >
             <AddIcon sx={{ mr: 1 }} />
@@ -405,7 +464,7 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
           </Fab>
         </Box>
 
-        {/* Stats */}
+        {/* Stats - CORRIGÉ avec ancienne syntaxe Grid */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid item xs={12} sm={6} md={3}>
             <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
@@ -452,7 +511,7 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
               ),
               endAdornment: searchTerm && (
                 <InputAdornment position="end">
-                  <IconButton onClick={() => setSearchTerm("")}>
+                  <IconButton onClick={() => setSearchTerm("")} size="small">
                     <CloseIcon />
                   </IconButton>
                 </InputAdornment>
@@ -473,6 +532,7 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
           currentUser={currentUser}
           isSuperuser={isSuperuserState}
           getCreatorName={getCreatorName}
+          processing={processing}
         />
 
         {/* Modal */}
@@ -484,12 +544,13 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
           setFormData={setFormData}
           formErrors={formErrors}
           onSubmit={handleSubmit}
+          processing={processing}
         />
 
         {/* Snackbar */}
         <Snackbar
           open={snackbar.open}
-          autoHideDuration={6000}
+          autoHideDuration={4000}
           onClose={handleCloseSnackbar}
           anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         >
@@ -497,6 +558,7 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
             onClose={handleCloseSnackbar}
             severity={snackbar.severity}
             sx={{ width: "100%" }}
+            variant="filled"
           >
             {snackbar.message}
           </Alert>

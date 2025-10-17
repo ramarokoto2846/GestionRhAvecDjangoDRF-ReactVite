@@ -4,7 +4,10 @@ import {
   DialogActions,
   Grid,
   IconButton,
-  styled
+  styled,
+  CircularProgress,
+  Box,
+  Typography // ← AJOUT CRITIQUE ICI
 } from "@mui/material";
 import {
   Close as CloseIcon,
@@ -25,7 +28,10 @@ const ModernDialog = styled(Dialog)(({ theme }) => ({
     boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)",
     border: "1px solid rgba(255, 255, 255, 0.2)",
     overflow: "hidden",
-    transition: "all 0.3s ease-in-out",
+    minWidth: 500,
+  },
+  "& .MuiBackdrop-root": {
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
 }));
 
@@ -40,6 +46,9 @@ const ModernDialogTitle = styled(DialogTitle)(({ theme }) => ({
   justifyContent: "space-between",
   "& .MuiIconButton-root": {
     color: "white",
+    "&:hover": {
+      backgroundColor: "rgba(255, 255, 255, 0.1)",
+    },
   },
 }));
 
@@ -55,6 +64,10 @@ const ModernTextField = styled(TextField)(({ theme }) => ({
     "&.Mui-focused": {
       boxShadow: `0 0 0 3px ${theme.palette.primary.main}20`,
     },
+    "&.Mui-disabled": {
+      background: "rgba(0, 0, 0, 0.04)",
+      color: "rgba(0, 0, 0, 0.38)",
+    },
   },
   "& .MuiInputLabel-root": {
     fontWeight: 500,
@@ -63,17 +76,27 @@ const ModernTextField = styled(TextField)(({ theme }) => ({
   "& .MuiInputLabel-root.Mui-focused": {
     color: theme.palette.primary.main,
   },
+  "& .MuiFormHelperText-root": {
+    marginLeft: 0,
+  },
 }));
 
 const ModernButton = styled(Button)(({ theme }) => ({
   borderRadius: 12,
-  padding: theme.spacing(1.5, 3),
+  padding: theme.spacing(1, 3),
   fontWeight: "bold",
   textTransform: "none",
+  fontSize: "1rem",
+  minWidth: 120,
   transition: "all 0.3s ease",
   "&:hover": {
     transform: "translateY(-2px)",
     boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+  },
+  "&:disabled": {
+    transform: "none",
+    boxShadow: "none",
+    opacity: 0.6,
   },
 }));
 
@@ -84,127 +107,202 @@ const DepartementModal = ({
   formData,
   setFormData,
   formErrors,
-  onSubmit
+  onSubmit,
+  processing = false
 }) => {
+  const handleFormSubmit = (e) => {
+    e.preventDefault();
+    console.log("📝 Formulaire soumis:", formData);
+    if (!processing) {
+      onSubmit(e);
+    }
+  };
+
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleClose = () => {
+    if (!processing) {
+      onClose();
+    }
+  };
+
   return (
-    <ModernDialog open={open} onClose={onClose} fullWidth>
+    <ModernDialog 
+      open={open} 
+      onClose={handleClose}
+      maxWidth="md"
+      fullWidth
+      disableEscapeKeyDown={processing}
+    >
       <ModernDialogTitle>
-        {editingDepartement
-          ? "Modifier Département"
-          : "Nouveau Département"}
-        <IconButton onClick={onClose}>
+        {editingDepartement ? "Modifier le Département" : "Nouveau Département"}
+        <IconButton 
+          onClick={handleClose} 
+          disabled={processing}
+          size="large"
+        >
           <CloseIcon />
         </IconButton>
       </ModernDialogTitle>
-      <form onSubmit={onSubmit}>
+      
+      <form onSubmit={handleFormSubmit}>
         <DialogContent sx={{ p: 3 }}>
           <Grid container spacing={2.5}>
             <Grid item xs={12} sm={6}>
               <ModernTextField
                 fullWidth
-                label="ID *"
-                value={formData.id_departement}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    id_departement: e.target.value,
-                  })
-                }
+                label="ID Département *"
+                name="id_departement"
+                value={formData.id_departement || ""}
+                onChange={(e) => handleInputChange("id_departement", e.target.value)}
                 error={!!formErrors.id_departement}
-                helperText={formErrors.id_departement}
+                helperText={formErrors.id_departement || "Identifiant unique du département"}
                 required
-                disabled={editingDepartement != null}
+                disabled={editingDepartement != null || processing}
+                placeholder="Ex: DEPT-001"
               />
             </Grid>
+            
             <Grid item xs={12} sm={6}>
               <ModernTextField
                 fullWidth
-                label="Nom *"
-                value={formData.nom}
-                onChange={(e) =>
-                  setFormData({ ...formData, nom: e.target.value })
-                }
+                label="Nom du Département *"
+                name="nom"
+                value={formData.nom || ""}
+                onChange={(e) => handleInputChange("nom", e.target.value)}
                 error={!!formErrors.nom}
-                helperText={formErrors.nom}
+                helperText={formErrors.nom || "Nom complet du département"}
                 required
+                disabled={processing}
+                placeholder="Ex: Ressources Humaines"
               />
             </Grid>
+            
             <Grid item xs={12} sm={6}>
               <ModernTextField
                 fullWidth
                 label="Responsable *"
-                value={formData.responsable}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    responsable: e.target.value,
-                  })
-                }
+                name="responsable"
+                value={formData.responsable || ""}
+                onChange={(e) => handleInputChange("responsable", e.target.value)}
                 error={!!formErrors.responsable}
-                helperText={formErrors.responsable}
+                helperText={formErrors.responsable || "Nom du responsable"}
                 required
+                disabled={processing}
+                placeholder="Ex: Jean Dupont"
               />
             </Grid>
+            
             <Grid item xs={12} sm={6}>
               <ModernTextField
                 fullWidth
                 label="Nombre d'employés"
-                type="number"
-                value={0} // Toujours afficher 0 (lecture seule)
+                value={formData.nbr_employe || 0}
                 InputProps={{
                   readOnly: true,
                 }}
+                disabled
                 helperText="Calculé automatiquement"
               />
             </Grid>
+            
             <Grid item xs={12}>
               <ModernTextField
                 fullWidth
                 label="Description"
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    description: e.target.value,
-                  })
-                }
+                name="description"
+                value={formData.description || ""}
+                onChange={(e) => handleInputChange("description", e.target.value)}
                 multiline
                 rows={3}
+                disabled={processing}
+                placeholder="Description des missions du département..."
+                helperText="Optionnel"
               />
             </Grid>
+            
             <Grid item xs={12}>
               <ModernTextField
                 fullWidth
                 label="Localisation"
-                value={formData.localisation}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    localisation: e.target.value,
-                  })
-                }
+                name="localisation"
+                value={formData.localisation || ""}
+                onChange={(e) => handleInputChange("localisation", e.target.value)}
+                disabled={processing}
+                placeholder="Ex: Bâtiment A, Étage 2"
+                helperText="Optionnel"
               />
             </Grid>
           </Grid>
         </DialogContent>
-        <DialogActions sx={{ p: 3, justifyContent: "space-between" }}>
+        
+        <DialogActions sx={{ p: 3, gap: 2 }}>
           <ModernButton
-            onClick={onClose}
+            onClick={handleClose}
             color="inherit"
             variant="outlined"
+            disabled={processing}
+            sx={{ flex: 1 }}
+            type="button"
           >
             Annuler
           </ModernButton>
+          
           <ModernButton
             type="submit"
             variant="contained"
             color="primary"
-            startIcon={<SaveIcon />}
+            disabled={processing}
+            startIcon={
+              processing ? (
+                <CircularProgress size={20} color="inherit" />
+              ) : (
+                <SaveIcon />
+              )
+            }
+            sx={{ flex: 1 }}
           >
-            {editingDepartement ? "Mettre à jour" : "Enregistrer"}
+            {processing ? (
+              "Traitement..."
+            ) : editingDepartement ? (
+              "Mettre à jour"
+            ) : (
+              "Enregistrer"
+            )}
           </ModernButton>
         </DialogActions>
       </form>
+      
+      {/* Overlay de chargement */}
+      {processing && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(255, 255, 255, 0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1,
+            borderRadius: '16px',
+          }}
+        >
+          <Box sx={{ textAlign: 'center' }}>
+            <CircularProgress size={60} thickness={4} />
+            <Typography variant="h6" sx={{ mt: 2, color: 'text.primary' }}>
+              Traitement en cours...
+            </Typography>
+          </Box>
+        </Box>
+      )}
     </ModernDialog>
   );
 };

@@ -300,20 +300,50 @@ const Employes = ({ isSuperuser: isSuperuserProp }) => {
         onMenuToggle={() => setOpen(!open)}
       />
       <Sidebar open={open} setOpen={setOpen} />
-      <Box component="main" sx={{ flexGrow: 1, bgcolor: "#f8fafc", minHeight: "100vh", p: 3, mt: 8, ml: { md: `240px` } }}>
-        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+      
+      {/* CONTENU PRINCIPAL AVEC BON STYLE */}
+      <Box 
+        component="main" 
+        sx={{ 
+          flexGrow: 1, 
+          bgcolor: "#f8fafc", 
+          minHeight: "100vh", 
+          p: 3, 
+          mt: 8, 
+          ml: { md: open ? `240px` : 0 },
+          transition: theme.transitions.create(['margin', 'width'], {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.leavingScreen,
+          }),
+        }}
+      >
+        {/* Titre + bouton */}
+        <Box 
+          sx={{ 
+            display: "flex", 
+            justifyContent: "space-between", 
+            alignItems: "flex-start",
+            flexWrap: "wrap",
+            gap: 2,
+            mb: 3 
+          }}
+        >
           <Box>
-            <Typography variant="h4" sx={{ fontWeight: "bold" }}>Gestion des Employés</Typography>
-            <Typography variant="body1" color="text.secondary">Gérez les employés de votre entreprise</Typography>
+            <Typography variant="h4" sx={{ fontWeight: "bold", mb: 1 }}>
+              Gestion des Employés
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              Gérez les employés de votre entreprise
+            </Typography>
           </Box>
           <Fab
             color="primary"
             onClick={() => handleOpenDialog()}
+            variant="extended"
             sx={{
               borderRadius: 2,
-              width: 300,
-              mr: 1.25,
-              px: 4,
+              minWidth: 200,
+              px: 3,
               textTransform: "none",
               fontWeight: "bold",
               fontSize: '1rem',
@@ -323,12 +353,16 @@ const Employes = ({ isSuperuser: isSuperuserProp }) => {
             Nouvel Employé
           </Fab>
         </Box>
+
+        {/* Cartes de statistiques */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid item xs={12} sm={6} md={3}>
             <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
               <CardContent>
                 <Typography color="text.secondary">Total Employés</Typography>
-                <Typography variant="h4" sx={{ fontWeight: "bold", color: "primary.main" }}>{employes.length}</Typography>
+                <Typography variant="h4" sx={{ fontWeight: "bold", color: "primary.main" }}>
+                  {employes.length}
+                </Typography>
               </CardContent>
             </Card>
           </Grid>
@@ -336,7 +370,9 @@ const Employes = ({ isSuperuser: isSuperuserProp }) => {
             <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
               <CardContent>
                 <Typography color="text.secondary">Employés Actifs</Typography>
-                <Typography variant="h4" sx={{ fontWeight: "bold", color: "secondary.main" }}>{employes.filter(e => e.statut === 'actif').length}</Typography>
+                <Typography variant="h4" sx={{ fontWeight: "bold", color: "secondary.main" }}>
+                  {employes.filter(e => e.statut === 'actif').length}
+                </Typography>
               </CardContent>
             </Card>
           </Grid>
@@ -344,28 +380,47 @@ const Employes = ({ isSuperuser: isSuperuserProp }) => {
             <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
               <CardContent>
                 <Typography color="text.secondary">Départements</Typography>
-                <Typography variant="h4" sx={{ fontWeight: "bold", color: "info.main" }}>{departements.length}</Typography>
+                <Typography variant="h4" sx={{ fontWeight: "bold", color: "info.main" }}>
+                  {departements.length}
+                </Typography>
               </CardContent>
             </Card>
           </Grid>
         </Grid>
+
+        {/* Barre de recherche et filtres */}
         <Paper sx={{ p: 2, mb: 3, borderRadius: 3 }}>
           <Grid container spacing={2} alignItems="center">
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                placeholder="Rechercher..."
+                placeholder="Rechercher un employé..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 InputProps={{
-                  startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment>,
-                  endAdornment: searchTerm && <InputAdornment position="end"><IconButton onClick={() => setSearchTerm("")}><CloseIcon /></IconButton></InputAdornment>,
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon />
+                    </InputAdornment>
+                  ),
+                  endAdornment: searchTerm && (
+                    <InputAdornment position="end">
+                      <IconButton 
+                        onClick={() => setSearchTerm("")} 
+                        size="small"
+                      >
+                        <CloseIcon />
+                      </IconButton>
+                    </InputAdornment>
+                  ),
                 }}
               />
             </Grid>
             <Grid item xs={12} md={6}>
               <FormControl fullWidth>
-                <InputLabel id="departement-filter-label">Filtrer par département</InputLabel>
+                <InputLabel id="departement-filter-label">
+                  Filtrer par département
+                </InputLabel>
                 <Select
                   labelId="departement-filter-label"
                   value={departementFilter}
@@ -381,7 +436,10 @@ const Employes = ({ isSuperuser: isSuperuserProp }) => {
                     <em>Tous les départements</em>
                   </MenuItem>
                   {departements.map((departement) => (
-                    <MenuItem key={departement.id_departement} value={String(departement.id_departement)}>
+                    <MenuItem 
+                      key={departement.id_departement} 
+                      value={String(departement.id_departement)}
+                    >
                       {departement.nom}
                     </MenuItem>
                   ))}
@@ -390,6 +448,8 @@ const Employes = ({ isSuperuser: isSuperuserProp }) => {
             </Grid>
           </Grid>
         </Paper>
+
+        {/* Tableau des employés */}
         <EmployeTableau
           employes={employes}
           filteredData={filteredData}
@@ -406,6 +466,8 @@ const Employes = ({ isSuperuser: isSuperuserProp }) => {
           currentUser={currentUser}
           isSuperuser={isSuperuserState}
         />
+
+        {/* Modal d'ajout/modification */}
         <EmployModal
           openDialog={openDialog}
           handleCloseDialog={handleCloseDialog}
@@ -418,6 +480,8 @@ const Employes = ({ isSuperuser: isSuperuserProp }) => {
           departements={departements}
           theme={theme}
         />
+
+        {/* Snackbar pour les notifications */}
         <Snackbar
           open={snackbar.open}
           autoHideDuration={6000}

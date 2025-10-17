@@ -386,26 +386,55 @@ const Conges = () => {
       {/* Sidebar */}
       <Sidebar open={open} setOpen={setOpen} />
 
-      {/* Main Content */}
-      <Box component="main" sx={{ flexGrow: 1, bgcolor: "#f8fafc", minHeight: "100vh", p: 3, mt: 8, ml: { md: `240px` } }}>
+      {/* Main Content - STYLE CORRIGÉ */}
+      <Box 
+        component="main" 
+        sx={{ 
+          flexGrow: 1, 
+          bgcolor: "#f8fafc", 
+          minHeight: "100vh", 
+          p: 3, 
+          mt: 8, 
+          ml: { md: open ? `240px` : 0 },
+          transition: theme.transitions.create(['margin', 'width'], {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.leavingScreen,
+          }),
+        }}
+      >
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
             {error}
           </Alert>
         )}
-        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+
+        {/* Titre + bouton */}
+        <Box 
+          sx={{ 
+            display: "flex", 
+            justifyContent: "space-between", 
+            alignItems: "flex-start",
+            flexWrap: "wrap",
+            gap: 2,
+            mb: 3 
+          }}
+        >
           <Box>
-            <Typography variant="h4" sx={{ fontWeight: "bold" }}>Gestion des Congés</Typography>
-            <Typography variant="body1" color="text.secondary">Gérez les congés de vos employés</Typography>
+            <Typography variant="h4" sx={{ fontWeight: "bold", mb: 1 }}>
+              Gestion des Congés
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              Gérez les congés de vos employés
+            </Typography>
           </Box>
           <Fab
             color="primary"
             onClick={() => handleOpenDialog()}
+            variant="extended"
             sx={{
               borderRadius: 2,
-              width: 300,
-              mr: 1.25,
-              px: 4,
+              minWidth: 200,
+              px: 3,
               textTransform: "none",
               fontWeight: "bold",
               fontSize: '1rem'
@@ -417,13 +446,15 @@ const Conges = () => {
           </Fab>
         </Box>
 
-        {/* Statistics Cards */}
+        {/* Cartes de statistiques */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid item xs={12} sm={6} md={3}>
             <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
               <CardContent>
                 <Typography color="text.secondary">Total Congés</Typography>
-                <Typography variant="h4" sx={{ fontWeight: "bold", color: "primary.main" }}>{stats.total}</Typography>
+                <Typography variant="h4" sx={{ fontWeight: "bold", color: "primary.main" }}>
+                  {stats.total}
+                </Typography>
               </CardContent>
             </Card>
           </Grid>
@@ -431,7 +462,9 @@ const Conges = () => {
             <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
               <CardContent>
                 <Typography color="text.secondary">En Attente</Typography>
-                <Typography variant="h4" sx={{ fontWeight: "bold", color: "warning.main" }}>{stats.enAttente}</Typography>
+                <Typography variant="h4" sx={{ fontWeight: "bold", color: "warning.main" }}>
+                  {stats.enAttente}
+                </Typography>
               </CardContent>
             </Card>
           </Grid>
@@ -439,7 +472,9 @@ const Conges = () => {
             <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
               <CardContent>
                 <Typography color="text.secondary">Validés</Typography>
-                <Typography variant="h4" sx={{ fontWeight: "bold", color: "success.main" }}>{stats.valides}</Typography>
+                <Typography variant="h4" sx={{ fontWeight: "bold", color: "success.main" }}>
+                  {stats.valides}
+                </Typography>
               </CardContent>
             </Card>
           </Grid>
@@ -447,37 +482,54 @@ const Conges = () => {
             <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
               <CardContent>
                 <Typography color="text.secondary">Refusés</Typography>
-                <Typography variant="h4" sx={{ fontWeight: "bold", color: "error.main" }}>{stats.refuses}</Typography>
+                <Typography variant="h4" sx={{ fontWeight: "bold", color: "error.main" }}>
+                  {stats.refuses}
+                </Typography>
               </CardContent>
             </Card>
           </Grid>
         </Grid>
 
-        {/* Search and Filter Bar */}
+        {/* Barre de recherche et filtres */}
         <Paper sx={{ p: 2, mb: 3, borderRadius: 3 }}>
           <Grid container spacing={2} alignItems="center">
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                placeholder="Rechercher..."
+                placeholder="Rechercher un congé..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 InputProps={{
-                  startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment>,
-                  endAdornment: searchTerm && <InputAdornment position="end"><IconButton onClick={() => setSearchTerm("")}><CloseIcon /></IconButton></InputAdornment>
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon />
+                    </InputAdornment>
+                  ),
+                  endAdornment: searchTerm && (
+                    <InputAdornment position="end">
+                      <IconButton 
+                        onClick={() => setSearchTerm("")} 
+                        size="small"
+                      >
+                        <CloseIcon />
+                      </IconButton>
+                    </InputAdornment>
+                  )
                 }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
-                <InputLabel id="status-filter-label">Filtrer par statut</InputLabel>
+                <InputLabel id="status-filter-label">
+                  Filtrer par statut
+                </InputLabel>
                 <Select
                   labelId="status-filter-label"
                   value={statusFilter}
                   label="Filtrer par statut"
                   onChange={handleStatusFilterChange}
                 >
-                  <MenuItem value="all">Tous</MenuItem>
+                  <MenuItem value="all">Tous les statuts</MenuItem>
                   <MenuItem value="en_attente">En attente</MenuItem>
                   <MenuItem value="valide">Validé</MenuItem>
                   <MenuItem value="refuse">Refusé</MenuItem>
@@ -487,7 +539,7 @@ const Conges = () => {
           </Grid>
         </Paper>
 
-        {/* Conges Table */}
+        {/* Tableau des congés */}
         <Paper sx={{ width: "100%", overflow: "hidden", borderRadius: 3 }}>
           <CongeTable
             conges={filteredData}
@@ -504,7 +556,7 @@ const Conges = () => {
           />
         </Paper>
 
-        {/* Dialog for Add/Edit Conge */}
+        {/* Modal d'ajout/modification */}
         <CongeModal
           open={openDialog}
           onClose={handleCloseDialog}
@@ -516,7 +568,7 @@ const Conges = () => {
           onInputChange={handleInputChange}
         />
 
-        {/* Snackbar for Notifications */}
+        {/* Snackbar pour les notifications */}
         <Snackbar
           open={snackbar.open}
           autoHideDuration={6000}

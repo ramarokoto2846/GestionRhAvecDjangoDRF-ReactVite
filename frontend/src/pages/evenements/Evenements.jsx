@@ -3,7 +3,7 @@ import {
   Box, Typography, Fab, Grid, Card, CardContent, Paper,
   TextField, InputAdornment, IconButton, FormControl, InputLabel,
   Select, MenuItem, ToggleButtonGroup, ToggleButton, CircularProgress,
-  Alert, Snackbar
+  Alert, Snackbar, useTheme
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { format, parseISO, isValid, isWithinInterval, isAfter, isBefore } from "date-fns";
@@ -26,6 +26,7 @@ import EvenementTable from "./EvenementTable";
 import EvenementModal from "./EvenementModal";
 
 const Evenements = () => {
+  const theme = useTheme();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
@@ -286,25 +287,55 @@ const Evenements = () => {
       
       <Sidebar open={open} setOpen={setOpen} />
 
-      <Box component="main" sx={{ flexGrow: 1, bgcolor: "#f8fafc", minHeight: "100vh", p: 3, mt: 8, ml: { md: `240px` } }}>
+      {/* CONTENU PRINCIPAL AVEC BON STYLE */}
+      <Box 
+        component="main" 
+        sx={{ 
+          flexGrow: 1, 
+          bgcolor: "#f8fafc", 
+          minHeight: "100vh", 
+          p: 3, 
+          mt: 8, 
+          ml: { md: open ? `240px` : 0 },
+          transition: theme.transitions.create(['margin', 'width'], {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.leavingScreen,
+          }),
+        }}
+      >
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
             {error}
           </Alert>
         )}
-        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+
+        {/* Titre + bouton */}
+        <Box 
+          sx={{ 
+            display: "flex", 
+            justifyContent: "space-between", 
+            alignItems: "flex-start",
+            flexWrap: "wrap",
+            gap: 2,
+            mb: 3 
+          }}
+        >
           <Box>
-            <Typography variant="h4" sx={{ fontWeight: "bold" }}>Gestion des Événements</Typography>
-            <Typography variant="body1" color="text.secondary">Gérez les événements de votre entreprise</Typography>
+            <Typography variant="h4" sx={{ fontWeight: "bold", mb: 1 }}>
+              Gestion des Événements
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              Gérez les événements de votre entreprise
+            </Typography>
           </Box>
           <Fab
             color="primary"
             onClick={() => handleOpenDialog()}
+            variant="extended"
             sx={{
               borderRadius: 2,
-              width: 300,
-              mr: 1.25,
-              px: 4,
+              minWidth: 200,
+              px: 3,
               textTransform: "none",
               fontWeight: "bold",
               fontSize: '1rem'
@@ -315,12 +346,15 @@ const Evenements = () => {
           </Fab>
         </Box>
 
+        {/* Cartes de statistiques */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid item xs={12} sm={6} md={3}>
             <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
               <CardContent>
                 <Typography color="text.secondary">Total Événements</Typography>
-                <Typography variant="h4" sx={{ fontWeight: "bold", color: "primary.main" }}>{evenements.length}</Typography>
+                <Typography variant="h4" sx={{ fontWeight: "bold", color: "primary.main" }}>
+                  {evenements.length}
+                </Typography>
               </CardContent>
             </Card>
           </Grid>
@@ -331,7 +365,9 @@ const Evenements = () => {
                   <UpcomingIcon color="info" sx={{ mr: 1 }} />
                   <Typography color="text.secondary">Événements à venir</Typography>
                 </Box>
-                <Typography variant="h4" sx={{ fontWeight: "bold", color: "info.main" }}>{eventCounts["a-venir"]}</Typography>
+                <Typography variant="h4" sx={{ fontWeight: "bold", color: "info.main" }}>
+                  {eventCounts["a-venir"]}
+                </Typography>
               </CardContent>
             </Card>
           </Grid>
@@ -342,7 +378,9 @@ const Evenements = () => {
                   <EventAvailableIcon color="success" sx={{ mr: 1 }} />
                   <Typography color="text.secondary">Événements en cours</Typography>
                 </Box>
-                <Typography variant="h4" sx={{ fontWeight: "bold", color: "success.main" }}>{eventCounts["en-cours"]}</Typography>
+                <Typography variant="h4" sx={{ fontWeight: "bold", color: "success.main" }}>
+                  {eventCounts["en-cours"]}
+                </Typography>
               </CardContent>
             </Card>
           </Grid>
@@ -353,12 +391,15 @@ const Evenements = () => {
                   <EventBusyIcon color="error" sx={{ mr: 1 }} />
                   <Typography color="text.secondary">Événements passés</Typography>
                 </Box>
-                <Typography variant="h4" sx={{ fontWeight: "bold", color: "error.main" }}>{eventCounts["passe"]}</Typography>
+                <Typography variant="h4" sx={{ fontWeight: "bold", color: "error.main" }}>
+                  {eventCounts["passe"]}
+                </Typography>
               </CardContent>
             </Card>
           </Grid>
         </Grid>
 
+        {/* Barre de recherche et filtres */}
         <Paper sx={{ p: 2, mb: 3, borderRadius: 3 }}>
           <Grid container spacing={2} alignItems="center">
             <Grid item xs={12} md={4}>
@@ -375,7 +416,10 @@ const Evenements = () => {
                   ),
                   endAdornment: searchQuery && (
                     <InputAdornment position="end">
-                      <IconButton onClick={() => setSearchQuery("")}>
+                      <IconButton 
+                        onClick={() => setSearchQuery("")} 
+                        size="small"
+                      >
                         <CloseIcon />
                       </IconButton>
                     </InputAdornment>
@@ -410,11 +454,13 @@ const Evenements = () => {
             </Grid>
             <Grid item xs={12} md={4}>
               <FormControl fullWidth>
-                <InputLabel id="month-filter-label">Mois</InputLabel>
+                <InputLabel id="month-filter-label">
+                  Filtrer par mois
+                </InputLabel>
                 <Select
                   labelId="month-filter-label"
                   value={monthFilter}
-                  label="Mois"
+                  label="Filtrer par mois"
                   onChange={handleMonthFilterChange}
                   startAdornment={
                     <InputAdornment position="start">
@@ -434,6 +480,7 @@ const Evenements = () => {
           </Grid>
         </Paper>
 
+        {/* Tableau des événements */}
         <EvenementTable
           evenements={filteredEvenements}
           page={page}
@@ -448,6 +495,7 @@ const Evenements = () => {
           isSuperuser={isSuperuserState}
         />
 
+        {/* Modal d'ajout/modification */}
         <EvenementModal
           open={openDialog}
           onClose={handleCloseDialog}
@@ -459,6 +507,7 @@ const Evenements = () => {
           showSnackbar={showSnackbar}
         />
 
+        {/* Snackbar pour les notifications */}
         <Snackbar
           open={snackbar.open}
           autoHideDuration={6000}

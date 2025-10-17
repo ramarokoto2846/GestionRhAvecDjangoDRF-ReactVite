@@ -4,7 +4,8 @@ import {
   Paper, CircularProgress, Alert, Snackbar, FormControl,
   InputLabel, Select, MenuItem, TextField, IconButton,
   InputAdornment, Dialog, DialogTitle, DialogContent,
-  DialogActions, Button, Divider, Chip, Avatar
+  DialogActions, Button, Divider, Chip, Avatar,
+  useTheme
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { format, parseISO, isValid } from "date-fns";
@@ -29,7 +30,6 @@ import Header, { triggerNotificationsRefresh } from "../../components/Header";
 import PointageTable from "./PointageTable";
 import PointageModal from "./PointageModal";
 import Sidebar from "../../components/Sidebar";
-import { useTheme } from "@mui/material/styles";
 
 // Composant pour afficher les éléments de détail
 const DetailItem = ({ icon, label, value, color = "text.primary" }) => (
@@ -390,25 +390,56 @@ const Pointages = () => {
         onMenuToggle={() => setOpen(!open)}
       />
       <Sidebar open={open} setOpen={setOpen} />
-      <Box component="main" sx={{ flexGrow: 1, bgcolor: "#f8fafc", minHeight: "100vh", p: 3, mt: 8, ml: { md: `240px` } }}>
+      
+      {/* CONTENU PRINCIPAL AVEC BON STYLE */}
+      <Box 
+        component="main" 
+        sx={{ 
+          flexGrow: 1, 
+          bgcolor: "#f8fafc", 
+          minHeight: "100vh", 
+          p: 3, 
+          mt: 8, 
+          ml: { md: open ? `240px` : 0 },
+          transition: theme.transitions.create(['margin', 'width'], {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.leavingScreen,
+          }),
+        }}
+      >
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
             {error}
           </Alert>
         )}
-        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+
+        {/* Titre + bouton */}
+        <Box 
+          sx={{ 
+            display: "flex", 
+            justifyContent: "space-between", 
+            alignItems: "flex-start",
+            flexWrap: "wrap",
+            gap: 2,
+            mb: 3 
+          }}
+        >
           <Box>
-            <Typography variant="h4" sx={{ fontWeight: "bold" }}>Gestion des Pointages</Typography>
-            <Typography variant="body1" color="text.secondary">Gérez les pointages de vos employés</Typography>
+            <Typography variant="h4" sx={{ fontWeight: "bold", mb: 1 }}>
+              Gestion des Pointages
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              Gérez les pointages de vos employés
+            </Typography>
           </Box>
           <Fab
             color="primary"
             onClick={() => handleOpenDialog()}
+            variant="extended"
             sx={{
               borderRadius: 2,
-              width: 300,
-              mr: 1.25,
-              px: 4,
+              minWidth: 200,
+              px: 3,
               textTransform: "none",
               fontWeight: "bold",
               fontSize: '1rem'
@@ -419,12 +450,16 @@ const Pointages = () => {
             Nouveau Pointage
           </Fab>
         </Box>
+
+        {/* Cartes de statistiques */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid item xs={12} sm={6} md={3}>
             <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
               <CardContent>
                 <Typography color="text.secondary">Total Pointages</Typography>
-                <Typography variant="h4" sx={{ fontWeight: "bold", color: "primary.main" }}>{stats.total}</Typography>
+                <Typography variant="h4" sx={{ fontWeight: "bold", color: "primary.main" }}>
+                  {stats.total}
+                </Typography>
               </CardContent>
             </Card>
           </Grid>
@@ -432,7 +467,9 @@ const Pointages = () => {
             <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
               <CardContent>
                 <Typography color="text.secondary">Avec Heure de Sortie</Typography>
-                <Typography variant="h4" sx={{ fontWeight: "bold", color: "success.main" }}>{stats.withExit}</Typography>
+                <Typography variant="h4" sx={{ fontWeight: "bold", color: "success.main" }}>
+                  {stats.withExit}
+                </Typography>
               </CardContent>
             </Card>
           </Grid>
@@ -440,35 +477,54 @@ const Pointages = () => {
             <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
               <CardContent>
                 <Typography color="text.secondary">Sans Heure de Sortie</Typography>
-                <Typography variant="h4" sx={{ fontWeight: "bold", color: "warning.main" }}>{stats.withoutExit}</Typography>
+                <Typography variant="h4" sx={{ fontWeight: "bold", color: "warning.main" }}>
+                  {stats.withoutExit}
+                </Typography>
               </CardContent>
             </Card>
           </Grid>
         </Grid>
+
+        {/* Barre de recherche et filtres */}
         <Paper sx={{ p: 2, mb: 3, borderRadius: 3 }}>
           <Grid container spacing={2} alignItems="center">
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                placeholder="Rechercher..."
+                placeholder="Rechercher un pointage..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 InputProps={{
-                  startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment>,
-                  endAdornment: searchTerm && <InputAdornment position="end"><IconButton onClick={() => setSearchTerm("")}><CloseIcon /></IconButton></InputAdornment>
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon />
+                    </InputAdornment>
+                  ),
+                  endAdornment: searchTerm && (
+                    <InputAdornment position="end">
+                      <IconButton 
+                        onClick={() => setSearchTerm("")} 
+                        size="small"
+                      >
+                        <CloseIcon />
+                      </IconButton>
+                    </InputAdornment>
+                  )
                 }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
-                <InputLabel id="exit-filter-label">Filtrer par statut</InputLabel>
+                <InputLabel id="exit-filter-label">
+                  Filtrer par statut
+                </InputLabel>
                 <Select
                   labelId="exit-filter-label"
                   value={exitFilter}
                   label="Filtrer par statut"
                   onChange={handleExitFilterChange}
                 >
-                  <MenuItem value="all">Tous</MenuItem>
+                  <MenuItem value="all">Tous les statuts</MenuItem>
                   <MenuItem value="working">En cours de travail</MenuItem>
                   <MenuItem value="exited">Déjà sortis</MenuItem>
                 </Select>
@@ -476,6 +532,8 @@ const Pointages = () => {
             </Grid>
           </Grid>
         </Paper>
+
+        {/* Tableau des pointages */}
         <Paper sx={{ width: "100%", overflow: "hidden", borderRadius: 3 }}>
           <PointageTable
             pointages={filteredPointages}
@@ -485,11 +543,13 @@ const Pointages = () => {
             onEdit={handleOpenDialog}
             onDelete={handleDelete}
             onViewDetails={showDetails}
-            onUpdatePointage={handleUpdatePointage} // ← PROP AJOUTÉE ICI
+            onUpdatePointage={handleUpdatePointage}
             theme={theme}
             currentUser={user}
           />
         </Paper>
+
+        {/* Modal d'ajout/modification */}
         <PointageModal
           open={openDialog}
           editingPointage={editingPointage}
@@ -700,6 +760,7 @@ const Pointages = () => {
           </DialogActions>
         </Dialog>
 
+        {/* Snackbar pour les notifications */}
         <Snackbar
           open={snackbar.open}
           autoHideDuration={6000}
