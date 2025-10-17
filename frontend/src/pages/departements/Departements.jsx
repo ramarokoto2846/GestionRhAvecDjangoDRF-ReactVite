@@ -3,7 +3,7 @@ import {
   Box,
   Typography,
   Paper,
-  Grid, // ← REVENIR À Grid NORMAL
+  Grid,
   Fab,
   Card,
   CardContent,
@@ -14,12 +14,15 @@ import {
   IconButton,
   Snackbar,
   Alert,
+  Button,
+  Stack
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import {
   Add as AddIcon,
   Search as SearchIcon,
   Close as CloseIcon,
+  Print as PrintIcon
 } from "@mui/icons-material";
 import Swal from "sweetalert2";
 import Header from "../../components/Header";
@@ -34,6 +37,7 @@ import {
   getCurrentUser,
   isSuperuser,
   getEmployes,
+  exportDepartementsPDF // AJOUT IMPORT PDF
 } from "../../services/api";
 
 const Departements = ({ isSuperuser: isSuperuserProp }) => {
@@ -68,6 +72,9 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
   });
   const [usersMap, setUsersMap] = useState({});
   const [processing, setProcessing] = useState(false);
+  
+  // ✅ NOUVEAU ÉTAT POUR PDF
+  const [generatingPDF, setGeneratingPDF] = useState(false);
 
   // --- Récupération utilisateur et statut superutilisateur ---
   useEffect(() => {
@@ -133,6 +140,25 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
       showSnackbar("Impossible de charger les départements", "error");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ✅ NOUVELLE FONCTION POUR GÉNÉRER LE PDF
+  const handleGeneratePDF = async () => {
+    setGeneratingPDF(true);
+    try {
+      const result = await exportDepartementsPDF();
+      
+      if (result && result.success) {
+        showSnackbar("PDF généré avec succès !", "success");
+      } else {
+        throw new Error(result?.message || "Erreur inconnue");
+      }
+    } catch (error) {
+      console.error("Erreur lors de la génération du PDF:", error);
+      showSnackbar(error.message || "Erreur lors de la génération du PDF", "error");
+    } finally {
+      setGeneratingPDF(false);
     }
   };
 
@@ -429,7 +455,7 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
           }),
         }}
       >
-        {/* Titre + bouton */}
+        {/* Titre + boutons */}
         <Box
           sx={{
             display: "flex",
@@ -448,23 +474,47 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
               Gérez les départements de votre entreprise
             </Typography>
           </Box>
-          <Fab
-            color="primary"
-            onClick={() => handleOpenDialog()}
-            disabled={processing}
-            variant="extended"
-            sx={{
-              borderRadius: 2,
-              minWidth: 200,
-              px: 3,
-            }}
-          >
-            <AddIcon sx={{ mr: 1 }} />
-            Nouveau Département
-          </Fab>
+          
+          {/* ✅ NOUVEAU : STACK AVEC BOUTON PDF ET NOUVEAU DÉPARTEMENT */}
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <Button
+              variant="outlined"
+              onClick={handleGeneratePDF}
+              disabled={generatingPDF || departements.length === 0}
+              startIcon={generatingPDF ? <CircularProgress size={20} /> : <PrintIcon />}
+              sx={{
+                borderRadius: 2,
+                minWidth: 200,
+                px: 3,
+                textTransform: "none",
+                fontWeight: "bold",
+                fontSize: '1rem'
+              }}
+            >
+              {generatingPDF ? "Génération..." : "Imprimer PDF"}
+            </Button>
+            
+            <Fab
+              color="primary"
+              onClick={() => handleOpenDialog()}
+              disabled={processing}
+              variant="extended"
+              sx={{
+                borderRadius: 2,
+                minWidth: 200,
+                px: 3,
+                textTransform: "none",
+                fontWeight: "bold",
+                fontSize: '1rem'
+              }}
+            >
+              <AddIcon sx={{ mr: 1 }} />
+              Nouveau Département
+            </Fab>
+          </Stack>
         </Box>
 
-        {/* Stats - CORRIGÉ avec ancienne syntaxe Grid */}
+        {/* Stats */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid item xs={12} sm={6} md={3}>
             <Card sx={{ borderRadius: 3, boxShadow: 2 }}>

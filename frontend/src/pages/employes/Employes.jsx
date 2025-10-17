@@ -18,6 +18,8 @@ import {
   Select,
   MenuItem,
   useTheme,
+  Button,
+  Stack
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import {
@@ -25,8 +27,18 @@ import {
   Search as SearchIcon,
   Close as CloseIcon,
   FilterList as FilterIcon,
+  Print as PrintIcon
 } from "@mui/icons-material";
-import { getEmployes, createEmploye, updateEmploye, deleteEmploye, getDepartements, getCurrentUser, isSuperuser } from "../../services/api";
+import { 
+  getEmployes, 
+  createEmploye, 
+  updateEmploye, 
+  deleteEmploye, 
+  getDepartements, 
+  getCurrentUser, 
+  isSuperuser,
+  exportEmployesPDF // AJOUT IMPORT PDF
+} from "../../services/api";
 import Header, { triggerNotificationsRefresh } from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import Swal from "sweetalert2";
@@ -63,6 +75,9 @@ const Employes = ({ isSuperuser: isSuperuserProp }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [isSuperuserState, setIsSuperuserState] = useState(isSuperuserProp);
   const [errors, setErrors] = useState({});
+  
+  // ✅ NOUVEAU ÉTAT POUR PDF
+  const [generatingPDF, setGeneratingPDF] = useState(false);
 
   // --- Récupération utilisateur et données ---
   useEffect(() => {
@@ -118,6 +133,25 @@ const Employes = ({ isSuperuser: isSuperuserProp }) => {
       setError("Erreur lors du chargement des données");
       showSnackbar("Impossible de charger les données", "error");
       setLoading(false);
+    }
+  };
+
+  // ✅ NOUVELLE FONCTION POUR GÉNÉRER LE PDF
+  const handleGeneratePDF = async () => {
+    setGeneratingPDF(true);
+    try {
+      const result = await exportEmployesPDF();
+      
+      if (result && result.success) {
+        showSnackbar("PDF généré avec succès !", "success");
+      } else {
+        throw new Error(result?.message || "Erreur inconnue");
+      }
+    } catch (error) {
+      console.error("Erreur lors de la génération du PDF:", error);
+      showSnackbar(error.message || "Erreur lors de la génération du PDF", "error");
+    } finally {
+      setGeneratingPDF(false);
     }
   };
 
@@ -317,7 +351,7 @@ const Employes = ({ isSuperuser: isSuperuserProp }) => {
           }),
         }}
       >
-        {/* Titre + bouton */}
+        {/* Titre + boutons */}
         <Box 
           sx={{ 
             display: "flex", 
@@ -336,22 +370,43 @@ const Employes = ({ isSuperuser: isSuperuserProp }) => {
               Gérez les employés de votre entreprise
             </Typography>
           </Box>
-          <Fab
-            color="primary"
-            onClick={() => handleOpenDialog()}
-            variant="extended"
-            sx={{
-              borderRadius: 2,
-              minWidth: 200,
-              px: 3,
-              textTransform: "none",
-              fontWeight: "bold",
-              fontSize: '1rem',
-            }}
-          >
-            <AddIcon sx={{ mr: 1 }} />
-            Nouvel Employé
-          </Fab>
+          
+          {/* ✅ NOUVEAU : STACK AVEC BOUTON PDF ET NOUVEL EMPLOYÉ */}
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <Button
+              variant="outlined"
+              onClick={handleGeneratePDF}
+              disabled={generatingPDF || employes.length === 0}
+              startIcon={generatingPDF ? <CircularProgress size={20} /> : <PrintIcon />}
+              sx={{
+                borderRadius: 2,
+                minWidth: 200,
+                px: 3,
+                textTransform: "none",
+                fontWeight: "bold",
+                fontSize: '1rem'
+              }}
+            >
+              {generatingPDF ? "Génération..." : "Imprimer PDF"}
+            </Button>
+            
+            <Fab
+              color="primary"
+              onClick={() => handleOpenDialog()}
+              variant="extended"
+              sx={{
+                borderRadius: 2,
+                minWidth: 200,
+                px: 3,
+                textTransform: "none",
+                fontWeight: "bold",
+                fontSize: '1rem',
+              }}
+            >
+              <AddIcon sx={{ mr: 1 }} />
+              Nouvel Employé
+            </Fab>
+          </Stack>
         </Box>
 
         {/* Cartes de statistiques */}

@@ -3,7 +3,7 @@ import {
   Box, Typography, Fab, Grid, Card, CardContent, Paper,
   TextField, InputAdornment, IconButton, FormControl, InputLabel,
   Select, MenuItem, ToggleButtonGroup, ToggleButton, CircularProgress,
-  Alert, Snackbar, useTheme
+  Alert, Snackbar, useTheme, Button, Stack
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { format, parseISO, isValid, isWithinInterval, isAfter, isBefore } from "date-fns";
@@ -18,8 +18,15 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import UpcomingIcon from '@mui/icons-material/Upcoming';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
+import PrintIcon from '@mui/icons-material/Print';
 
-import { getEvenements, getCurrentUser, deleteEvenement, isSuperuser } from "../../services/api";
+import { 
+  getEvenements, 
+  getCurrentUser, 
+  deleteEvenement, 
+  isSuperuser,
+  exportEvenementsPDF // AJOUT IMPORT PDF
+} from "../../services/api";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import EvenementTable from "./EvenementTable";
@@ -42,6 +49,10 @@ const Evenements = () => {
   const [isSuperuserState, setIsSuperuserState] = useState(false);
   const [statusFilter, setStatusFilter] = useState("tous");
   const [monthFilter, setMonthFilter] = useState("tous");
+  
+  // ✅ NOUVEAU ÉTAT POUR PDF
+  const [generatingPDF, setGeneratingPDF] = useState(false);
+  
   const notificationsCount = 3;
 
   useEffect(() => {
@@ -81,6 +92,25 @@ const Evenements = () => {
       showSnackbar("Impossible de charger les événements", "error");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ✅ NOUVELLE FONCTION POUR GÉNÉRER LE PDF
+  const handleGeneratePDF = async () => {
+    setGeneratingPDF(true);
+    try {
+      const result = await exportEvenementsPDF();
+      
+      if (result && result.success) {
+        showSnackbar("PDF généré avec succès !", "success");
+      } else {
+        throw new Error(result?.message || "Erreur inconnue");
+      }
+    } catch (error) {
+      console.error("Erreur lors de la génération du PDF:", error);
+      showSnackbar(error.message || "Erreur lors de la génération du PDF", "error");
+    } finally {
+      setGeneratingPDF(false);
     }
   };
 
@@ -309,7 +339,7 @@ const Evenements = () => {
           </Alert>
         )}
 
-        {/* Titre + bouton */}
+        {/* Titre + boutons */}
         <Box 
           sx={{ 
             display: "flex", 
@@ -328,22 +358,43 @@ const Evenements = () => {
               Gérez les événements de votre entreprise
             </Typography>
           </Box>
-          <Fab
-            color="primary"
-            onClick={() => handleOpenDialog()}
-            variant="extended"
-            sx={{
-              borderRadius: 2,
-              minWidth: 200,
-              px: 3,
-              textTransform: "none",
-              fontWeight: "bold",
-              fontSize: '1rem'
-            }}
-          >
-            <AddIcon sx={{ mr: 1 }} />
-            Nouvel Événement
-          </Fab>
+          
+          {/* ✅ NOUVEAU : STACK AVEC BOUTON PDF ET NOUVEL ÉVÉNEMENT */}
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <Button
+              variant="outlined"
+              onClick={handleGeneratePDF}
+              disabled={generatingPDF || evenements.length === 0}
+              startIcon={generatingPDF ? <CircularProgress size={20} /> : <PrintIcon />}
+              sx={{
+                borderRadius: 2,
+                minWidth: 200,
+                px: 3,
+                textTransform: "none",
+                fontWeight: "bold",
+                fontSize: '1rem'
+              }}
+            >
+              {generatingPDF ? "Génération..." : "Imprimer PDF"}
+            </Button>
+            
+            <Fab
+              color="primary"
+              onClick={() => handleOpenDialog()}
+              variant="extended"
+              sx={{
+                borderRadius: 2,
+                minWidth: 200,
+                px: 3,
+                textTransform: "none",
+                fontWeight: "bold",
+                fontSize: '1rem'
+              }}
+            >
+              <AddIcon sx={{ mr: 1 }} />
+              Nouvel Événement
+            </Fab>
+          </Stack>
         </Box>
 
         {/* Cartes de statistiques */}

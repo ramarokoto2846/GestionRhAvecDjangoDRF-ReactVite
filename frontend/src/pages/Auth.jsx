@@ -22,13 +22,9 @@ import {
   Person, 
   Email, 
   Lock,
-  CorporateFare,
-  AppRegistration,
-  Login,
-  Security,
   Group,
-  Dashboard,
-  Assessment
+  AppRegistration,
+  Login
 } from "@mui/icons-material";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
@@ -191,22 +187,22 @@ const Auth = ({ setIsAuthenticated }) => {
         display: 'flex', 
         justifyContent: 'center', 
         alignItems: 'center', 
-        height: '900px',
-        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%)',
         p: isMobile ? 1 : 2,
         position: 'relative',
-        overflow: 'hidden',
+        overflow: 'auto',
         '&::before': {
           content: '""',
           position: 'absolute',
           width: '100%',
           height: '100%',
-          backgroundImage: 'radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.05) 0%, transparent 40%)',
+          backgroundImage: 'radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.8) 0%, transparent 40%)',
           pointerEvents: 'none'
         }
       }}
     >
-      {/* Formes décoratives modernes */}
+      {/* Formes décoratives avec les nouvelles couleurs */}
       <Box
         sx={{
           position: 'absolute',
@@ -215,7 +211,7 @@ const Auth = ({ setIsAuthenticated }) => {
           width: 400,
           height: 400,
           borderRadius: '50%',
-          background: 'linear-gradient(135deg, rgba(29, 38, 113, 0.3) 0%, rgba(195, 55, 100, 0.3) 100%)',
+          background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(147, 51, 234, 0.2) 100%)',
           filter: 'blur(40px)',
           animation: 'float 8s ease-in-out infinite'
         }}
@@ -228,44 +224,37 @@ const Auth = ({ setIsAuthenticated }) => {
           width: 400,
           height: 400,
           borderRadius: '50%',
-          background: 'linear-gradient(135deg, rgba(195, 55, 100, 0.3) 0%, rgba(29, 38, 113, 0.3) 100%)',
+          background: 'linear-gradient(135deg, rgba(147, 51, 234, 0.2) 0%, rgba(59, 130, 246, 0.2) 100%)',
           filter: 'blur(40px)',
           animation: 'float 10s ease-in-out infinite'
         }}
       />
       
-      <Fade in timeout={800}
-        sx={{ 
-          display: 'flex',
-          justifyContent: 'space-between',
-        }}
-      >
+      <Fade in timeout={800}>
         <Grid 
           container 
           sx={{ 
             maxWidth: 1000, 
             width: '100%', 
-            borderRadius: 2,
+            borderRadius: 3,
             overflow: 'hidden',
-            boxShadow: '0 25px 50px rgba(0, 0, 0, 0.5)',
+            boxShadow: '0 25px 50px rgba(0, 0, 0, 0.15)',
+            my: 2 // Ajout de marge verticale
           }}
         >
-          {/* Section de description (à gauche) */}
+          {/* Section de description (à gauche) - NOUVELLES COULEURS */}
           <Grid 
             item
+            xs={12}
+            md={6}
             sx={{
-              background: 'linear-gradient(135deg, rgba(26, 26, 46, 0.95) 0%, rgba(22, 33, 62, 0.95) 100%)',
+              background: 'linear-gradient(135deg, #3b82f6 0%, #9333ea 100%)',
               display: 'flex',
-              width: '500px',
-              height: '765px',
-              marginTop: '-59px',
-              borderLeft: '2px solid white',
-              borderBottom: '2px solid white',
-              borderTop: '2px solid white',
               flexDirection: 'column',
               justifyContent: 'center',
               position: 'relative',
               overflow: 'hidden',
+              minHeight: { xs: '300px', md: '600px' },
               '&::before': {
                 content: '""',
                 position: 'absolute',
@@ -273,13 +262,13 @@ const Auth = ({ setIsAuthenticated }) => {
                 left: 0,
                 right: 0,
                 bottom: 0,
-                backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"none\" fill-rule=\"evenodd\"%3E%3Cg fill=\"%23ffffff\" fill-opacity=\"0.03\"%3E%3Cpath d=\"M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
+                backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"none\" fill-rule=\"evenodd\"%3E%3Cg fill=\"%23ffffff\" fill-opacity=\"0.1\"%3E%3Cpath d=\"M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
                 opacity: 0.3
               }
             }}
           >
-            <Box sx={{ position: 'relative', zIndex: 1, p: 4}}>
-              <Box sx={{ textAlign: 'center'}}>
+            <Box sx={{ position: 'relative', zIndex: 1, p: 4 }}>
+              <Box sx={{ textAlign: 'center' }}>
                 <Box sx={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -287,12 +276,12 @@ const Auth = ({ setIsAuthenticated }) => {
                   width: 80,
                   height: 80,
                   borderRadius: '12px',
-                  background: 'rgba(255, 255, 255, 0.1)',
+                  background: 'rgba(255, 255, 255, 0.2)',
                   boxShadow: '0 8px 20px rgba(0, 0, 0, 0.2)',
                   mb: 2,
                   backdropFilter: 'blur(5px)'
                 }}>
-                  <CorporateFare 
+                  <Group 
                     sx={{ 
                       fontSize: 40, 
                       color: 'white'
@@ -306,26 +295,28 @@ const Auth = ({ setIsAuthenticated }) => {
                   sx={{ 
                     fontWeight: '700',
                     color: 'white',
-                    textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                    textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                    fontSize: { xs: '2rem', md: '2.5rem' }
                   }}
                 >
-                  Gestion RH
+                  Système de Gestion RH - TVM
                 </Typography>
                 <Typography 
                   variant="h6" 
                   sx={{ 
-                    color: 'rgba(255, 255, 255, 0.8)',
+                    color: 'rgba(255, 255, 255, 0.9)',
                     mb: 4,
-                    fontWeight: 400
+                    fontWeight: 400,
+                    fontSize: { xs: '1rem', md: '1.25rem' }
                   }}
                 >
-                  Gestion des Ressources <br /> Humaines dans la societe ORTM
+                  Optimisation des ressources humaines <br /> pour Televiziona Malagasy
                 </Typography>
               </Box>
 
-              <Box sx={{ mt: 4, p: 3, background: 'rgba(255, 255, 255, 0.08)', borderRadius: 2, backdropFilter: 'blur(5px)' }}>
+              <Box sx={{ mt: 4, p: 3, background: 'rgba(255, 255, 255, 0.15)', borderRadius: 2, backdropFilter: 'blur(5px)' }}>
                 <Typography variant="body2" sx={{ color: 'white', fontStyle: 'italic', textAlign: 'center' }}>
-                  "Système de gestion complet pour les courtiers introduisant"
+                  "Une solution moderne pour gérer efficacement les ressources humaines de la TVM"
                 </Typography>
               </Box>
             </Box>
@@ -334,26 +325,26 @@ const Auth = ({ setIsAuthenticated }) => {
           {/* Formulaire de connexion/inscription (à droite) */}
           <Grid 
             item 
-            xs={12} 
-            width={500}
-            height={700}
+            xs={12}
+            md={6}
             sx={{ 
-              marginTop: '-60px',
+              display: 'flex',
+              flexDirection: 'column'
             }}
           >
             <Paper 
               sx={{ 
-                height: '100%', 
+                flex: 1,
                 p: isMobile ? 3 : 4, 
                 borderRadius: 0,
-                background: 'rgba(255, 255, 255, 0.97)',
-                backdropFilter: 'blur(12px)',
-                border: '1px solid rgba(255, 255, 255, 0.4)',
+                background: 'white',
+                border: '1px solid rgba(226, 232, 240, 0.8)',
                 position: 'relative',
-                overflow: 'hidden',
+                overflow: 'auto',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'center',
+                minHeight: { xs: '500px', md: '600px' },
                 '&::before': {
                   content: '""',
                   position: 'absolute',
@@ -361,64 +352,17 @@ const Auth = ({ setIsAuthenticated }) => {
                   left: 0,
                   right: 0,
                   height: 6,
-                  background: 'linear-gradient(90deg, #1a1a2e, #16213e)'
+                  background: 'linear-gradient(90deg, #3b82f6, #9333ea)'
                 }
               }}
             >
-              {isMobile && (
-                <Box sx={{ textAlign: 'center', mb: 3 }}>
-                  <Box sx={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: 70,
-                    height: 70,
-                    borderRadius: '12px',
-                    background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
-                    boxShadow: '0 8px 20px rgba(26, 26, 46, 0.4)',
-                    mb: 2
-                  }}>
-                    <CorporateFare 
-                      sx={{ 
-                        fontSize: 35, 
-                        color: 'white'
-                      }} 
-                    />
-                  </Box>
-                  <Typography 
-                    variant="h4" 
-                    component="h1" 
-                    gutterBottom 
-                    sx={{ 
-                      fontWeight: '700',
-                      background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
-                      backgroundClip: 'text',
-                      textFillColor: 'transparent',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                    }}
-                  >
-                    IB OS
-                  </Typography>
-                  <Typography 
-                    variant="body2" 
-                    color="text.secondary"
-                    sx={{ 
-                      mb: 2,
-                      fontWeight: 500,
-                    }}
-                  >
-                    Introducing Broker Operating System
-                  </Typography>
-                </Box>
-              )}
-              
+              {/* Titre et message BIEN VISIBLES */}
               <Box sx={{ textAlign: 'center', mb: 3 }}>
-                <Typography variant="h4" component="h2" sx={{ fontWeight: 600, color: '#1a1a2e', mb: 1 }}>
-                  Welcome
+                <Typography variant="h4" component="h2" sx={{ fontWeight: 600, color: '#1e293b', mb: 1 }}>
+                  {tab === 0 ? "Créer un compte" : "Bienvenue"}
                 </Typography>
                 <Typography variant="body1" color="text.secondary">
-                  Sign in to access your account
+                  {tab === 0 ? "Rejoignez notre plateforme de gestion RH" : "Connectez-vous pour accéder à votre espace"}
                 </Typography>
               </Box>
               
@@ -437,18 +381,18 @@ const Auth = ({ setIsAuthenticated }) => {
                     borderRadius: 2,
                     mx: 0.5,
                     '&.Mui-selected': {
-                      color: '#1a1a2e',
+                      color: '#3b82f6',
                     }
                   },
                   '& .MuiTabs-indicator': {
                     height: 3,
                     borderRadius: 2,
-                    background: 'linear-gradient(90deg, #1a1a2e, #16213e)'
+                    background: 'linear-gradient(90deg, #3b82f6, #9333ea)'
                   }
                 }}
               >
-                <Tab icon={<AppRegistration sx={{ fontSize: 20, mb: 0.5 }} />} iconPosition="start" label="Register" />
-                <Tab icon={<Login sx={{ fontSize: 20, mb: 0.5 }} />} iconPosition="start" label="Login" />
+                <Tab icon={<AppRegistration sx={{ fontSize: 20, mb: 0.5 }} />} iconPosition="start" label="Inscription" />
+                <Tab icon={<Login sx={{ fontSize: 20, mb: 0.5 }} />} iconPosition="start" label="Connexion" />
               </Tabs>
 
               {error && (
@@ -458,9 +402,9 @@ const Auth = ({ setIsAuthenticated }) => {
                     mb: 3, 
                     borderRadius: 2,
                     alignItems: 'center',
-                    background: 'rgba(244, 67, 54, 0.1)',
-                    color: '#d32f2f',
-                    border: '1px solid rgba(244, 67, 54, 0.2)',
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    color: '#dc2626',
+                    border: '1px solid rgba(239, 68, 68, 0.2)',
                     '& .MuiAlert-message': {
                       padding: '4px 0'
                     }
@@ -475,7 +419,7 @@ const Auth = ({ setIsAuthenticated }) => {
                   <Box>
                     <form onSubmit={handleRegister}>
                       <TextField 
-                        label="Full Name" 
+                        label="Nom complet" 
                         fullWidth 
                         margin="normal" 
                         value={nom} 
@@ -485,7 +429,7 @@ const Auth = ({ setIsAuthenticated }) => {
                         InputProps={{
                           startAdornment: (
                             <InputAdornment position="start">
-                              <Person sx={{ color: '#1a1a2e' }} />
+                              <Person sx={{ color: '#3b82f6' }} />
                             </InputAdornment>
                           ),
                         }}
@@ -494,12 +438,12 @@ const Auth = ({ setIsAuthenticated }) => {
                             borderRadius: 2,
                             transition: 'all 0.3s ease',
                             '&:hover fieldset': {
-                              borderColor: '#1a1a2e',
+                              borderColor: '#3b82f6',
                             },
                             '&.Mui-focused fieldset': {
                               borderWidth: 2,
-                              borderColor: '#1a1a2e',
-                              boxShadow: '0 0 0 4px rgba(26, 26, 46, 0.1)'
+                              borderColor: '#3b82f6',
+                              boxShadow: '0 0 0 4px rgba(59, 130, 246, 0.1)'
                             }
                           }
                         }}
@@ -516,7 +460,7 @@ const Auth = ({ setIsAuthenticated }) => {
                         InputProps={{
                           startAdornment: (
                             <InputAdornment position="start">
-                              <Email sx={{ color: '#1a1a2e' }} />
+                              <Email sx={{ color: '#3b82f6' }} />
                             </InputAdornment>
                           ),
                         }}
@@ -525,18 +469,18 @@ const Auth = ({ setIsAuthenticated }) => {
                             borderRadius: 2,
                             transition: 'all 0.3s ease',
                             '&:hover fieldset': {
-                              borderColor: '#1a1a2e',
+                              borderColor: '#3b82f6',
                             },
                             '&.Mui-focused fieldset': {
                               borderWidth: 2,
-                              borderColor: '#1a1a2e',
-                              boxShadow: '0 0 0 4px rgba(26, 26, 46, 0.1)'
+                              borderColor: '#3b82f6',
+                              boxShadow: '0 0 0 4px rgba(59, 130, 246, 0.1)'
                             }
                           }
                         }}
                       />
                       <TextField 
-                        label="Password" 
+                        label="Mot de passe" 
                         type={showPassword ? "text" : "password"}
                         fullWidth 
                         margin="normal" 
@@ -547,7 +491,7 @@ const Auth = ({ setIsAuthenticated }) => {
                         InputProps={{
                           startAdornment: (
                             <InputAdornment position="start">
-                              <Lock sx={{ color: '#1a1a2e' }} />
+                              <Lock sx={{ color: '#3b82f6' }} />
                             </InputAdornment>
                           ),
                           endAdornment: (
@@ -568,18 +512,18 @@ const Auth = ({ setIsAuthenticated }) => {
                             borderRadius: 2,
                             transition: 'all 0.3s ease',
                             '&:hover fieldset': {
-                              borderColor: '#1a1a2e',
+                              borderColor: '#3b82f6',
                             },
                             '&.Mui-focused fieldset': {
                               borderWidth: 2,
-                              borderColor: '#1a1a2e',
-                              boxShadow: '0 0 0 4px rgba(26, 26, 46, 0.1)'
+                              borderColor: '#3b82f6',
+                              boxShadow: '0 0 0 4px rgba(59, 130, 246, 0.1)'
                             }
                           }
                         }}
                       />
                       <TextField 
-                        label="Confirm Password" 
+                        label="Confirmer le mot de passe" 
                         type={showConfirmPassword ? "text" : "password"}
                         fullWidth 
                         margin="normal" 
@@ -590,7 +534,7 @@ const Auth = ({ setIsAuthenticated }) => {
                         InputProps={{
                           startAdornment: (
                             <InputAdornment position="start">
-                              <Lock sx={{ color: '#1a1a2e' }} />
+                              <Lock sx={{ color: '#3b82f6' }} />
                             </InputAdornment>
                           ),
                           endAdornment: (
@@ -611,12 +555,12 @@ const Auth = ({ setIsAuthenticated }) => {
                             borderRadius: 2,
                             transition: 'all 0.3s ease',
                             '&:hover fieldset': {
-                              borderColor: '#1a1a2e',
+                              borderColor: '#3b82f6',
                             },
                             '&.Mui-focused fieldset': {
                               borderWidth: 2,
-                              borderColor: '#1a1a2e',
-                              boxShadow: '0 0 0 4px rgba(26, 26, 46, 0.1)'
+                              borderColor: '#3b82f6',
+                              boxShadow: '0 0 0 4px rgba(59, 130, 246, 0.1)'
                             }
                           }
                         }}
@@ -632,13 +576,13 @@ const Auth = ({ setIsAuthenticated }) => {
                           fontSize: '1rem',
                           fontWeight: 600,
                           textTransform: 'none',
-                          background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
-                          boxShadow: '0 6px 15px rgba(26, 26, 46, 0.4)',
+                          background: 'linear-gradient(135deg, #3b82f6, #9333ea)',
+                          boxShadow: '0 6px 15px rgba(59, 130, 246, 0.4)',
                           transition: 'all 0.3s ease',
                           '&:hover': {
                             transform: 'translateY(-2px)',
-                            boxShadow: '0 10px 20px rgba(26, 26, 46, 0.5)',
-                            background: 'linear-gradient(135deg, #161627, #141b36)',
+                            boxShadow: '0 10px 20px rgba(59, 130, 246, 0.5)',
+                            background: 'linear-gradient(135deg, #2563eb, #7c3aed)',
                           },
                           '&:active': {
                             transform: 'translateY(0)',
@@ -646,12 +590,12 @@ const Auth = ({ setIsAuthenticated }) => {
                         }} 
                         disabled={loading}
                       >
-                        {loading ? "Creating..." : "Create Account"}
+                        {loading ? "Création..." : "Créer un compte"}
                       </Button>
                     </form>
                     <Divider sx={{ my: 3 }}>
                       <Typography variant="body2" color="text.secondary" sx={{ px: 2, background: 'white' }}>
-                        Already have an account?
+                        Vous avez déjà un compte ?
                       </Typography>
                     </Divider>
                     <Button 
@@ -662,16 +606,16 @@ const Auth = ({ setIsAuthenticated }) => {
                         textTransform: 'none',
                         fontWeight: 600,
                         py: 1.5,
-                        color: '#1a1a2e',
-                        borderColor: '#1a1a2e',
+                        color: '#3b82f6',
+                        borderColor: '#3b82f6',
                         '&:hover': {
-                          borderColor: '#161627',
-                          backgroundColor: 'rgba(26, 26, 46, 0.04)'
+                          borderColor: '#2563eb',
+                          backgroundColor: 'rgba(59, 130, 246, 0.04)'
                         }
                       }}
                       onClick={() => setTab(1)}
                     >
-                      Sign In
+                      Se connecter
                     </Button>
                   </Box>
                 </Fade>
@@ -693,7 +637,7 @@ const Auth = ({ setIsAuthenticated }) => {
                         InputProps={{
                           startAdornment: (
                             <InputAdornment position="start">
-                              <Email sx={{ color: '#1a1a2e' }} />
+                              <Email sx={{ color: '#3b82f6' }} />
                             </InputAdornment>
                           ),
                         }}
@@ -702,18 +646,18 @@ const Auth = ({ setIsAuthenticated }) => {
                             borderRadius: 2,
                             transition: 'all 0.3s ease',
                             '&:hover fieldset': {
-                              borderColor: '#1a1a2e',
+                              borderColor: '#3b82f6',
                             },
                             '&.Mui-focused fieldset': {
                               borderWidth: 2,
-                              borderColor: '#1a1a2e',
-                              boxShadow: '0 0 0 4px rgba(26, 26, 46, 0.1)'
+                              borderColor: '#3b82f6',
+                              boxShadow: '0 0 0 4px rgba(59, 130, 246, 0.1)'
                             }
                           }
                         }}
                       />
                       <TextField 
-                        label="Password" 
+                        label="Mot de passe" 
                         type={showPassword ? "text" : "password"}
                         fullWidth 
                         margin="normal" 
@@ -724,7 +668,7 @@ const Auth = ({ setIsAuthenticated }) => {
                         InputProps={{
                           startAdornment: (
                             <InputAdornment position="start">
-                              <Lock sx={{ color: '#1a1a2e' }} />
+                              <Lock sx={{ color: '#3b82f6' }} />
                             </InputAdornment>
                           ),
                           endAdornment: (
@@ -745,12 +689,12 @@ const Auth = ({ setIsAuthenticated }) => {
                             borderRadius: 2,
                             transition: 'all 0.3s ease',
                             '&:hover fieldset': {
-                              borderColor: '#1a1a2e',
+                              borderColor: '#3b82f6',
                             },
                             '&.Mui-focused fieldset': {
                               borderWidth: 2,
-                              borderColor: '#1a1a2e',
-                              boxShadow: '0 0 0 4px rgba(26, 26, 46, 0.1)'
+                              borderColor: '#3b82f6',
+                              boxShadow: '0 0 0 4px rgba(59, 130, 246, 0.1)'
                             }
                           }
                         }}
@@ -759,15 +703,15 @@ const Auth = ({ setIsAuthenticated }) => {
                         <Button 
                           size="small" 
                           sx={{ 
-                            color: '#1a1a2e', 
+                            color: '#3b82f6', 
                             textTransform: 'none',
                             fontWeight: 500,
                             '&:hover': {
-                              backgroundColor: 'rgba(26, 26, 46, 0.04)'
+                              backgroundColor: 'rgba(59, 130, 246, 0.04)'
                             }
                           }}
                         >
-                          Forgot Password?
+                          Mot de passe oublié ?
                         </Button>
                       </Box>
                       <Button 
@@ -781,13 +725,13 @@ const Auth = ({ setIsAuthenticated }) => {
                           fontSize: '1rem',
                           fontWeight: 600,
                           textTransform: 'none',
-                          background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
-                          boxShadow: '0 6px 15px rgba(26, 26, 46, 0.4)',
+                          background: 'linear-gradient(135deg, #3b82f6, #9333ea)',
+                          boxShadow: '0 6px 15px rgba(59, 130, 246, 0.4)',
                           transition: 'all 0.3s ease',
                           '&:hover': {
                             transform: 'translateY(-2px)',
-                            boxShadow: '0 10px 20px rgba(26, 26, 46, 0.5)',
-                            background: 'linear-gradient(135deg, #161627, #141b36)',
+                            boxShadow: '0 10px 20px rgba(59, 130, 246, 0.5)',
+                            background: 'linear-gradient(135deg, #2563eb, #7c3aed)',
                           },
                           '&:active': {
                             transform: 'translateY(0)',
@@ -795,12 +739,12 @@ const Auth = ({ setIsAuthenticated }) => {
                         }} 
                         disabled={loading}
                       >
-                        {loading ? "Signing In..." : "Login"}
+                        {loading ? "Connexion..." : "Se connecter"}
                       </Button>
                     </form>
                     <Divider sx={{ my: 3 }}>
                       <Typography variant="body2" color="text.secondary" sx={{ px: 2, background: 'white' }}>
-                        Don't have an account?
+                        Pas encore de compte ?
                       </Typography>
                     </Divider>
                     <Button 
@@ -811,16 +755,16 @@ const Auth = ({ setIsAuthenticated }) => {
                         textTransform: 'none',
                         fontWeight: 600,
                         py: 1.5,
-                        color: '#1a1a2e',
-                        borderColor: '#1a1a2e',
+                        color: '#3b82f6',
+                        borderColor: '#3b82f6',
                         '&:hover': {
-                          borderColor: '#161627',
-                          backgroundColor: 'rgba(26, 26, 46, 0.04)'
+                          borderColor: '#2563eb',
+                          backgroundColor: 'rgba(59, 130, 246, 0.04)'
                         }
                       }}
                       onClick={() => setTab(0)}
                     >
-                      Register Now
+                      S'inscrire
                     </Button>
                   </Box>
                 </Fade>

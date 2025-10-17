@@ -5,7 +5,7 @@ import {
   InputLabel, Select, MenuItem, TextField, IconButton,
   InputAdornment, Dialog, DialogTitle, DialogContent,
   DialogActions, Button, Divider, Chip, Avatar,
-  useTheme
+  useTheme, Stack
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { format, parseISO, isValid } from "date-fns";
@@ -24,8 +24,17 @@ import WorkIcon from '@mui/icons-material/Work';
 import EmailIcon from '@mui/icons-material/Email';
 import PhoneIcon from '@mui/icons-material/Phone';
 import BusinessIcon from '@mui/icons-material/Business';
+import PrintIcon from '@mui/icons-material/Print';
 
-import { getPointages, createPointage, updatePointage, deletePointage, getEmployes, getCurrentUser } from "../../services/api";
+import { 
+  getPointages, 
+  createPointage, 
+  updatePointage, 
+  deletePointage, 
+  getEmployes, 
+  getCurrentUser,
+  exportPointagesPDF // AJOUT IMPORT PDF
+} from "../../services/api";
 import Header, { triggerNotificationsRefresh } from "../../components/Header";
 import PointageTable from "./PointageTable";
 import PointageModal from "./PointageModal";
@@ -66,6 +75,9 @@ const Pointages = () => {
   const [detailView, setDetailView] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [exitFilter, setExitFilter] = useState("all");
+  
+  // ✅ NOUVEAU ÉTAT POUR PDF
+  const [generatingPDF, setGeneratingPDF] = useState(false);
 
   const initialFormData = {
     id_pointage: `P${Date.now()}`,
@@ -153,6 +165,25 @@ const Pointages = () => {
       showSnackbar(errorMessage, "error");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ✅ NOUVELLE FONCTION POUR GÉNÉRER LE PDF
+  const handleGeneratePDF = async () => {
+    setGeneratingPDF(true);
+    try {
+      const result = await exportPointagesPDF();
+      
+      if (result && result.success) {
+        showSnackbar("PDF généré avec succès !", "success");
+      } else {
+        throw new Error(result?.message || "Erreur inconnue");
+      }
+    } catch (error) {
+      console.error("Erreur lors de la génération du PDF:", error);
+      showSnackbar(error.message || "Erreur lors de la génération du PDF", "error");
+    } finally {
+      setGeneratingPDF(false);
     }
   };
 
@@ -413,7 +444,7 @@ const Pointages = () => {
           </Alert>
         )}
 
-        {/* Titre + bouton */}
+        {/* Titre + boutons */}
         <Box 
           sx={{ 
             display: "flex", 
@@ -432,23 +463,44 @@ const Pointages = () => {
               Gérez les pointages de vos employés
             </Typography>
           </Box>
-          <Fab
-            color="primary"
-            onClick={() => handleOpenDialog()}
-            variant="extended"
-            sx={{
-              borderRadius: 2,
-              minWidth: 200,
-              px: 3,
-              textTransform: "none",
-              fontWeight: "bold",
-              fontSize: '1rem'
-            }}
-            disabled={actionLoading}
-          >
-            <AddIcon sx={{ mr: 1 }} />
-            Nouveau Pointage
-          </Fab>
+          
+          {/* ✅ NOUVEAU : STACK AVEC BOUTON PDF ET NOUVEAU POINTAGE */}
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <Button
+              variant="outlined"
+              onClick={handleGeneratePDF}
+              disabled={generatingPDF || pointages.length === 0}
+              startIcon={generatingPDF ? <CircularProgress size={20} /> : <PrintIcon />}
+              sx={{
+                borderRadius: 2,
+                minWidth: 200,
+                px: 3,
+                textTransform: "none",
+                fontWeight: "bold",
+                fontSize: '1rem'
+              }}
+            >
+              {generatingPDF ? "Génération..." : "Imprimer PDF"}
+            </Button>
+            
+            <Fab
+              color="primary"
+              onClick={() => handleOpenDialog()}
+              variant="extended"
+              sx={{
+                borderRadius: 2,
+                minWidth: 200,
+                px: 3,
+                textTransform: "none",
+                fontWeight: "bold",
+                fontSize: '1rem'
+              }}
+              disabled={actionLoading}
+            >
+              <AddIcon sx={{ mr: 1 }} />
+              Nouveau Pointage
+            </Fab>
+          </Stack>
         </Box>
 
         {/* Cartes de statistiques */}

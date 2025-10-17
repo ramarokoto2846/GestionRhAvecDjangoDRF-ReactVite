@@ -22,16 +22,11 @@ import {
   AccessTime as TimeIcon,
   ChevronRight as ChevronRightIcon,
   Logout as LogoutIcon,
-  Menu as MenuIcon
+  Menu as MenuIcon,
+  Business as BusinessIcon
 } from "@mui/icons-material";
 import {
-  getCurrentUser,
-  getDepartements,
-  getEmployesStats,
-  getPointagesStatsMensuelles,
-  getConges,
-  getAbsences,
-  getEvenementsAVenir
+  getCurrentUser
 } from "../services/api";
 
 const Home = () => {
@@ -40,9 +35,6 @@ const Home = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const [user, setUser] = useState(null);
-  const [stats, setStats] = useState([]);
-  const [loadingStats, setLoadingStats] = useState(true);
-  const [errorStats, setErrorStats] = useState(null);
 
   // Fonction de déconnexion
   const handleLogout = () => {
@@ -64,96 +56,6 @@ const Home = () => {
     fetchUser();
   }, [navigate]);
 
-  // Récupération des statistiques dynamiques pour les 6 pages
-  useEffect(() => {
-    const fetchStats = async () => {
-      setLoadingStats(true);
-      setErrorStats(null);
-
-      try {
-        // 1. Départements
-        const departements = await getDepartements();
-        const departementsCount = departements.length || 0;
-
-        // 2. Employés
-        const employesStats = await getEmployesStats();
-        const employesCount = employesStats.total_employes || 0;
-        const employesChange = employesStats.variation_mensuelle || "+0% ce mois";
-
-        // 3. Pointages (stats mensuelles pour le mois en cours)
-        const today = new Date();
-        const pointagesStats = await getPointagesStatsMensuelles(today.getMonth() + 1, today.getFullYear());
-        const pointagesCount = pointagesStats.total_pointages || 0;
-        const presenceRate = pointagesStats.taux_presence || "0";
-
-        // 4. Congés (en attente)
-        const conges = await getConges();
-        const congesEnAttente = conges.filter(conge => conge.statut === "en_attente").length || 0;
-
-        // 5. Absences
-        const absences = await getAbsences();
-        const absencesCount = absences.length || 0;
-
-        // 6. Événements à venir
-        const evenements = await getEvenementsAVenir();
-        const evenementsCount = evenements.length || 0;
-
-        // Mise à jour des stats avec icônes et couleurs correspondantes
-        setStats([
-          { 
-            label: "Départements", 
-            value: departementsCount.toString(), 
-            change: "Total actifs", 
-            icon: <PeopleIcon />, 
-            color: "#FF6B6B" 
-          },
-          { 
-            label: "Employés actifs", 
-            value: employesCount.toString(), 
-            change: employesChange, 
-            icon: <PeopleIcon />, 
-            color: "#4ECDC4" 
-          },
-          { 
-            label: "Pointages ce mois", 
-            value: pointagesCount.toString(), 
-            change: `${presenceRate}% de présence`, 
-            icon: <TimeIcon />, 
-            color: "#45B7D1" 
-          },
-          { 
-            label: "Congés en attente", 
-            value: congesEnAttente.toString(), 
-            change: "À valider", 
-            icon: <EventIcon />, 
-            color: "#F9A826" 
-          },
-          { 
-            label: "Absences", 
-            value: absencesCount.toString(), 
-            change: "Ce mois", 
-            icon: <EventIcon />, 
-            color: "#7467EF" 
-          },
-          { 
-            label: "Événements à venir", 
-            value: evenementsCount.toString(), 
-            change: "Planifiés", 
-            icon: <EventIcon />, 
-            color: "#FF9E43" 
-          }
-        ]);
-      } catch (err) {
-        console.error("Erreur lors de la récupération des stats:", err);
-        setErrorStats("Impossible de charger les statistiques. Veuillez réessayer.");
-      } finally {
-        setLoadingStats(false);
-      }
-    };
-
-    fetchStats();
-  }, []);
-
   // Actions rapides transformées en navigation
   const navItems = [
     { icon: <PeopleIcon />, label: "Départements", path: "/departements", color: "#FF6B6B" },
@@ -163,14 +65,6 @@ const Home = () => {
     { icon: <EventIcon />, label: "Absences", path: "/absences", color: "#7467EF" },
     { icon: <EventIcon />, label: "Événements", path: "/evenements", color: "#FF9E43" }
   ];
-
-  if (loadingStats) {
-    return (
-      <Box sx={{ flexGrow: 1, height: '100vh', bgcolor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Typography variant="h6">Chargement des statistiques...</Typography>
-      </Box>
-    );
-  }
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '931px', bgcolor: '#f8fafc' }}>
@@ -336,12 +230,6 @@ const Home = () => {
                 Déconnexion
               </Button>
             </Box>
-
-            {errorStats && (
-              <Typography variant="body2" color="error" sx={{ mt: 2 }}>
-                {errorStats}
-              </Typography>
-            )}
           </Box>
           
           {/* Éléments décoratifs */}
@@ -371,27 +259,27 @@ const Home = () => {
           />
         </Box>
 
-        {/* Stats Overview avec icônes */}
+        {/* About Application Section */}
         <Typography variant="h5" gutterBottom sx={{ mb: 3, fontWeight: 'bold', color: 'text.primary' }}>
-          Statistiques
+          À propos de l'application
         </Typography>
         
         <Grid container spacing={3} sx={{ mb: 5 }}>
-          {stats.map((stat, index) => (
-            <Grid item xs={12} sm={6} md={4} key={index}>
-              <Card 
-                sx={{ 
-                  borderRadius: 3,
-                  boxShadow: '0 5px 20px rgba(0,0,0,0.05)',
-                  border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                  transition: 'all 0.3s ease',
-                  '&:hover': {
-                    transform: 'translateY(-5px)',
-                    boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
-                  }
-                }}
-              >
-                <CardContent sx={{ p: 3, display: 'flex', alignItems: 'center' }}>
+          <Grid item xs={12}>
+            <Card 
+              sx={{ 
+                borderRadius: 3,
+                boxShadow: '0 5px 20px rgba(0,0,0,0.05)',
+                border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  transform: 'translateY(-5px)',
+                  boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
+                }
+              }}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                   <Box 
                     sx={{ 
                       width: 50, 
@@ -401,34 +289,38 @@ const Home = () => {
                       alignItems: 'center',
                       justifyContent: 'center',
                       mr: 2,
-                      bgcolor: alpha(stat.color, 0.2),
-                      color: stat.color
+                      bgcolor: alpha('#4ECDC4', 0.2),
+                      color: '#4ECDC4'
                     }}
                   >
-                    {React.cloneElement(stat.icon, { sx: { fontSize: 24 } })}
+                    <BusinessIcon sx={{ fontSize: 24 }} />
                   </Box>
-                  <Box>
-                    <Typography variant="h4" component="div" sx={{ fontWeight: 'bold', mb: 1 }}>
-                      {stat.value}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                      {stat.label}
-                    </Typography>
-                    <Chip 
-                      label={stat.change} 
-                      size="small" 
-                      sx={{ 
-                        bgcolor: alpha(theme.palette.primary.main, 0.1),
-                        color: 'primary.dark',
-                        fontWeight: 'medium',
-                        fontSize: '0.7rem'
-                      }} 
-                    />
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
+                  <Typography variant="h4" component="div" sx={{ fontWeight: 'bold' }}>
+                    Gestion des Ressources Humaines - TVM
+                  </Typography>
+                </Box>
+                <Typography variant="body1" sx={{ color: 'text.secondary', mb: 2 }}>
+                  Bienvenue dans le <strong>Système de Gestion des Ressources Humaines</strong> conçu spécifiquement pour <strong>Televiziona Malagasy (TVM)</strong>, la première chaîne de télévision nationale de Madagascar, gérée par l'<strong>Office de la Radio et de la Télévision Publiques de Madagascar (ORTM)</strong>.
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
+                  Cette application moderne et intuitive permet une gestion efficace et centralisée des ressources humaines de la TVM. Elle offre des outils avancés pour suivre les employés, gérer les départements, enregistrer les pointages, administrer les congés et absences, et planifier les événements internes. Notre objectif est d'optimiser les processus administratifs, d'améliorer la productivité et de soutenir le dynamisme de la TVM dans son rôle de média national de référence.
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
+                  Dotée d'une interface conviviale et d'une conception responsive, cette application s'adapte à tous les appareils pour faciliter l'accès aux administrateurs, où qu'ils soient. Avec des fonctionnalités comme des tableaux de bord personnalisés et des rapports en temps réel, elle répond aux besoins spécifiques de la TVM tout en intégrant les dernières technologies pour une gestion fluide et sécurisée.
+                </Typography>
+                <Chip 
+                  label="Optimisation RH pour TVM" 
+                  size="small" 
+                  sx={{ 
+                    bgcolor: alpha(theme.palette.primary.main, 0.1),
+                    color: 'primary.dark',
+                    fontWeight: 'medium',
+                    fontSize: '0.7rem'
+                  }} 
+                />
+              </CardContent>
+            </Card>
+          </Grid>
         </Grid>
       </Container>
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { fr } from "date-fns/locale";
 import {
   Box,
@@ -15,7 +15,9 @@ import {
   IconButton,
   Snackbar,
   Alert,
-  MenuItem
+  MenuItem,
+  Button,
+  Stack
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { format, parseISO, isValid, differenceInDays, getMonth } from "date-fns";
@@ -24,7 +26,8 @@ import Swal from "sweetalert2";
 import {
   Add as AddIcon,
   Search as SearchIcon,
-  Close as CloseIcon
+  Close as CloseIcon,
+  Print as PrintIcon
 } from "@mui/icons-material";
 
 import { 
@@ -34,7 +37,8 @@ import {
   deleteAbsence, 
   getEmployes, 
   getCurrentUser, 
-  isSuperuser 
+  isSuperuser,
+  exportAbsencesPDF
 } from "../../services/api";
 import Header, { triggerNotificationsRefresh } from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
@@ -60,6 +64,7 @@ const Absences = () => {
   const [justificationFilter, setJustificationFilter] = useState("all");
   const [monthFilter, setMonthFilter] = useState("all");
   const [stats, setStats] = useState({ total: 0, justifiees: 0, nonJustifiees: 0 });
+  const [generatingPDF, setGeneratingPDF] = useState(false);
 
   const initialFormData = {
     id_absence: `A${Date.now()}`,
@@ -304,6 +309,30 @@ const Absences = () => {
     }
   };
 
+  // Fonction pour générer le PDF
+  const handleGeneratePDF = async () => {
+    setGeneratingPDF(true);
+    try {
+      // ✅ UTILISEZ LA NOUVELLE FONCTION D'EXPORT
+      const result = await exportAbsencesPDF({
+        search_term: searchTerm,
+        justification_filter: justificationFilter,
+        month_filter: monthFilter
+      });
+      
+      if (result && result.success) {
+        showSnackbar("PDF généré avec succès !", "success");
+      } else {
+        showSnackbar("Erreur lors de la génération du PDF", "error");
+      }
+    } catch (error) {
+      console.error("Erreur lors de la génération du PDF:", error);
+      showSnackbar(error.message || "Erreur lors de la génération du PDF", "error");
+    } finally {
+      setGeneratingPDF(false);
+    }
+  };
+
   const filteredData = absences.filter(absence => {
     if (!absence || !absence.id_absence || !absence.employe) {
       console.warn("Absence invalide dans filteredData:", absence);
@@ -360,7 +389,7 @@ const Absences = () => {
           </Alert>
         )}
 
-        {/* Titre + bouton */}
+        {/* Titre + boutons */}
         <Box 
           sx={{ 
             display: "flex", 
@@ -379,23 +408,43 @@ const Absences = () => {
               Gérez les absences de vos employés
             </Typography>
           </Box>
-          <Fab
-            color="primary"
-            onClick={() => handleOpenDialog()}
-            variant="extended"
-            sx={{
-              borderRadius: 2,
-              minWidth: 200,
-              px: 3,
-              textTransform: "none",
-              fontWeight: "bold",
-              fontSize: '1rem'
-            }}
-            disabled={actionLoading}
-          >
-            <AddIcon sx={{ mr: 1 }} />
-            Nouvelle Absence
-          </Fab>
+          
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <Button
+              variant="outlined"
+              onClick={handleGeneratePDF}
+              disabled={generatingPDF || filteredData.length === 0}
+              startIcon={generatingPDF ? <CircularProgress size={20} /> : <PrintIcon />}
+              sx={{
+                borderRadius: 2,
+                minWidth: 200,
+                px: 3,
+                textTransform: "none",
+                fontWeight: "bold",
+                fontSize: '1rem'
+              }}
+            >
+              {generatingPDF ? "Génération..." : "Imprimer PDF"}
+            </Button>
+            
+            <Fab
+              color="primary"
+              onClick={() => handleOpenDialog()}
+              variant="extended"
+              sx={{
+                borderRadius: 2,
+                minWidth: 200,
+                px: 3,
+                textTransform: "none",
+                fontWeight: "bold",
+                fontSize: '1rem'
+              }}
+              disabled={actionLoading}
+            >
+              <AddIcon sx={{ mr: 1 }} />
+              Nouvelle Absence
+            </Fab>
+          </Stack>
         </Box>
 
         {/* Cartes de statistiques */}

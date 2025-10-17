@@ -1,4 +1,3 @@
-# views.py
 import io
 import logging
 import re
@@ -180,6 +179,553 @@ except ImportError as e:
 # Définir le logger
 logger = logging.getLogger(__name__)
 
+
+def parse_date(date_str):
+    """Parse une date depuis une chaîne - FONCTION MANQUANTE"""
+    if not date_str:
+        return None
+    try:
+        if isinstance(date_str, str):
+            # Gérer différents formats de date
+            for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M'):
+                try:
+                    return datetime.strptime(date_str, fmt).date()
+                except ValueError:
+                    continue
+            # Si aucun format ne fonctionne, essayer de parser directement
+            return datetime.fromisoformat(date_str.replace('Z', '+00:00')).date()
+        return date_str
+    except Exception:
+        return None
+    
+
+# -----------------------
+# Export PDF pour toutes les tables
+# -----------------------
+
+class ExportPDFAPIView(APIView):
+    """Export PDF pour toutes les tables - CORRIGÉ"""
+    
+    def _normaliser_nom_fichier(self, nom):
+        """Normalise un nom de fichier en remplaçant les caractères spéciaux"""
+        correspondances = {
+            'à': 'a', 'á': 'a', 'â': 'a', 'ã': 'a', 'ä': 'a',
+            'è': 'e', 'é': 'e', 'ê': 'e', 'ë': 'e',
+            'ì': 'i', 'í': 'i', 'î': 'i', 'ï': 'i',
+            'ò': 'o', 'ó': 'o', 'ô': 'o', 'õ': 'o', 'ö': 'o',
+            'ù': 'u', 'ú': 'u', 'û': 'u', 'ü': 'u',
+            'ç': 'c', 'ñ': 'n',
+            'À': 'A', 'Á': 'A', 'Â': 'A', 'Ã': 'A', 'Ä': 'A',
+            'È': 'E', 'É': 'E', 'Ê': 'E', 'Ë': 'E',
+            'Ì': 'I', 'Í': 'I', 'Î': 'I', 'Ï': 'I',
+            'Ò': 'O', 'Ó': 'O', 'Ô': 'O', 'Õ': 'O', 'Ö': 'O',
+            'Ù': 'U', 'Ú': 'U', 'Û': 'U', 'Ü': 'U',
+            'Ç': 'C', 'Ñ': 'N'
+        }
+        
+        for accent, sans_accent in correspondances.items():
+            nom = nom.replace(accent, sans_accent)
+        
+        nom = re.sub(r'[^\w\s-]', '', nom)
+        nom = re.sub(r'[-\s]+', '_', nom)
+        
+        return nom.strip('_')
+    
+    def _format_duration(self, duration):
+        """Formate une durée en chaîne lisible"""
+        if not duration:
+            return "0h 00min"
+        
+        try:
+            if hasattr(duration, 'total_seconds'):
+                total_seconds = duration.total_seconds()
+            else:
+                total_seconds = float(duration)
+            
+            hours = int(total_seconds // 3600)
+            minutes = int((total_seconds % 3600) // 60)
+            return f"{hours}h {minutes:02d}min"
+        except:
+            return "0h 00min"
+    
+    def _format_date(self, date_obj):
+        """Formate une date en chaîne lisible"""
+        if not date_obj:
+            return "N/A"
+        try:
+            return date_obj.strftime('%d/%m/%Y')
+        except:
+            return str(date_obj)
+    
+    def _format_datetime(self, datetime_obj):
+        """Formate un datetime en chaîne lisible"""
+        if not datetime_obj:
+            return "N/A"
+        try:
+            return datetime_obj.strftime('%d/%m/%Y %H:%M')
+        except:
+            return str(datetime_obj)
+
+    def get(self, request):
+        table_type = request.GET.get('table', 'departements')
+        
+        try:
+            if not REPORTLAB_AVAILABLE:
+                return Response(
+                    {"error": "Génération PDF non disponible"}, 
+                    status=status.HTTP_503_SERVICE_UNAVAILABLE
+                )
+            
+            if table_type == 'departements':
+                return self._export_departements_pdf(request)
+            elif table_type == 'employes':
+                return self._export_employes_pdf(request)
+            elif table_type == 'pointages':
+                return self._export_pointages_pdf(request)
+            elif table_type == 'absences':
+                return self._export_absences_pdf(request)
+            elif table_type == 'conges':
+                return self._export_conges_pdf(request)
+            elif table_type == 'evenements':
+                return self._export_evenements_pdf(request)
+            else:
+                return Response(
+                    {"error": "Type de table non valide"}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+                
+        except Exception as e:
+            logger.error(f"Erreur génération PDF {table_type}: {str(e)}")
+            return Response(
+                {"error": f"Erreur lors de la génération du PDF: {str(e)}"}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    def _export_departements_pdf(self, request):
+        """Export PDF pour la table Départements - SANS BUDGET"""
+        departements = Departement.objects.all()
+        
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4)
+        elements = []
+        styles = getSampleStyleSheet()
+        
+        # Titre principal
+        title = Paragraph("LISTE DES DÉPARTEMENTS", styles['Title'])
+        elements.append(title)
+        elements.append(Spacer(1, 20))
+        
+        # Informations de génération
+        info_text = Paragraph(f"<b>Généré le:</b> {timezone.now().strftime('%d/%m/%Y à %H:%M')}<br/><b>Total départements:</b> {departements.count()}", styles['Normal'])
+        elements.append(info_text)
+        elements.append(Spacer(1, 25))
+        
+        # En-têtes du tableau SANS BUDGET
+        headers = ['ID', 'Nom', 'Responsable', 'Localisation', 'Nb Employés']
+        
+        # Données du tableau SANS BUDGET
+        data = [headers]
+        for dept in departements:
+            data.append([
+                str(dept.id_departement),
+                dept.nom,
+                dept.responsable or 'Non défini',
+                dept.localisation or 'Non défini',
+                str(dept.nbr_employe or 0)
+                # ✅ COLONNE BUDGET SUPPRIMÉE
+            ])
+        
+        # Création du tableau avec largeurs ajustées
+        table = Table(data, colWidths=[25*mm, 50*mm, 45*mm, 45*mm, 25*mm])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2E86AB')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F8F9FA')),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#CCCCCC')),
+            ('PADDING', (0, 0), (-1, -1), 4),
+        ]))
+        elements.append(table)
+        
+        # Générer le PDF
+        doc.build(elements)
+        buffer.seek(0)
+        
+        response = HttpResponse(buffer, content_type='application/pdf')
+        nom_fichier = f"liste_departements_{timezone.now().strftime('%Y%m%d_%H%M')}.pdf"
+        response['Content-Disposition'] = f'attachment; filename="{nom_fichier}"'
+        
+        return response
+    
+    def _export_employes_pdf(self, request):
+        """Export PDF pour la table Employés"""
+        employes = Employe.objects.select_related('departement').all()
+        
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4)
+        elements = []
+        styles = getSampleStyleSheet()
+        
+        # Titre principal
+        title = Paragraph("LISTE DES EMPLOYÉS", styles['Title'])
+        elements.append(title)
+        elements.append(Spacer(1, 20))
+        
+        # Informations de génération
+        info_text = Paragraph(f"<b>Généré le:</b> {timezone.now().strftime('%d/%m/%Y à %H:%M')}<br/><b>Total employés:</b> {employes.count()}", styles['Normal'])
+        elements.append(info_text)
+        elements.append(Spacer(1, 25))
+        
+        # En-têtes du tableau
+        headers = ['Matricule', 'Nom', 'Prénom', 'Email', 'Département', 'Poste', 'Statut']
+        
+        # Données du tableau
+        data = [headers]
+        for emp in employes:
+            data.append([
+                emp.matricule,
+                emp.nom,
+                emp.prenom,
+                emp.email or 'Non défini',
+                emp.departement.nom if emp.departement else 'Non assigné',
+                emp.poste or 'Non défini',
+                emp.statut or 'Non défini'
+            ])
+        
+        # Création du tableau
+        table = Table(data, colWidths=[25*mm, 30*mm, 30*mm, 50*mm, 35*mm, 35*mm, 25*mm])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2E86AB')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 9),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F8F9FA')),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#CCCCCC')),
+            ('PADDING', (0, 0), (-1, -1), 3),
+        ]))
+        elements.append(table)
+        
+        # Générer le PDF
+        doc.build(elements)
+        buffer.seek(0)
+        
+        response = HttpResponse(buffer, content_type='application/pdf')
+        nom_fichier = f"liste_employes_{timezone.now().strftime('%Y%m%d_%H%M')}.pdf"
+        response['Content-Disposition'] = f'attachment; filename="{nom_fichier}"'
+        
+        return response
+    
+    def _export_pointages_pdf(self, request):
+        """Export PDF pour la table Pointages"""
+        pointages = Pointage.objects.select_related('employe').all()
+        
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4)
+        elements = []
+        styles = getSampleStyleSheet()
+        
+        # Titre principal
+        title = Paragraph("LISTE DES POINTAGES", styles['Title'])
+        elements.append(title)
+        elements.append(Spacer(1, 20))
+        
+        # Informations de génération
+        info_text = Paragraph(f"<b>Généré le:</b> {timezone.now().strftime('%d/%m/%Y à %H:%M')}<br/><b>Total pointages:</b> {pointages.count()}", styles['Normal'])
+        elements.append(info_text)
+        elements.append(Spacer(1, 25))
+        
+        # En-têtes du tableau
+        headers = ['Employé', 'Date', 'Heure Entrée', 'Heure Sortie', 'Durée', 'Remarque']
+        
+        # Données du tableau
+        data = [headers]
+        for pointage in pointages:
+            nom_employe = f"{pointage.employe.nom} {pointage.employe.prenom}"
+            data.append([
+                nom_employe,
+                self._format_date(pointage.date_pointage),
+                self._format_datetime(pointage.heure_entree) if pointage.heure_entree else 'N/A',
+                self._format_datetime(pointage.heure_sortie) if pointage.heure_sortie else 'N/A',
+                self._format_duration(pointage.duree_travail) if pointage.duree_travail else 'N/A',
+                pointage.remarque or 'Aucune'
+            ])
+        
+        # Création du tableau
+        table = Table(data, colWidths=[40*mm, 25*mm, 30*mm, 30*mm, 25*mm, 50*mm])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2E86AB')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 9),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F8F9FA')),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 7),
+            ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#CCCCCC')),
+            ('PADDING', (0, 0), (-1, -1), 3),
+        ]))
+        elements.append(table)
+        
+        # Générer le PDF
+        doc.build(elements)
+        buffer.seek(0)
+        
+        response = HttpResponse(buffer, content_type='application/pdf')
+        nom_fichier = f"liste_pointages_{timezone.now().strftime('%Y%m%d_%H%M')}.pdf"
+        response['Content-Disposition'] = f'attachment; filename="{nom_fichier}"'
+        
+        return response
+    
+    def _export_absences_pdf(self, request):
+        """Export PDF pour la table Absences"""
+        absences = Absence.objects.select_related('employe').all()
+        
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4)
+        elements = []
+        styles = getSampleStyleSheet()
+        
+        # Titre principal
+        title = Paragraph("LISTE DES ABSENCES", styles['Title'])
+        elements.append(title)
+        elements.append(Spacer(1, 20))
+        
+        # Informations de génération
+        total_absences = absences.count()
+        absences_justifiees = absences.filter(justifiee=True).count()
+        info_text = Paragraph(
+            f"<b>Généré le:</b> {timezone.now().strftime('%d/%m/%Y à %H:%M')}<br/>"
+            f"<b>Total absences:</b> {total_absences}<br/>"
+            f"<b>Absences justifiées:</b> {absences_justifiees}<br/>"
+            f"<b>Absences non justifiées:</b> {total_absences - absences_justifiees}",
+            styles['Normal']
+        )
+        elements.append(info_text)
+        elements.append(Spacer(1, 25))
+        
+        # En-têtes du tableau
+        headers = ['ID', 'Employé', 'Date Début', 'Date Fin', 'Jours', 'Motif', 'Justifiée']
+        
+        # Données du tableau
+        data = [headers]
+        for absence in absences:
+            nom_employe = f"{absence.employe.nom} {absence.employe.prenom}"
+            date_debut = parse_date(absence.date_debut_absence) if isinstance(absence.date_debut_absence, str) else absence.date_debut_absence
+            date_fin = parse_date(absence.date_fin_absence) if isinstance(absence.date_fin_absence, str) else absence.date_fin_absence
+            
+            if date_debut and date_fin:
+                nbr_jours = (date_fin - date_debut).days + 1
+            else:
+                nbr_jours = 'N/A'
+            
+            data.append([
+                absence.id_absence,
+                nom_employe,
+                self._format_date(date_debut),
+                self._format_date(date_fin),
+                str(nbr_jours) if nbr_jours != 'N/A' else 'N/A',
+                absence.motif or 'Non spécifié',
+                '✅ Oui' if absence.justifiee else '❌ Non'
+            ])
+        
+        # Création du tableau
+        table = Table(data, colWidths=[20*mm, 40*mm, 25*mm, 25*mm, 15*mm, 50*mm, 20*mm])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2E86AB')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 9),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F8F9FA')),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 7),
+            ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#CCCCCC')),
+            ('PADDING', (0, 0), (-1, -1), 3),
+        ]))
+        elements.append(table)
+        
+        # Générer le PDF
+        doc.build(elements)
+        buffer.seek(0)
+        
+        response = HttpResponse(buffer, content_type='application/pdf')
+        nom_fichier = f"liste_absences_{timezone.now().strftime('%Y%m%d_%H%M')}.pdf"
+        response['Content-Disposition'] = f'attachment; filename="{nom_fichier}"'
+        
+        return response
+    
+    def _export_conges_pdf(self, request):
+        """Export PDF pour la table Congés - CORRIGÉ"""
+        conges = Conge.objects.select_related('employe').all()
+        
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4)
+        elements = []
+        styles = getSampleStyleSheet()
+        
+        # Titre principal
+        title = Paragraph("LISTE DES CONGÉS", styles['Title'])
+        elements.append(title)
+        elements.append(Spacer(1, 20))
+        
+        # Informations de génération
+        total_conges = conges.count()
+        conges_valides = conges.filter(statut='valide').count()
+        conges_refuses = conges.filter(statut='refuse').count()
+        conges_attente = conges.filter(statut='en_attente').count()
+        
+        info_text = Paragraph(
+            f"<b>Généré le:</b> {timezone.now().strftime('%d/%m/%Y à %H:%M')}<br/>"
+            f"<b>Total congés:</b> {total_conges}<br/>"
+            f"<b>Validés:</b> {conges_valides} | <b>Refusés:</b> {conges_refuses} | <b>En attente:</b> {conges_attente}",
+            styles['Normal']
+        )
+        elements.append(info_text)
+        elements.append(Spacer(1, 25))
+        
+        # En-têtes du tableau
+        headers = ['Employé', 'Date Début', 'Date Fin', 'Jours', 'Type', 'Motif', 'Statut']
+        
+        # Données du tableau - CORRECTION APPLIQUÉE
+        data = [headers]
+        for conge in conges:
+            nom_employe = f"{conge.employe.nom} {conge.employe.prenom}"
+            date_debut = parse_date(conge.date_debut) if isinstance(conge.date_debut, str) else conge.date_debut
+            date_fin = parse_date(conge.date_fin) if isinstance(conge.date_fin, str) else conge.date_fin
+            
+            if date_debut and date_fin:
+                nbr_jours = (date_fin - date_debut).days + 1
+            else:
+                nbr_jours = 'N/A'
+            
+            # CORRECTION : Utiliser getattr pour éviter l'erreur d'attribut
+            type_conge = getattr(conge, 'type_conge', 'Non spécifié') or 'Non spécifié'
+            
+            # Déterminer l'icône du statut
+            if conge.statut == 'valide':
+                statut_icon = '✅ Validé'
+            elif conge.statut == 'refuse':
+                statut_icon = '❌ Refusé'
+            else:
+                statut_icon = '⏳ En attente'
+            
+            data.append([
+                nom_employe,
+                self._format_date(date_debut),
+                self._format_date(date_fin),
+                str(nbr_jours) if nbr_jours != 'N/A' else 'N/A',
+                type_conge,  # ✅ CORRIGÉ
+                conge.motif or 'Non spécifié',
+                statut_icon
+            ])
+        
+        # Création du tableau
+        table = Table(data, colWidths=[35*mm, 25*mm, 25*mm, 15*mm, 25*mm, 40*mm, 25*mm])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2E86AB')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 9),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F8F9FA')),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 7),
+            ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#CCCCCC')),
+            ('PADDING', (0, 0), (-1, -1), 3),
+        ]))
+        elements.append(table)
+        
+        # Générer le PDF
+        doc.build(elements)
+        buffer.seek(0)
+        
+        response = HttpResponse(buffer, content_type='application/pdf')
+        nom_fichier = f"liste_conges_{timezone.now().strftime('%Y%m%d_%H%M')}.pdf"
+        response['Content-Disposition'] = f'attachment; filename="{nom_fichier}"'
+        
+        return response
+    
+    def _export_evenements_pdf(self, request):
+        """Export PDF pour la table Événements - CORRIGÉ"""
+        evenements = Evenement.objects.all()
+        
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4)
+        elements = []
+        styles = getSampleStyleSheet()
+        
+        # Titre principal
+        title = Paragraph("LISTE DES ÉVÉNEMENTS", styles['Title'])
+        elements.append(title)
+        elements.append(Spacer(1, 20))
+        
+        # Informations de génération
+        info_text = Paragraph(f"<b>Généré le:</b> {timezone.now().strftime('%d/%m/%Y à %H:%M')}<br/><b>Total événements:</b> {evenements.count()}", styles['Normal'])
+        elements.append(info_text)
+        elements.append(Spacer(1, 25))
+        
+        # En-têtes du tableau
+        headers = ['Titre', 'Description', 'Date Début', 'Date Fin', 'Lieu', 'Type']
+        
+        # Données du tableau - AVEC CORRECTION
+        data = [headers]
+        for event in evenements:
+            # ✅ CORRECTION : Utiliser getattr pour éviter l'erreur d'attribut
+            type_evenement = getattr(event, 'type_evenement', 'Non spécifié') or 'Non spécifié'
+            
+            data.append([
+                event.titre,
+                event.description[:50] + '...' if event.description and len(event.description) > 50 else event.description or 'Non spécifié',
+                self._format_datetime(event.date_debut),
+                self._format_datetime(event.date_fin) if event.date_fin else 'Non défini',
+                event.lieu or 'Non spécifié',
+                type_evenement  # ✅ CORRIGÉ
+            ])
+        
+        # Création du tableau
+        table = Table(data, colWidths=[40*mm, 50*mm, 30*mm, 30*mm, 35*mm, 25*mm])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2E86AB')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 9),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F8F9FA')),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 7),
+            ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#CCCCCC')),
+            ('PADDING', (0, 0), (-1, -1), 3),
+        ]))
+        elements.append(table)
+        
+        # Générer le PDF
+        doc.build(elements)
+        buffer.seek(0)
+        
+        response = HttpResponse(buffer, content_type='application/pdf')
+        nom_fichier = f"liste_evenements_{timezone.now().strftime('%Y%m%d_%H%M')}.pdf"
+        response['Content-Disposition'] = f'attachment; filename="{nom_fichier}"'
+        
+        return response
+
+def parse_date(date_str):
+    """Parse une date depuis une chaîne"""
+    if not date_str:
+        return None
+    try:
+        if isinstance(date_str, str):
+            return datetime.strptime(date_str, '%Y-%m-%d').date()
+        return date_str
+    except:
+        return None
+
 # -----------------------
 # Utilisateur courant
 # -----------------------
@@ -219,6 +765,13 @@ class DepartementViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
 
+    @action(detail=False, methods=['get'])
+    def export_pdf(self, request):
+        """Export PDF spécifique pour les départements"""
+        pdf_view = ExportPDFAPIView()
+        pdf_view.request = request
+        return pdf_view._export_departements_pdf(request)
+
 # -----------------------
 # Employe
 # -----------------------
@@ -245,6 +798,13 @@ class EmployeViewSet(viewsets.ModelViewSet):
             'employes_actifs': employes_actifs,
             'employes_inactifs': employes_inactifs
         })
+
+    @action(detail=False, methods=['get'])
+    def export_pdf(self, request):
+        """Export PDF spécifique pour les employés"""
+        pdf_view = ExportPDFAPIView()
+        pdf_view.request = request
+        return pdf_view._export_employes_pdf(request)
 
 # -----------------------
 # Pointage
@@ -279,6 +839,13 @@ class PointageViewSet(viewsets.ModelViewSet):
             'nombre_pointages': pointages.count()
         })
 
+    @action(detail=False, methods=['get'])
+    def export_pdf(self, request):
+        """Export PDF spécifique pour les pointages"""
+        pdf_view = ExportPDFAPIView()
+        pdf_view.request = request
+        return pdf_view._export_pointages_pdf(request)
+
 # -----------------------
 # Absence
 # -----------------------
@@ -294,6 +861,13 @@ class AbsenceViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
+
+    @action(detail=False, methods=['get'])
+    def export_pdf(self, request):
+        """Export PDF spécifique pour les absences"""
+        pdf_view = ExportPDFAPIView()
+        pdf_view.request = request
+        return pdf_view._export_absences_pdf(request)
 
 # -----------------------
 # Conge
@@ -360,6 +934,13 @@ class CongeViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+    @action(detail=False, methods=['get'])
+    def export_pdf(self, request):
+        """Export PDF spécifique pour les congés"""
+        pdf_view = ExportPDFAPIView()
+        pdf_view.request = request
+        return pdf_view._export_conges_pdf(request)
+
 # -----------------------
 # Evenement
 # -----------------------
@@ -381,7 +962,13 @@ class EvenementViewSet(viewsets.ModelViewSet):
         evenements = Evenement.objects.filter(date_debut__gte=datetime.now())
         serializer = self.get_serializer(evenements, many=True)
         return Response(serializer.data)
-    
+
+    @action(detail=False, methods=['get'])
+    def export_pdf(self, request):
+        """Export PDF spécifique pour les événements"""
+        pdf_view = ExportPDFAPIView()
+        pdf_view.request = request
+        return pdf_view._export_evenements_pdf(request)
 
 # -----------------------
 # STATISTIQUES - CORRECTIONS APPLIQUÉES
@@ -1170,24 +1757,6 @@ class ExportStatisticsPDFAPIView(APIView):
         except Exception as e:
             logger.error(f"Erreur génération PDF global: {str(e)}")
             return self._export_simple_fallback(request, 'global')
-    
-    def _get_evaluation(self, valeur, seuil_bon=80, seuil_moyen=60):
-        """Retourne une évaluation basée sur la valeur"""
-        if valeur >= seuil_bon:
-            return "✅ Excellent"
-        elif valeur >= seuil_moyen:
-            return "⚠️  Moyen"
-        else:
-            return "❌ À améliorer"
-    
-    def _get_evaluation_absence(self, taux_absence):
-        """Évaluation spécifique pour le taux d'absence"""
-        if taux_absence <= 5:
-            return "✅ Très bon"
-        elif taux_absence <= 10:
-            return "⚠️  Acceptable"
-        else:
-            return "❌ Élevé"
     
     def _format_duration(self, duration):
         """Formate une durée en chaîne lisible"""
