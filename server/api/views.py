@@ -15,7 +15,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 try:
     from reportlab.pdfgen import canvas
     from reportlab.lib.pagesizes import A4
-    from reportlab.lib.units import mm
+    from reportlab.lib.units import mm, inch
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
     from reportlab.lib.styles import getSampleStyleSheet
     from reportlab.lib import colors
@@ -181,7 +181,7 @@ logger = logging.getLogger(__name__)
 
 
 def parse_date(date_str):
-    """Parse une date depuis une chaîne - FONCTION MANQUANTE"""
+    """Parse une date depuis une chaîne"""
     if not date_str:
         return None
     try:
@@ -204,7 +204,7 @@ def parse_date(date_str):
 # -----------------------
 
 class ExportPDFAPIView(APIView):
-    """Export PDF pour toutes les tables - CORRIGÉ"""
+    """Export PDF pour toutes les tables - CORRIGÉ AVEC BON FORMATAGE"""
     
     def _normaliser_nom_fichier(self, nom):
         """Normalise un nom de fichier en remplaçant les caractères spéciaux"""
@@ -266,6 +266,70 @@ class ExportPDFAPIView(APIView):
         except:
             return str(datetime_obj)
 
+    def _truncate_text(self, text, max_length=50):
+        """Tronque le texte si trop long"""
+        if not text:
+            return ""
+        text = str(text)
+        if len(text) > max_length:
+            return text[:max_length-3] + "..."
+        return text
+
+    def _create_styled_table(self, data, col_widths, header_color='#2E86AB', max_text_lengths=None):
+        """Crée un tableau stylisé avec gestion du texte long"""
+        styles = getSampleStyleSheet()
+        
+        # Définir les longueurs maximales par colonne (None = pas de limite)
+        if max_text_lengths is None:
+            max_text_lengths = [None] * len(col_widths)
+        
+        # Préparer les données avec des Paragraph pour le wrapping
+        table_data = []
+        for row_idx, row in enumerate(data):
+            formatted_row = []
+            for col_idx, cell in enumerate(row):
+                if row_idx == 0:  # En-têtes
+                    formatted_row.append(Paragraph(f"<b>{cell}</b>", styles['Normal']))
+                else:
+                    # Gérer les cellules vides
+                    cell_text = str(cell) if cell is not None else ''
+                    
+                    # Appliquer la limite de longueur si spécifiée
+                    max_length = max_text_lengths[col_idx]
+                    if max_length and len(cell_text) > max_length:
+                        cell_text = cell_text[:max_length-3] + "..."
+                    
+                    formatted_row.append(Paragraph(cell_text, styles['Normal']))
+            table_data.append(formatted_row)
+        
+        # Créer le tableau
+        table = Table(table_data, colWidths=col_widths, repeatRows=1)
+        
+        # Style du tableau
+        table_style = TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor(header_color)),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 9),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F8F9FA')),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#CCCCCC')),
+            ('PADDING', (0, 0), (-1, -1), 4),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ])
+        
+        # Alternance des couleurs de ligne pour meilleure lisibilité
+        for i in range(1, len(table_data)):
+            if i % 2 == 0:
+                table_style.add('BACKGROUND', (0, i), (-1, i), colors.HexColor('#FFFFFF'))
+            else:
+                table_style.add('BACKGROUND', (0, i), (-1, i), colors.HexColor('#F8F9FA'))
+        
+        table.setStyle(table_style)
+        return table
+
     def get(self, request):
         table_type = request.GET.get('table', 'departements')
         
@@ -302,53 +366,60 @@ class ExportPDFAPIView(APIView):
             )
     
     def _export_departements_pdf(self, request):
-        """Export PDF pour la table Départements - SANS BUDGET"""
+        """Export PDF pour la table Départements - CORRIGÉ AVEC BON FORMATAGE"""
         departements = Departement.objects.all()
         
         buffer = io.BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=A4)
+        doc = SimpleDocTemplate(buffer, pagesize=A4, 
+                              topMargin=1*inch, 
+                              bottomMargin=1*inch,
+                              leftMargin=0.5*inch,
+                              rightMargin=0.5*inch)
         elements = []
         styles = getSampleStyleSheet()
         
         # Titre principal
         title = Paragraph("LISTE DES DÉPARTEMENTS", styles['Title'])
         elements.append(title)
-        elements.append(Spacer(1, 20))
+        elements.append(Spacer(1, 15))
         
         # Informations de génération
-        info_text = Paragraph(f"<b>Généré le:</b> {timezone.now().strftime('%d/%m/%Y à %H:%M')}<br/><b>Total départements:</b> {departements.count()}", styles['Normal'])
+        info_text = Paragraph(
+            f"<b>Généré le:</b> {timezone.now().strftime('%d/%m/%Y à %H:%M')} | "
+            f"<b>Total départements:</b> {departements.count()}",
+            styles['Normal']
+        )
         elements.append(info_text)
-        elements.append(Spacer(1, 25))
+        elements.append(Spacer(1, 20))
         
-        # En-têtes du tableau SANS BUDGET
+        # En-têtes du tableau
         headers = ['ID', 'Nom', 'Responsable', 'Localisation', 'Nb Employés']
         
-        # Données du tableau SANS BUDGET
+        # Données du tableau avec texte formaté
         data = [headers]
         for dept in departements:
             data.append([
                 str(dept.id_departement),
-                dept.nom,
-                dept.responsable or 'Non défini',
+                dept.nom,  # ✅ NOM COMPLET
+                dept.responsable or 'Non défini',  # ✅ NOM COMPLET
                 dept.localisation or 'Non défini',
                 str(dept.nbr_employe or 0)
-                # ✅ COLONNE BUDGET SUPPRIMÉE
             ])
         
-        # Création du tableau avec largeurs ajustées
-        table = Table(data, colWidths=[25*mm, 50*mm, 45*mm, 45*mm, 25*mm])
-        table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2E86AB')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 10),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F8F9FA')),
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 8),
-            ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#CCCCCC')),
-            ('PADDING', (0, 0), (-1, -1), 4),
-        ]))
+        # Largeurs de colonnes optimisées (en mm)
+        col_widths = [15*mm, 45*mm, 40*mm, 40*mm, 20*mm]
+        
+        # Spécifier les limites par colonne (None = pas de limite)
+        max_text_lengths = [
+            None,  # ID
+            None,  # Nom - PAS DE LIMITE
+            None,  # Responsable - PAS DE LIMITE
+            25,    # Localisation - limité à 25 caractères
+            None   # Nb Employés
+        ]
+        
+        # Créer le tableau stylisé
+        table = self._create_styled_table(data, col_widths, '#2E86AB', max_text_lengths)
         elements.append(table)
         
         # Générer le PDF
@@ -362,54 +433,64 @@ class ExportPDFAPIView(APIView):
         return response
     
     def _export_employes_pdf(self, request):
-        """Export PDF pour la table Employés"""
+        """Export PDF pour la table Employés - CORRIGÉ POUR AFFICHER TOUS LES PRÉNOMS"""
         employes = Employe.objects.select_related('departement').all()
         
         buffer = io.BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=A4)
+        doc = SimpleDocTemplate(buffer, pagesize=A4,
+                              topMargin=1*inch,
+                              bottomMargin=1*inch,
+                              leftMargin=0.5*inch,
+                              rightMargin=0.5*inch)
         elements = []
         styles = getSampleStyleSheet()
         
         # Titre principal
         title = Paragraph("LISTE DES EMPLOYÉS", styles['Title'])
         elements.append(title)
-        elements.append(Spacer(1, 20))
+        elements.append(Spacer(1, 15))
         
         # Informations de génération
-        info_text = Paragraph(f"<b>Généré le:</b> {timezone.now().strftime('%d/%m/%Y à %H:%M')}<br/><b>Total employés:</b> {employes.count()}", styles['Normal'])
+        info_text = Paragraph(
+            f"<b>Généré le:</b> {timezone.now().strftime('%d/%m/%Y à %H:%M')} | "
+            f"<b>Total employés:</b> {employes.count()}",
+            styles['Normal']
+        )
         elements.append(info_text)
-        elements.append(Spacer(1, 25))
+        elements.append(Spacer(1, 20))
         
         # En-têtes du tableau
         headers = ['Matricule', 'Nom', 'Prénom', 'Email', 'Département', 'Poste', 'Statut']
         
-        # Données du tableau
+        # Données du tableau SANS troncature pour les noms et prénoms
         data = [headers]
         for emp in employes:
             data.append([
                 emp.matricule,
-                emp.nom,
-                emp.prenom,
+                emp.nom,  # ✅ NOM COMPLET
+                emp.prenom,  # ✅ PRÉNOM COMPLET
                 emp.email or 'Non défini',
                 emp.departement.nom if emp.departement else 'Non assigné',
                 emp.poste or 'Non défini',
                 emp.statut or 'Non défini'
             ])
         
-        # Création du tableau
-        table = Table(data, colWidths=[25*mm, 30*mm, 30*mm, 50*mm, 35*mm, 35*mm, 25*mm])
-        table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2E86AB')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 9),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F8F9FA')),
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 8),
-            ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#CCCCCC')),
-            ('PADDING', (0, 0), (-1, -1), 3),
-        ]))
+        # Largeurs de colonnes optimisées
+        col_widths = [20*mm, 30*mm, 30*mm, 40*mm, 30*mm, 30*mm, 20*mm]
+        
+        # Spécifier quelles colonnes doivent être tronquées (None = pas de limite)
+        max_text_lengths = [
+            None,  # Matricule - pas de limite
+            None,  # Nom - PAS DE LIMITE  
+            None,  # Prénom - PAS DE LIMITE
+            25,    # Email - limité à 25 caractères
+            20,    # Département - limité à 20 caractères
+            20,    # Poste - limité à 20 caractères
+            15     # Statut - limité à 15 caractères
+        ]
+        
+        # Créer le tableau stylisé
+        table = self._create_styled_table(data, col_widths, '#2E86AB', max_text_lengths)
         elements.append(table)
         
         # Générer le PDF
@@ -423,33 +504,41 @@ class ExportPDFAPIView(APIView):
         return response
     
     def _export_pointages_pdf(self, request):
-        """Export PDF pour la table Pointages"""
+        """Export PDF pour la table Pointages - CORRIGÉ AVEC BON FORMATAGE"""
         pointages = Pointage.objects.select_related('employe').all()
         
         buffer = io.BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=A4)
+        doc = SimpleDocTemplate(buffer, pagesize=A4, 
+                              topMargin=1*inch,
+                              bottomMargin=1*inch,
+                              leftMargin=0.5*inch,
+                              rightMargin=0.5*inch)
         elements = []
         styles = getSampleStyleSheet()
         
         # Titre principal
         title = Paragraph("LISTE DES POINTAGES", styles['Title'])
         elements.append(title)
-        elements.append(Spacer(1, 20))
+        elements.append(Spacer(1, 15))
         
         # Informations de génération
-        info_text = Paragraph(f"<b>Généré le:</b> {timezone.now().strftime('%d/%m/%Y à %H:%M')}<br/><b>Total pointages:</b> {pointages.count()}", styles['Normal'])
+        info_text = Paragraph(
+            f"<b>Généré le:</b> {timezone.now().strftime('%d/%m/%Y à %H:%M')} | "
+            f"<b>Total pointages:</b> {pointages.count()}",
+            styles['Normal']
+        )
         elements.append(info_text)
-        elements.append(Spacer(1, 25))
+        elements.append(Spacer(1, 20))
         
         # En-têtes du tableau
         headers = ['Employé', 'Date', 'Heure Entrée', 'Heure Sortie', 'Durée', 'Remarque']
         
-        # Données du tableau
+        # Données du tableau avec texte formaté
         data = [headers]
         for pointage in pointages:
             nom_employe = f"{pointage.employe.nom} {pointage.employe.prenom}"
             data.append([
-                nom_employe,
+                nom_employe,  # ✅ NOM COMPLET DE L'EMPLOYÉ
                 self._format_date(pointage.date_pointage),
                 self._format_datetime(pointage.heure_entree) if pointage.heure_entree else 'N/A',
                 self._format_datetime(pointage.heure_sortie) if pointage.heure_sortie else 'N/A',
@@ -457,20 +546,21 @@ class ExportPDFAPIView(APIView):
                 pointage.remarque or 'Aucune'
             ])
         
-        # Création du tableau
-        table = Table(data, colWidths=[40*mm, 25*mm, 30*mm, 30*mm, 25*mm, 50*mm])
-        table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2E86AB')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 9),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F8F9FA')),
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 7),
-            ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#CCCCCC')),
-            ('PADDING', (0, 0), (-1, -1), 3),
-        ]))
+        # Largeurs de colonnes optimisées
+        col_widths = [40*mm, 20*mm, 25*mm, 25*mm, 20*mm, 45*mm]
+        
+        # Spécifier les limites par colonne
+        max_text_lengths = [
+            None,  # Employé - PAS DE LIMITE
+            None,  # Date
+            None,  # Heure Entrée
+            None,  # Heure Sortie
+            None,  # Durée
+            30     # Remarque - limité à 30 caractères
+        ]
+        
+        # Créer le tableau stylisé
+        table = self._create_styled_table(data, col_widths, '#2E86AB', max_text_lengths)
         elements.append(table)
         
         # Générer le PDF
@@ -484,36 +574,40 @@ class ExportPDFAPIView(APIView):
         return response
     
     def _export_absences_pdf(self, request):
-        """Export PDF pour la table Absences"""
+        """Export PDF pour la table Absences - CORRIGÉ AVEC BON FORMATAGE"""
         absences = Absence.objects.select_related('employe').all()
         
         buffer = io.BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=A4)
+        doc = SimpleDocTemplate(buffer, pagesize=A4,
+                              topMargin=1*inch,
+                              bottomMargin=1*inch,
+                              leftMargin=0.5*inch,
+                              rightMargin=0.5*inch)
         elements = []
         styles = getSampleStyleSheet()
         
         # Titre principal
         title = Paragraph("LISTE DES ABSENCES", styles['Title'])
         elements.append(title)
-        elements.append(Spacer(1, 20))
+        elements.append(Spacer(1, 15))
         
         # Informations de génération
         total_absences = absences.count()
         absences_justifiees = absences.filter(justifiee=True).count()
         info_text = Paragraph(
-            f"<b>Généré le:</b> {timezone.now().strftime('%d/%m/%Y à %H:%M')}<br/>"
-            f"<b>Total absences:</b> {total_absences}<br/>"
-            f"<b>Absences justifiées:</b> {absences_justifiees}<br/>"
-            f"<b>Absences non justifiées:</b> {total_absences - absences_justifiees}",
+            f"<b>Généré le:</b> {timezone.now().strftime('%d/%m/%Y à %H:%M')} | "
+            f"<b>Total absences:</b> {total_absences} | "
+            f"<b>Justifiées:</b> {absences_justifiees} | "
+            f"<b>Non justifiées:</b> {total_absences - absences_justifiees}",
             styles['Normal']
         )
         elements.append(info_text)
-        elements.append(Spacer(1, 25))
+        elements.append(Spacer(1, 20))
         
         # En-têtes du tableau
         headers = ['ID', 'Employé', 'Date Début', 'Date Fin', 'Jours', 'Motif', 'Justifiée']
         
-        # Données du tableau
+        # Données du tableau avec texte formaté
         data = [headers]
         for absence in absences:
             nom_employe = f"{absence.employe.nom} {absence.employe.prenom}"
@@ -526,8 +620,8 @@ class ExportPDFAPIView(APIView):
                 nbr_jours = 'N/A'
             
             data.append([
-                absence.id_absence,
-                nom_employe,
+                str(absence.id_absence),
+                nom_employe,  # ✅ NOM COMPLET DE L'EMPLOYÉ
                 self._format_date(date_debut),
                 self._format_date(date_fin),
                 str(nbr_jours) if nbr_jours != 'N/A' else 'N/A',
@@ -535,20 +629,22 @@ class ExportPDFAPIView(APIView):
                 '✅ Oui' if absence.justifiee else '❌ Non'
             ])
         
-        # Création du tableau
-        table = Table(data, colWidths=[20*mm, 40*mm, 25*mm, 25*mm, 15*mm, 50*mm, 20*mm])
-        table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2E86AB')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 9),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F8F9FA')),
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 7),
-            ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#CCCCCC')),
-            ('PADDING', (0, 0), (-1, -1), 3),
-        ]))
+        # Largeurs de colonnes optimisées
+        col_widths = [15*mm, 45*mm, 20*mm, 20*mm, 15*mm, 45*mm, 20*mm]
+        
+        # Spécifier les limites par colonne
+        max_text_lengths = [
+            None,  # ID
+            None,  # Employé - PAS DE LIMITE
+            None,  # Date début
+            None,  # Date fin  
+            None,  # Jours
+            35,    # Motif - limité à 35 caractères
+            None   # Justifiée
+        ]
+        
+        # Créer le tableau stylisé
+        table = self._create_styled_table(data, col_widths, '#2E86AB', max_text_lengths)
         elements.append(table)
         
         # Générer le PDF
@@ -562,18 +658,22 @@ class ExportPDFAPIView(APIView):
         return response
     
     def _export_conges_pdf(self, request):
-        """Export PDF pour la table Congés - CORRIGÉ"""
+        """Export PDF pour la table Congés - CORRIGÉ AVEC BON FORMATAGE"""
         conges = Conge.objects.select_related('employe').all()
         
         buffer = io.BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=A4)
+        doc = SimpleDocTemplate(buffer, pagesize=A4,
+                              topMargin=1*inch,
+                              bottomMargin=1*inch,
+                              leftMargin=0.5*inch,
+                              rightMargin=0.5*inch)
         elements = []
         styles = getSampleStyleSheet()
         
         # Titre principal
         title = Paragraph("LISTE DES CONGÉS", styles['Title'])
         elements.append(title)
-        elements.append(Spacer(1, 20))
+        elements.append(Spacer(1, 15))
         
         # Informations de génération
         total_conges = conges.count()
@@ -582,18 +682,20 @@ class ExportPDFAPIView(APIView):
         conges_attente = conges.filter(statut='en_attente').count()
         
         info_text = Paragraph(
-            f"<b>Généré le:</b> {timezone.now().strftime('%d/%m/%Y à %H:%M')}<br/>"
-            f"<b>Total congés:</b> {total_conges}<br/>"
-            f"<b>Validés:</b> {conges_valides} | <b>Refusés:</b> {conges_refuses} | <b>En attente:</b> {conges_attente}",
+            f"<b>Généré le:</b> {timezone.now().strftime('%d/%m/%Y à %H:%M')} | "
+            f"<b>Total:</b> {total_conges} | "
+            f"<b>Validés:</b> {conges_valides} | "
+            f"<b>Refusés:</b> {conges_refuses} | "
+            f"<b>En attente:</b> {conges_attente}",
             styles['Normal']
         )
         elements.append(info_text)
-        elements.append(Spacer(1, 25))
+        elements.append(Spacer(1, 20))
         
         # En-têtes du tableau
         headers = ['Employé', 'Date Début', 'Date Fin', 'Jours', 'Type', 'Motif', 'Statut']
         
-        # Données du tableau - CORRECTION APPLIQUÉE
+        # Données du tableau avec texte formaté
         data = [headers]
         for conge in conges:
             nom_employe = f"{conge.employe.nom} {conge.employe.prenom}"
@@ -605,7 +707,6 @@ class ExportPDFAPIView(APIView):
             else:
                 nbr_jours = 'N/A'
             
-            # CORRECTION : Utiliser getattr pour éviter l'erreur d'attribut
             type_conge = getattr(conge, 'type_conge', 'Non spécifié') or 'Non spécifié'
             
             # Déterminer l'icône du statut
@@ -617,29 +718,31 @@ class ExportPDFAPIView(APIView):
                 statut_icon = '⏳ En attente'
             
             data.append([
-                nom_employe,
+                nom_employe,  # ✅ NOM COMPLET DE L'EMPLOYÉ
                 self._format_date(date_debut),
                 self._format_date(date_fin),
                 str(nbr_jours) if nbr_jours != 'N/A' else 'N/A',
-                type_conge,  # ✅ CORRIGÉ
+                type_conge,
                 conge.motif or 'Non spécifié',
                 statut_icon
             ])
         
-        # Création du tableau
-        table = Table(data, colWidths=[35*mm, 25*mm, 25*mm, 15*mm, 25*mm, 40*mm, 25*mm])
-        table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2E86AB')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 9),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F8F9FA')),
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 7),
-            ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#CCCCCC')),
-            ('PADDING', (0, 0), (-1, -1), 3),
-        ]))
+        # Largeurs de colonnes optimisées
+        col_widths = [40*mm, 20*mm, 20*mm, 15*mm, 25*mm, 35*mm, 20*mm]
+        
+        # Spécifier les limites
+        max_text_lengths = [
+            None,  # Employé - PAS DE LIMITE
+            None,  # Date début
+            None,  # Date fin
+            None,  # Jours
+            20,    # Type - limité à 20 caractères
+            30,    # Motif - limité à 30 caractères
+            None   # Statut
+        ]
+        
+        # Créer le tableau stylisé
+        table = self._create_styled_table(data, col_widths, '#2E86AB', max_text_lengths)
         elements.append(table)
         
         # Générer le PDF
@@ -653,56 +756,64 @@ class ExportPDFAPIView(APIView):
         return response
     
     def _export_evenements_pdf(self, request):
-        """Export PDF pour la table Événements - CORRIGÉ"""
+        """Export PDF pour la table Événements - CORRIGÉ AVEC BON FORMATAGE"""
         evenements = Evenement.objects.all()
         
         buffer = io.BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=A4)
+        doc = SimpleDocTemplate(buffer, pagesize=A4,
+                              topMargin=1*inch,
+                              bottomMargin=1*inch,
+                              leftMargin=0.5*inch,
+                              rightMargin=0.5*inch)
         elements = []
         styles = getSampleStyleSheet()
         
         # Titre principal
         title = Paragraph("LISTE DES ÉVÉNEMENTS", styles['Title'])
         elements.append(title)
-        elements.append(Spacer(1, 20))
+        elements.append(Spacer(1, 15))
         
         # Informations de génération
-        info_text = Paragraph(f"<b>Généré le:</b> {timezone.now().strftime('%d/%m/%Y à %H:%M')}<br/><b>Total événements:</b> {evenements.count()}", styles['Normal'])
+        info_text = Paragraph(
+            f"<b>Généré le:</b> {timezone.now().strftime('%d/%m/%Y à %H:%M')} | "
+            f"<b>Total événements:</b> {evenements.count()}",
+            styles['Normal']
+        )
         elements.append(info_text)
-        elements.append(Spacer(1, 25))
+        elements.append(Spacer(1, 20))
         
         # En-têtes du tableau
         headers = ['Titre', 'Description', 'Date Début', 'Date Fin', 'Lieu', 'Type']
         
-        # Données du tableau - AVEC CORRECTION
+        # Données du tableau avec texte formaté
         data = [headers]
         for event in evenements:
-            # ✅ CORRECTION : Utiliser getattr pour éviter l'erreur d'attribut
             type_evenement = getattr(event, 'type_evenement', 'Non spécifié') or 'Non spécifié'
             
             data.append([
                 event.titre,
-                event.description[:50] + '...' if event.description and len(event.description) > 50 else event.description or 'Non spécifié',
+                event.description or 'Non spécifié',
                 self._format_datetime(event.date_debut),
                 self._format_datetime(event.date_fin) if event.date_fin else 'Non défini',
                 event.lieu or 'Non spécifié',
-                type_evenement  # ✅ CORRIGÉ
+                type_evenement
             ])
         
-        # Création du tableau
-        table = Table(data, colWidths=[40*mm, 50*mm, 30*mm, 30*mm, 35*mm, 25*mm])
-        table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2E86AB')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 9),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F8F9FA')),
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 7),
-            ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#CCCCCC')),
-            ('PADDING', (0, 0), (-1, -1), 3),
-        ]))
+        # Largeurs de colonnes optimisées
+        col_widths = [35*mm, 50*mm, 25*mm, 25*mm, 30*mm, 25*mm]
+        
+        # Spécifier les limites
+        max_text_lengths = [
+            25,    # Titre - limité à 25 caractères
+            40,    # Description - limité à 40 caractères
+            None,  # Date début
+            None,  # Date fin
+            25,    # Lieu - limité à 25 caractères
+            20     # Type - limité à 20 caractères
+        ]
+        
+        # Créer le tableau stylisé
+        table = self._create_styled_table(data, col_widths, '#2E86AB', max_text_lengths)
         elements.append(table)
         
         # Générer le PDF
@@ -715,16 +826,6 @@ class ExportPDFAPIView(APIView):
         
         return response
 
-def parse_date(date_str):
-    """Parse une date depuis une chaîne"""
-    if not date_str:
-        return None
-    try:
-        if isinstance(date_str, str):
-            return datetime.strptime(date_str, '%Y-%m-%d').date()
-        return date_str
-    except:
-        return None
 
 # -----------------------
 # Utilisateur courant
@@ -735,6 +836,7 @@ class CurrentUserView(APIView):
     def get(self, request):
         serializer = CustomUserSerializer(request.user)
         return Response(serializer.data)
+
 
 # -----------------------
 # Inscription
@@ -748,6 +850,7 @@ class RegisterViewSet(viewsets.ViewSet):
             user = serializer.save()
             return Response(CustomUserSerializer(user).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 # -----------------------
 # Departement
@@ -771,6 +874,7 @@ class DepartementViewSet(viewsets.ModelViewSet):
         pdf_view = ExportPDFAPIView()
         pdf_view.request = request
         return pdf_view._export_departements_pdf(request)
+
 
 # -----------------------
 # Employe
@@ -805,6 +909,7 @@ class EmployeViewSet(viewsets.ModelViewSet):
         pdf_view = ExportPDFAPIView()
         pdf_view.request = request
         return pdf_view._export_employes_pdf(request)
+
 
 # -----------------------
 # Pointage
@@ -846,6 +951,7 @@ class PointageViewSet(viewsets.ModelViewSet):
         pdf_view.request = request
         return pdf_view._export_pointages_pdf(request)
 
+
 # -----------------------
 # Absence
 # -----------------------
@@ -868,6 +974,7 @@ class AbsenceViewSet(viewsets.ModelViewSet):
         pdf_view = ExportPDFAPIView()
         pdf_view.request = request
         return pdf_view._export_absences_pdf(request)
+
 
 # -----------------------
 # Conge
@@ -941,6 +1048,7 @@ class CongeViewSet(viewsets.ModelViewSet):
         pdf_view.request = request
         return pdf_view._export_conges_pdf(request)
 
+
 # -----------------------
 # Evenement
 # -----------------------
@@ -969,6 +1077,7 @@ class EvenementViewSet(viewsets.ModelViewSet):
         pdf_view = ExportPDFAPIView()
         pdf_view.request = request
         return pdf_view._export_evenements_pdf(request)
+
 
 # -----------------------
 # STATISTIQUES - CORRECTIONS APPLIQUÉES
@@ -1240,66 +1349,6 @@ class DetailedStatisticsAPIView(APIView):
                 {"error": str(e)}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
-
-class SavedStatisticsViewSet(viewsets.ReadOnlyModelViewSet):
-    """API pour récupérer les statistiques sauvegardées"""
-    
-    def get_queryset(self):
-        stats_type = self.request.GET.get('type', 'employe')
-        
-        if stats_type == 'employe':
-            queryset = StatistiquesEmploye.objects.select_related('employe', 'created_by').all()
-            
-            employe_matricule = self.request.GET.get('employe')
-            if employe_matricule:
-                queryset = queryset.filter(employe__matricule=employe_matricule)
-            
-            periode_type = self.request.GET.get('periode_type')
-            if periode_type:
-                queryset = queryset.filter(type_periode=periode_type)
-            
-            date_debut = self.request.GET.get('date_debut')
-            if date_debut:
-                queryset = queryset.filter(periode_debut__gte=date_debut)
-            
-            date_fin = self.request.GET.get('date_fin')
-            if date_fin:
-                queryset = queryset.filter(periode_fin__lte=date_fin)
-                
-        elif stats_type == 'departement':
-            queryset = StatistiquesDepartement.objects.select_related('departement', 'created_by').all()
-            
-            departement_id = self.request.GET.get('departement')
-            if departement_id:
-                queryset = queryset.filter(departement__id_departement=departement_id)
-            
-            mois = self.request.GET.get('mois')
-            if mois:
-                queryset = queryset.filter(mois=mois)
-                
-        elif stats_type == 'global':
-            queryset = StatistiquesGlobales.objects.all()
-            
-            periode_type = self.request.GET.get('periode_type')
-            if periode_type:
-                queryset = queryset.filter(type_periode=periode_type)
-        else:
-            queryset = StatistiquesEmploye.objects.none()
-        
-        return queryset
-    
-    def get_serializer_class(self):
-        stats_type = self.request.GET.get('type', 'employe')
-        
-        if stats_type == 'employe':
-            return StatistiquesEmployeSerializer
-        elif stats_type == 'departement':
-            return StatistiquesDepartementSerializer
-        elif stats_type == 'global':
-            return StatistiquesGlobalesSerializer
-        else:
-            return StatistiquesEmployeSerializer
 
 
 class ExportStatisticsPDFAPIView(APIView):

@@ -140,10 +140,12 @@ const CongeTable = ({
                   />
                 </TableCell>
                 <TableCell align="center">
-                  <Box sx={{ display: "flex", gap: 1, justifyContent: "center", alignItems: "center" }}>
+                  {canEditDelete ? (
+                    <>
+                    <Box sx={{ display: "flex", gap: 1, justifyContent: "center", alignItems: "center" }}>
                     {/* Actions de modification/suppression */}
-                    {canEditDelete ? (
-                      <>
+                    
+                      
                         <Tooltip title="Modifier">
                           <span>
                             <IconButton
@@ -172,49 +174,50 @@ const CongeTable = ({
                             </IconButton>
                           </span>
                         </Tooltip>
-                      </>
-                    ) : (
-                      <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                        <Tooltip title="Modifications non autorisées">
-                          <span>
-                            <IconButton disabled size="small">
-                              <LockIcon />
-                            </IconButton>
-                          </span>
-                        </Tooltip>
-                        {/* Nom du créateur */}
-                        <Typography variant="caption" color="text.secondary" sx={{ mt: -0.5 }}>
-                          {conge.created_by_nom || conge.created_by_username || "Utilisateur inconnu"}
-                        </Typography>
-                      </Box>
-                    )}
+                      
                     
-                    {/* Actions de validation/refus (toujours disponibles pour les superviseurs) */}
-                    {conge.statut === "en_attente" && (
-                      <>
-                        <Tooltip title="Valider">
-                          <IconButton
-                            color="success"
-                            onClick={() => onValider(conge.id_conge)}
-                            disabled={actionLoading}
-                            size="small"
-                          >
-                            <CheckIcon />
+                      {/* Actions de validation/refus (toujours disponibles pour les superviseurs) */}
+                      {conge.statut === "en_attente" && (
+                        <>
+                          <Tooltip title="Valider">
+                            <IconButton
+                              color="success"
+                              onClick={() => onValider(conge.id_conge)}
+                              disabled={actionLoading}
+                              size="small"
+                            >
+                              <CheckIcon />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Refuser">
+                            <IconButton
+                              color="error"
+                              onClick={() => onRefuser(conge.id_conge)}
+                              disabled={actionLoading}
+                              size="small"
+                            >
+                              <CloseIcon />
+                            </IconButton>
+                          </Tooltip>
+                        </>
+                      )}
+                    </Box>
+                    </>
+                  ) : (
+                    <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                      <Tooltip title="Modifications non autorisées">
+                        <span>
+                          <IconButton disabled size="small">
+                            <LockIcon />
                           </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Refuser">
-                          <IconButton
-                            color="error"
-                            onClick={() => onRefuser(conge.id_conge)}
-                            disabled={actionLoading}
-                            size="small"
-                          >
-                            <CloseIcon />
-                          </IconButton>
-                        </Tooltip>
-                      </>
-                    )}
-                  </Box>
+                        </span>
+                      </Tooltip>
+                      {/* Nom du créateur */}
+                      <Typography variant="caption" color="text.secondary" sx={{ mt: -0.5 }}>
+                        {conge.created_by_nom || conge.created_by_username || "Utilisateur inconnu"}
+                      </Typography>
+                    </Box>
+                  )}
                 </TableCell>
               </TableRow>
             );

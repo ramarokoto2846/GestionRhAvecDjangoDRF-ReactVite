@@ -90,10 +90,15 @@ WSGI_APPLICATION = "backend.wsgi.application"
 # Database
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": "gestion_rh_ortm",       # Remplace par le nom de ta DB
+        "USER": "postgres",      # Remplace par ton user PostgreSQL
+        "PASSWORD": "", # Remplace par ton mot de passe
+        "HOST": "localhost",            # Ou l'adresse du serveur PostgreSQL
+        "PORT": "5432",                 # Port par défaut PostgreSQL
     }
 }
+
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [

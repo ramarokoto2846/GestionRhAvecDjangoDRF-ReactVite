@@ -91,9 +91,9 @@ const Auth = ({ setIsAuthenticated }) => {
           title: "Succès",
           text: "Compte créé avec succès !",
           icon: "success",
-          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+          background: "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)",
           color: "#fff",
-          confirmButtonColor: "#42a5f5",
+          confirmButtonColor: "#dc2626",
           confirmButtonText: "Continuer",
           customClass: {
             popup: 'swal-popup-custom'
@@ -159,9 +159,9 @@ const Auth = ({ setIsAuthenticated }) => {
           title: "Succès",
           text: "Connexion réussie !",
           icon: "success",
-          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+          background: "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)",
           color: "#fff",
-          confirmButtonColor: "#42a5f5",
+          confirmButtonColor: "#dc2626",
           confirmButtonText: "Accéder au tableau de bord",
           customClass: {
             popup: 'swal-popup-custom'
@@ -187,11 +187,11 @@ const Auth = ({ setIsAuthenticated }) => {
         display: 'flex', 
         justifyContent: 'center', 
         alignItems: 'center', 
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%)',
+        height: '900px',
+        background: 'linear-gradient(135deg, #ffffff 0%, #fef2f2 50%, #fecaca 100%)',
         p: isMobile ? 1 : 2,
         position: 'relative',
-        overflow: 'auto',
+        overflow: 'hidden',
         '&::before': {
           content: '""',
           position: 'absolute',
@@ -202,7 +202,7 @@ const Auth = ({ setIsAuthenticated }) => {
         }
       }}
     >
-      {/* Formes décoratives avec les nouvelles couleurs */}
+      {/* Formes décoratives avec les couleurs rouge TVM */}
       <Box
         sx={{
           position: 'absolute',
@@ -211,7 +211,7 @@ const Auth = ({ setIsAuthenticated }) => {
           width: 400,
           height: 400,
           borderRadius: '50%',
-          background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(147, 51, 234, 0.2) 100%)',
+          background: 'linear-gradient(135deg, rgba(220, 38, 38, 0.2) 0%, rgba(185, 28, 28, 0.2) 100%)',
           filter: 'blur(40px)',
           animation: 'float 8s ease-in-out infinite'
         }}
@@ -224,7 +224,7 @@ const Auth = ({ setIsAuthenticated }) => {
           width: 400,
           height: 400,
           borderRadius: '50%',
-          background: 'linear-gradient(135deg, rgba(147, 51, 234, 0.2) 0%, rgba(59, 130, 246, 0.2) 100%)',
+          background: 'linear-gradient(135deg, rgba(185, 28, 28, 0.2) 0%, rgba(220, 38, 38, 0.2) 100%)',
           filter: 'blur(40px)',
           animation: 'float 10s ease-in-out infinite'
         }}
@@ -239,22 +239,24 @@ const Auth = ({ setIsAuthenticated }) => {
             borderRadius: 3,
             overflow: 'hidden',
             boxShadow: '0 25px 50px rgba(0, 0, 0, 0.15)',
-            my: 2 // Ajout de marge verticale
           }}
         >
-          {/* Section de description (à gauche) - NOUVELLES COULEURS */}
+          {/* Section de description (à gauche) - COULEURS ROUGE TVM */}
           <Grid 
             item
-            xs={12}
-            md={6}
             sx={{
-              background: 'linear-gradient(135deg, #3b82f6 0%, #9333ea 100%)',
+              background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
               display: 'flex',
+              width: '500px',
+              height: '765px',
+              marginTop: '-59px',
+              borderLeft: '2px solid white',
+              borderBottom: '2px solid white',
+              borderTop: '2px solid white',
               flexDirection: 'column',
               justifyContent: 'center',
               position: 'relative',
               overflow: 'hidden',
-              minHeight: { xs: '300px', md: '600px' },
               '&::before': {
                 content: '""',
                 position: 'absolute',
@@ -267,8 +269,8 @@ const Auth = ({ setIsAuthenticated }) => {
               }
             }}
           >
-            <Box sx={{ position: 'relative', zIndex: 1, p: 4 }}>
-              <Box sx={{ textAlign: 'center' }}>
+            <Box sx={{ position: 'relative', zIndex: 1, p: 4}}>
+              <Box sx={{ textAlign: 'center'}}>
                 <Box sx={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -295,8 +297,7 @@ const Auth = ({ setIsAuthenticated }) => {
                   sx={{ 
                     fontWeight: '700',
                     color: 'white',
-                    textShadow: '0 2px 4px rgba(0,0,0,0.3)',
-                    fontSize: { xs: '2rem', md: '2.5rem' }
+                    textShadow: '0 2px 4px rgba(0,0,0,0.3)'
                   }}
                 >
                   Système de Gestion RH - TVM
@@ -306,8 +307,7 @@ const Auth = ({ setIsAuthenticated }) => {
                   sx={{ 
                     color: 'rgba(255, 255, 255, 0.9)',
                     mb: 4,
-                    fontWeight: 400,
-                    fontSize: { xs: '1rem', md: '1.25rem' }
+                    fontWeight: 400
                   }}
                 >
                   Optimisation des ressources humaines <br /> pour Televiziona Malagasy
@@ -325,26 +325,25 @@ const Auth = ({ setIsAuthenticated }) => {
           {/* Formulaire de connexion/inscription (à droite) */}
           <Grid 
             item 
-            xs={12}
-            md={6}
+            xs={12} 
+            width={500}
+            height={700}
             sx={{ 
-              display: 'flex',
-              flexDirection: 'column'
+              marginTop: '-60px',
             }}
           >
             <Paper 
               sx={{ 
-                flex: 1,
+                height: '100%', 
                 p: isMobile ? 3 : 4, 
                 borderRadius: 0,
                 background: 'white',
-                border: '1px solid rgba(226, 232, 240, 0.8)',
+                border: '1px solid rgba(254, 202, 202, 0.8)',
                 position: 'relative',
-                overflow: 'auto',
+                overflow: 'hidden',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'center',
-                minHeight: { xs: '500px', md: '600px' },
                 '&::before': {
                   content: '""',
                   position: 'absolute',
@@ -352,17 +351,64 @@ const Auth = ({ setIsAuthenticated }) => {
                   left: 0,
                   right: 0,
                   height: 6,
-                  background: 'linear-gradient(90deg, #3b82f6, #9333ea)'
+                  background: 'linear-gradient(90deg, #dc2626, #b91c1c)'
                 }
               }}
             >
-              {/* Titre et message BIEN VISIBLES */}
+              {isMobile && (
+                <Box sx={{ textAlign: 'center', mb: 3 }}>
+                  <Box sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 70,
+                    height: 70,
+                    borderRadius: '12px',
+                    background: 'linear-gradient(135deg, #dc2626, #b91c1c)',
+                    boxShadow: '0 8px 20px rgba(220, 38, 38, 0.4)',
+                    mb: 2
+                  }}>
+                    <Group 
+                      sx={{ 
+                        fontSize: 35, 
+                        color: 'white'
+                      }} 
+                    />
+                  </Box>
+                  <Typography 
+                    variant="h4" 
+                    component="h1" 
+                    gutterBottom 
+                    sx={{ 
+                      fontWeight: '700',
+                      background: 'linear-gradient(135deg, #dc2626, #b91c1c)',
+                      backgroundClip: 'text',
+                      textFillColor: 'transparent',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                    }}
+                  >
+                    Système de Gestion RH - TVM
+                  </Typography>
+                  <Typography 
+                    variant="body2" 
+                    color="text.secondary"
+                    sx={{ 
+                      mb: 2,
+                      fontWeight: 500,
+                    }}
+                  >
+                    Gestion des Ressources Humaines pour TVM
+                  </Typography>
+                </Box>
+              )}
+              
               <Box sx={{ textAlign: 'center', mb: 3 }}>
                 <Typography variant="h4" component="h2" sx={{ fontWeight: 600, color: '#1e293b', mb: 1 }}>
-                  {tab === 0 ? "Créer un compte" : "Bienvenue"}
+                  Bienvenue
                 </Typography>
                 <Typography variant="body1" color="text.secondary">
-                  {tab === 0 ? "Rejoignez notre plateforme de gestion RH" : "Connectez-vous pour accéder à votre espace"}
+                  Connectez-vous pour accéder à votre espace
                 </Typography>
               </Box>
               
@@ -381,13 +427,13 @@ const Auth = ({ setIsAuthenticated }) => {
                     borderRadius: 2,
                     mx: 0.5,
                     '&.Mui-selected': {
-                      color: '#3b82f6',
+                      color: '#dc2626',
                     }
                   },
                   '& .MuiTabs-indicator': {
                     height: 3,
                     borderRadius: 2,
-                    background: 'linear-gradient(90deg, #3b82f6, #9333ea)'
+                    background: 'linear-gradient(90deg, #dc2626, #b91c1c)'
                   }
                 }}
               >
@@ -402,9 +448,9 @@ const Auth = ({ setIsAuthenticated }) => {
                     mb: 3, 
                     borderRadius: 2,
                     alignItems: 'center',
-                    background: 'rgba(239, 68, 68, 0.1)',
+                    background: 'rgba(220, 38, 38, 0.1)',
                     color: '#dc2626',
-                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                    border: '1px solid rgba(220, 38, 38, 0.2)',
                     '& .MuiAlert-message': {
                       padding: '4px 0'
                     }
@@ -429,7 +475,7 @@ const Auth = ({ setIsAuthenticated }) => {
                         InputProps={{
                           startAdornment: (
                             <InputAdornment position="start">
-                              <Person sx={{ color: '#3b82f6' }} />
+                              <Person sx={{ color: '#dc2626' }} />
                             </InputAdornment>
                           ),
                         }}
@@ -438,12 +484,12 @@ const Auth = ({ setIsAuthenticated }) => {
                             borderRadius: 2,
                             transition: 'all 0.3s ease',
                             '&:hover fieldset': {
-                              borderColor: '#3b82f6',
+                              borderColor: '#dc2626',
                             },
                             '&.Mui-focused fieldset': {
                               borderWidth: 2,
-                              borderColor: '#3b82f6',
-                              boxShadow: '0 0 0 4px rgba(59, 130, 246, 0.1)'
+                              borderColor: '#dc2626',
+                              boxShadow: '0 0 0 4px rgba(220, 38, 38, 0.1)'
                             }
                           }
                         }}
@@ -460,7 +506,7 @@ const Auth = ({ setIsAuthenticated }) => {
                         InputProps={{
                           startAdornment: (
                             <InputAdornment position="start">
-                              <Email sx={{ color: '#3b82f6' }} />
+                              <Email sx={{ color: '#dc2626' }} />
                             </InputAdornment>
                           ),
                         }}
@@ -469,12 +515,12 @@ const Auth = ({ setIsAuthenticated }) => {
                             borderRadius: 2,
                             transition: 'all 0.3s ease',
                             '&:hover fieldset': {
-                              borderColor: '#3b82f6',
+                              borderColor: '#dc2626',
                             },
                             '&.Mui-focused fieldset': {
                               borderWidth: 2,
-                              borderColor: '#3b82f6',
-                              boxShadow: '0 0 0 4px rgba(59, 130, 246, 0.1)'
+                              borderColor: '#dc2626',
+                              boxShadow: '0 0 0 4px rgba(220, 38, 38, 0.1)'
                             }
                           }
                         }}
@@ -491,7 +537,7 @@ const Auth = ({ setIsAuthenticated }) => {
                         InputProps={{
                           startAdornment: (
                             <InputAdornment position="start">
-                              <Lock sx={{ color: '#3b82f6' }} />
+                              <Lock sx={{ color: '#dc2626' }} />
                             </InputAdornment>
                           ),
                           endAdornment: (
@@ -512,12 +558,12 @@ const Auth = ({ setIsAuthenticated }) => {
                             borderRadius: 2,
                             transition: 'all 0.3s ease',
                             '&:hover fieldset': {
-                              borderColor: '#3b82f6',
+                              borderColor: '#dc2626',
                             },
                             '&.Mui-focused fieldset': {
                               borderWidth: 2,
-                              borderColor: '#3b82f6',
-                              boxShadow: '0 0 0 4px rgba(59, 130, 246, 0.1)'
+                              borderColor: '#dc2626',
+                              boxShadow: '0 0 0 4px rgba(220, 38, 38, 0.1)'
                             }
                           }
                         }}
@@ -534,7 +580,7 @@ const Auth = ({ setIsAuthenticated }) => {
                         InputProps={{
                           startAdornment: (
                             <InputAdornment position="start">
-                              <Lock sx={{ color: '#3b82f6' }} />
+                              <Lock sx={{ color: '#dc2626' }} />
                             </InputAdornment>
                           ),
                           endAdornment: (
@@ -555,12 +601,12 @@ const Auth = ({ setIsAuthenticated }) => {
                             borderRadius: 2,
                             transition: 'all 0.3s ease',
                             '&:hover fieldset': {
-                              borderColor: '#3b82f6',
+                              borderColor: '#dc2626',
                             },
                             '&.Mui-focused fieldset': {
                               borderWidth: 2,
-                              borderColor: '#3b82f6',
-                              boxShadow: '0 0 0 4px rgba(59, 130, 246, 0.1)'
+                              borderColor: '#dc2626',
+                              boxShadow: '0 0 0 4px rgba(220, 38, 38, 0.1)'
                             }
                           }
                         }}
@@ -576,13 +622,13 @@ const Auth = ({ setIsAuthenticated }) => {
                           fontSize: '1rem',
                           fontWeight: 600,
                           textTransform: 'none',
-                          background: 'linear-gradient(135deg, #3b82f6, #9333ea)',
-                          boxShadow: '0 6px 15px rgba(59, 130, 246, 0.4)',
+                          background: 'linear-gradient(135deg, #dc2626, #b91c1c)',
+                          boxShadow: '0 6px 15px rgba(220, 38, 38, 0.4)',
                           transition: 'all 0.3s ease',
                           '&:hover': {
                             transform: 'translateY(-2px)',
-                            boxShadow: '0 10px 20px rgba(59, 130, 246, 0.5)',
-                            background: 'linear-gradient(135deg, #2563eb, #7c3aed)',
+                            boxShadow: '0 10px 20px rgba(220, 38, 38, 0.5)',
+                            background: 'linear-gradient(135deg, #b91c1c, #991b1b)',
                           },
                           '&:active': {
                             transform: 'translateY(0)',
@@ -606,11 +652,11 @@ const Auth = ({ setIsAuthenticated }) => {
                         textTransform: 'none',
                         fontWeight: 600,
                         py: 1.5,
-                        color: '#3b82f6',
-                        borderColor: '#3b82f6',
+                        color: '#dc2626',
+                        borderColor: '#dc2626',
                         '&:hover': {
-                          borderColor: '#2563eb',
-                          backgroundColor: 'rgba(59, 130, 246, 0.04)'
+                          borderColor: '#b91c1c',
+                          backgroundColor: 'rgba(220, 38, 38, 0.04)'
                         }
                       }}
                       onClick={() => setTab(1)}
@@ -637,7 +683,7 @@ const Auth = ({ setIsAuthenticated }) => {
                         InputProps={{
                           startAdornment: (
                             <InputAdornment position="start">
-                              <Email sx={{ color: '#3b82f6' }} />
+                              <Email sx={{ color: '#dc2626' }} />
                             </InputAdornment>
                           ),
                         }}
@@ -646,12 +692,12 @@ const Auth = ({ setIsAuthenticated }) => {
                             borderRadius: 2,
                             transition: 'all 0.3s ease',
                             '&:hover fieldset': {
-                              borderColor: '#3b82f6',
+                              borderColor: '#dc2626',
                             },
                             '&.Mui-focused fieldset': {
                               borderWidth: 2,
-                              borderColor: '#3b82f6',
-                              boxShadow: '0 0 0 4px rgba(59, 130, 246, 0.1)'
+                              borderColor: '#dc2626',
+                              boxShadow: '0 0 0 4px rgba(220, 38, 38, 0.1)'
                             }
                           }
                         }}
@@ -668,7 +714,7 @@ const Auth = ({ setIsAuthenticated }) => {
                         InputProps={{
                           startAdornment: (
                             <InputAdornment position="start">
-                              <Lock sx={{ color: '#3b82f6' }} />
+                              <Lock sx={{ color: '#dc2626' }} />
                             </InputAdornment>
                           ),
                           endAdornment: (
@@ -689,12 +735,12 @@ const Auth = ({ setIsAuthenticated }) => {
                             borderRadius: 2,
                             transition: 'all 0.3s ease',
                             '&:hover fieldset': {
-                              borderColor: '#3b82f6',
+                              borderColor: '#dc2626',
                             },
                             '&.Mui-focused fieldset': {
                               borderWidth: 2,
-                              borderColor: '#3b82f6',
-                              boxShadow: '0 0 0 4px rgba(59, 130, 246, 0.1)'
+                              borderColor: '#dc2626',
+                              boxShadow: '0 0 0 4px rgba(220, 38, 38, 0.1)'
                             }
                           }
                         }}
@@ -703,11 +749,11 @@ const Auth = ({ setIsAuthenticated }) => {
                         <Button 
                           size="small" 
                           sx={{ 
-                            color: '#3b82f6', 
+                            color: '#dc2626', 
                             textTransform: 'none',
                             fontWeight: 500,
                             '&:hover': {
-                              backgroundColor: 'rgba(59, 130, 246, 0.04)'
+                              backgroundColor: 'rgba(220, 38, 38, 0.04)'
                             }
                           }}
                         >
@@ -725,13 +771,13 @@ const Auth = ({ setIsAuthenticated }) => {
                           fontSize: '1rem',
                           fontWeight: 600,
                           textTransform: 'none',
-                          background: 'linear-gradient(135deg, #3b82f6, #9333ea)',
-                          boxShadow: '0 6px 15px rgba(59, 130, 246, 0.4)',
+                          background: 'linear-gradient(135deg, #dc2626, #b91c1c)',
+                          boxShadow: '0 6px 15px rgba(220, 38, 38, 0.4)',
                           transition: 'all 0.3s ease',
                           '&:hover': {
                             transform: 'translateY(-2px)',
-                            boxShadow: '0 10px 20px rgba(59, 130, 246, 0.5)',
-                            background: 'linear-gradient(135deg, #2563eb, #7c3aed)',
+                            boxShadow: '0 10px 20px rgba(220, 38, 38, 0.5)',
+                            background: 'linear-gradient(135deg, #b91c1c, #991b1b)',
                           },
                           '&:active': {
                             transform: 'translateY(0)',
@@ -755,11 +801,11 @@ const Auth = ({ setIsAuthenticated }) => {
                         textTransform: 'none',
                         fontWeight: 600,
                         py: 1.5,
-                        color: '#3b82f6',
-                        borderColor: '#3b82f6',
+                        color: '#dc2626',
+                        borderColor: '#dc2626',
                         '&:hover': {
-                          borderColor: '#2563eb',
-                          backgroundColor: 'rgba(59, 130, 246, 0.04)'
+                          borderColor: '#b91c1c',
+                          backgroundColor: 'rgba(220, 38, 38, 0.04)'
                         }
                       }}
                       onClick={() => setTab(0)}
