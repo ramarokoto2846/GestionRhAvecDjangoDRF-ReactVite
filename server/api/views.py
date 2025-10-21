@@ -924,6 +924,26 @@ class PointageViewSet(viewsets.ModelViewSet):
     ordering_fields = ['date_pointage', 'heure_entree']
     ordering = ['-date_pointage', 'heure_entree']
 
+    def create(self, request, *args, **kwargs):
+        """Empêcher la création de pointage pour un employé inactif"""
+        # Vérifier si l'employé est spécifié dans les données
+        employe_id = request.data.get('employe')
+        if employe_id:
+            try:
+                employe = Employe.objects.get(pk=employe_id)
+                if employe.statut != 'actif':
+                    return Response(
+                        {"error": "Les employés inactifs ne peuvent pas effectuer de pointage."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            except Employe.DoesNotExist:
+                return Response(
+                    {"error": "Employé non trouvé."},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+        
+        return super().create(request, *args, **kwargs)
+
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
 
@@ -988,6 +1008,26 @@ class CongeViewSet(viewsets.ModelViewSet):
     filterset_fields = ['date_debut', 'date_fin', 'statut', 'employe']
     ordering_fields = ['date_debut', 'date_fin', 'statut']
     ordering = ['-date_demande']
+
+    def create(self, request, *args, **kwargs):
+        """Empêcher la création de demande de congé pour un employé inactif"""
+        # Vérifier si l'employé est spécifié dans les données
+        employe_id = request.data.get('employe')
+        if employe_id:
+            try:
+                employe = Employe.objects.get(pk=employe_id)
+                if employe.statut != 'actif':
+                    return Response(
+                        {"error": "Les employés inactifs ne peuvent pas faire de demande de congé."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            except Employe.DoesNotExist:
+                return Response(
+                    {"error": "Employé non trouvé."},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+        
+        return super().create(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)

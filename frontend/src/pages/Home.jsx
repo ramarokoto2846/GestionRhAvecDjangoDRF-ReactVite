@@ -12,37 +12,36 @@ import {
   alpha,
   Chip,
   Container,
-  AppBar,
-  Toolbar,
-  Paper
+  Paper,
+  Drawer,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Toolbar
 } from "@mui/material";
 import {
   People as PeopleIcon,
   Event as EventIcon,
   AccessTime as TimeIcon,
   ChevronRight as ChevronRightIcon,
-  Logout as LogoutIcon,
-  Menu as MenuIcon,
-  Business as BusinessIcon
+  Business as BusinessIcon,
+  TrendingUp as TrendingUpIcon
 } from "@mui/icons-material";
-import {
-  getCurrentUser
-} from "../services/api";
+import { getCurrentUser } from "../services/api";
+import Header from "../components/Header"; // Import du composant Header
 
 const Home = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
   const [user, setUser] = useState(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Fonction de déconnexion
-  const handleLogout = () => {
-    localStorage.removeItem("access_token");
-    navigate("/");
+  const handleDrawerToggle = () => {
+    setMobileOpen(!mobileOpen);
   };
 
-  // Récupération des infos utilisateur
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -56,103 +55,120 @@ const Home = () => {
     fetchUser();
   }, [navigate]);
 
-  // Actions rapides transformées en navigation
   const navItems = [
-    { icon: <PeopleIcon />, label: "Départements", path: "/departements", color: "#FF6B6B" },
-    { icon: <PeopleIcon />, label: "Employés", path: "/employes", color: "#4ECDC4" },
-    { icon: <TimeIcon />, label: "Pointages", path: "/pointages", color: "#45B7D1" },
-    { icon: <EventIcon />, label: "Congés", path: "/conges", color: "#F9A826" },
-    { icon: <EventIcon />, label: "Absences", path: "/absences", color: "#7467EF" },
-    { icon: <EventIcon />, label: "Événements", path: "/evenements", color: "#FF9E43" }
+    { icon: <PeopleIcon />, label: "Départements", path: "/departements", color: "#10B981" },
+    { icon: <PeopleIcon />, label: "Employés", path: "/employes", color: "#F59E0B" },
+    { icon: <TimeIcon />, label: "Pointages", path: "/pointages", color: "#EF4444" },
+    { icon: <EventIcon />, label: "Congés", path: "/conges", color: "#8B5CF6" },
+    { icon: <EventIcon />, label: "Absences", path: "/absences", color: "#EC4899" },
+    { icon: <EventIcon />, label: "Événements", path: "/evenements", color: "#06B6D4" }
   ];
 
-  return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '931px', bgcolor: '#f8fafc' }}>
-      {/* Navigation Bar */}
-      <AppBar position="static" elevation={0} sx={{ bgcolor: 'white', borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
-        <Container maxWidth="xl">
-          <Toolbar disableGutters sx={{ justifyContent: 'space-between' }}>
-            <Typography 
-              variant="h6" 
-              component="div" 
-              sx={{ 
-                color: 'primary.main', 
-                fontWeight: 'bold',
-                display: { xs: 'none', md: 'block' }
-              }}
-            >
-              HR Management System
-            </Typography>
-            
-            {/* Navigation Items */}
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'center', flex: 1 }}>
-              {navItems.map((item, index) => (
-                <Button
-                  key={index}
-                  color="inherit"
-                  onClick={() => navigate(item.path)}
-                  startIcon={item.icon}
-                  sx={{ 
-                    color: 'text.primary',
-                    '&:hover': {
-                      backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                      color: 'primary.main'
-                    },
-                    fontSize: { xs: '0.7rem', sm: '0.8rem', md: '0.9rem' },
-                    px: { xs: 1, sm: 2 },
-                    py: 1,
-                    minWidth: 'auto',
-                    borderBottom: '1px solid gray',
-                    borderRadius: 0,
-                  }}
-                >
-                  {item.label}
-                </Button>
-              ))}
-            </Box>
-            
-            {/* Bouton de déconnexion */}
-            <Button 
-              color="error" 
-              onClick={handleLogout}
-              startIcon={<LogoutIcon />}
-              sx={{ 
-                whiteSpace: 'nowrap',
-                ml: 2,
-                display: { xs: 'none', sm: 'flex' }
-              }}
-            >
-              Déconnexion
-            </Button>
+  const stats = [
+    { label: "Employés actifs", value: "247", change: "+12%", trend: "up" },
+    { label: "Départements", value: "15", change: "+2", trend: "up" },
+    { label: "Congés ce mois", value: "34", change: "-5%", trend: "down" },
+    { label: "Pointages aujourd'hui", value: "189", change: "+8%", trend: "up" }
+  ];
 
-            {/* Menu mobile */}
-            <Button 
-              color="inherit"
-              sx={{ 
-                display: { xs: 'flex', sm: 'none' },
-                minWidth: 'auto'
-              }}
-            >
-              <MenuIcon />
-            </Button>
-          </Toolbar>
-        </Container>
-      </AppBar>
+  const drawer = (
+    <Box sx={{ 
+      width: 280, 
+      background: 'linear-gradient(180deg, #667eea 0%, #764ba2 100%)',
+      height: '100%',
+      color: 'white'
+    }}>
+      <Box sx={{ p: 3, textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+        <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'white' }}>
+          HR System
+        </Typography>
+        <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)', mt: 1 }}>
+          {user ? user.nom || user.email : 'Administrateur'}
+        </Typography>
+      </Box>
+      
+      <List sx={{ p: 2 }}>
+        <ListItem 
+          button 
+          onClick={() => {
+            navigate("/statistiques/overview");
+            setMobileOpen(false);
+          }}
+          sx={{ 
+            borderRadius: 2,
+            mb: 1,
+            '&:hover': {
+              backgroundColor: 'rgba(255,255,255,0.1)'
+            }
+          }}
+        >
+          <ListItemIcon sx={{ color: 'white', minWidth: 40 }}>
+            <TrendingUpIcon />
+          </ListItemIcon>
+          <ListItemText primary="Statistiques" />
+        </ListItem>
+
+        {navItems.map((item, index) => (
+          <ListItem 
+            key={index}
+            button 
+            onClick={() => {
+              navigate(item.path);
+              setMobileOpen(false);
+            }}
+            sx={{ 
+              borderRadius: 2,
+              mb: 1,
+              '&:hover': {
+                backgroundColor: 'rgba(255,255,255,0.1)'
+              }
+            }}
+          >
+            <ListItemIcon sx={{ color: 'white', minWidth: 40 }}>
+              {item.icon}
+            </ListItemIcon>
+            <ListItemText primary={item.label} />
+          </ListItem>
+        ))}
+      </List>
+    </Box>
+  );
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: '#f8fafc' }}>
+      {/* Utilisation du composant Header pour les notifications */}
+      <Header user={user} onMenuToggle={handleDrawerToggle} />
+
+      {/* Mobile Drawer */}
+      <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={handleDrawerToggle}
+        ModalProps={{ keepMounted: true }}
+        sx={{
+          display: { xs: 'block', md: 'none' },
+          '& .MuiDrawer-paper': { boxSizing: 'border-box', width: 280 },
+        }}
+      >
+        {drawer}
+      </Drawer>
+
+      {/* Espace pour compenser la Header fixe */}
+      <Toolbar />
 
       {/* Main Content */}
       <Container maxWidth="xl" sx={{ py: isMobile ? 2 : 4, px: isMobile ? 2 : 3, flex: 1 }}>
         {/* Welcome Section */}
         <Box 
           sx={{ 
-            bgcolor: 'white',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
             borderRadius: 4,
             mb: 4,
             p: 4,
             position: 'relative',
             overflow: 'hidden',
-            boxShadow: '0 10px 40px rgba(0,0,0,0.05)',
-            background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.primary.light, 0.2)} 100%)`,
-            border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`
+            color: 'white',
+            boxShadow: '0 20px 40px rgba(102, 126, 234, 0.3)'
           }}
         >
           <Box sx={{ position: 'relative', zIndex: 2 }}>
@@ -161,18 +177,19 @@ const Home = () => {
               size="small" 
               sx={{ 
                 mb: 2, 
-                bgcolor: alpha(theme.palette.primary.main, 0.1),
-                color: 'primary.dark',
-                fontWeight: 'medium'
+                bgcolor: 'rgba(255,255,255,0.2)',
+                color: 'white',
+                fontWeight: 'medium',
+                backdropFilter: 'blur(10px)'
               }} 
             />
             
-            <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 'bold', color: 'text.primary' }}>
-              Bienvenue, {user ? user.nom || user.email : 'Administrateur'}
+            <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 'bold' }}>
+              Bienvenue, {user ? user.nom || user.email : 'Administrateur'} 👋
             </Typography>
             
-            <Typography variant="h6" sx={{ color: 'text.secondary', mb: 4, maxWidth: 600 }}>
-              Gérez efficacement vos ressources humaines et optimisez la productivité de votre entreprise
+            <Typography variant="h6" sx={{ color: 'rgba(255,255,255,0.9)', mb: 4, maxWidth: 600 }}>
+              Gérez efficacement vos ressources humaines avec notre plateforme moderne et intuitive
             </Typography>
             
             <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -182,14 +199,21 @@ const Home = () => {
                 sx={{ 
                   borderRadius: 3,
                   px: 4,
-                  py: 1,
+                  py: 1.5,
                   textTransform: 'none',
                   fontWeight: 'bold',
-                  boxShadow: '0 8px 20px rgba(25, 118, 210, 0.3)'
+                  bgcolor: 'white',
+                  color: '#667eea',
+                  '&:hover': {
+                    bgcolor: 'rgba(255,255,255,0.9)',
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
+                  },
+                  transition: 'all 0.3s ease'
                 }}
-                onClick={() => navigate("/stats")}
+                onClick={() => navigate("/statistiques/overview")}
               >
-                Tableau de bord
+                Voir les statistiques
               </Button>
               
               <Button 
@@ -198,126 +222,272 @@ const Home = () => {
                 sx={{ 
                   borderRadius: 3,
                   px: 4,
-                  py: 1,
+                  py: 1.5,
                   textTransform: 'none',
-                  fontWeight: 'medium'
+                  fontWeight: 'medium',
+                  borderColor: 'rgba(255,255,255,0.5)',
+                  color: 'white',
+                  '&:hover': {
+                    borderColor: 'white',
+                    bgcolor: 'rgba(255,255,255,0.1)'
+                  }
                 }}
                 onClick={() => navigate("/employes")}
               >
                 Voir les employés
               </Button>
-
-              <Button 
-                variant="outlined" 
-                size="large"
-                startIcon={<LogoutIcon />}
-                sx={{ 
-                  borderRadius: 3,
-                  px: 4,
-                  py: 1,
-                  textTransform: 'none',
-                  fontWeight: 'medium',
-                  color: 'error.main',
-                  borderColor: 'error.main',
-                  '&:hover': {
-                    borderColor: 'error.dark',
-                    bgcolor: alpha(theme.palette.error.main, 0.04)
-                  },
-                  display: { sm: 'none' }
-                }}
-                onClick={handleLogout}
-              >
-                Déconnexion
-              </Button>
             </Box>
           </Box>
           
-          {/* Éléments décoratifs */}
           <Box 
             sx={{ 
               position: 'absolute', 
-              top: -20, 
-              right: -20, 
-              width: 200, 
-              height: 200, 
+              top: -100, 
+              right: -50, 
+              width: 300, 
+              height: 300, 
               borderRadius: '50%', 
-              bgcolor: alpha(theme.palette.primary.main, 0.1),
+              bgcolor: 'rgba(255,255,255,0.1)',
               zIndex: 1
             }} 
           />
           <Box 
             sx={{ 
               position: 'absolute', 
-              bottom: -30, 
+              bottom: -80, 
               right: 100, 
-              width: 150, 
-              height: 150, 
+              width: 200, 
+              height: 200, 
               borderRadius: '50%', 
-              bgcolor: alpha(theme.palette.secondary.main, 0.1),
+              bgcolor: 'rgba(255,255,255,0.05)',
               zIndex: 1
             }} 
           />
         </Box>
 
-        {/* About Application Section */}
+        {/* Statistics Section */}
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          {stats.map((stat, index) => (
+            <Grid item xs={12} sm={6} md={3} key={index}>
+              <Card 
+                sx={{ 
+                  borderRadius: 3,
+                  boxShadow: '0 5px 20px rgba(0,0,0,0.08)',
+                  border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                  transition: 'all 0.3s ease',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    transform: 'translateY(-5px)',
+                    boxShadow: '0 15px 30px rgba(0,0,0,0.15)'
+                  }
+                }}
+                onClick={() => navigate("/statistiques/overview")}
+              >
+                <CardContent sx={{ p: 3 }}>
+                  <Typography variant="h4" component="div" sx={{ fontWeight: 'bold', mb: 1 }}>
+                    {stat.value}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
+                    {stat.label}
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <TrendingUpIcon 
+                      sx={{ 
+                        fontSize: 16, 
+                        mr: 0.5,
+                        color: stat.trend === 'up' ? '#10B981' : '#EF4444',
+                        transform: stat.trend === 'down' ? 'rotate(180deg)' : 'none'
+                      }} 
+                    />
+                    <Typography 
+                      variant="caption" 
+                      sx={{ 
+                        color: stat.trend === 'up' ? '#10B981' : '#EF4444',
+                        fontWeight: 'medium'
+                      }}
+                    >
+                      {stat.change}
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+
+        {/* Quick Actions */}
         <Typography variant="h5" gutterBottom sx={{ mb: 3, fontWeight: 'bold', color: 'text.primary' }}>
-          À propos de l'application
+          Accès rapide
         </Typography>
         
-        <Grid container spacing={3} sx={{ mb: 5 }}>
-          <Grid item xs={12}>
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          {navItems.map((item, index) => (
+            <Grid item xs={12} sm={6} md={4} key={index}>
+              <Card 
+                sx={{ 
+                  borderRadius: 3,
+                  boxShadow: '0 5px 20px rgba(0,0,0,0.08)',
+                  border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                  transition: 'all 0.3s ease',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    transform: 'translateY(-5px)',
+                    boxShadow: `0 15px 30px ${alpha(item.color, 0.3)}`,
+                    borderColor: alpha(item.color, 0.3)
+                  }
+                }}
+                onClick={() => navigate(item.path)}
+              >
+                <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <Box 
+                      sx={{ 
+                        width: 48, 
+                        height: 48, 
+                        borderRadius: 2,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        mr: 2,
+                        bgcolor: alpha(item.color, 0.1),
+                        color: item.color
+                      }}
+                    >
+                      {item.icon}
+                    </Box>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant="h6" component="div" sx={{ fontWeight: 'bold' }}>
+                        {item.label}
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                        Gérer les {item.label.toLowerCase()}
+                      </Typography>
+                    </Box>
+                    <ChevronRightIcon sx={{ color: 'text.secondary' }} />
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+
+        {/* About Application Section - Deux cartes côte à côte */}
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={6}>
             <Card 
               sx={{ 
                 borderRadius: 3,
-                boxShadow: '0 5px 20px rgba(0,0,0,0.05)',
+                boxShadow: '0 5px 20px rgba(0,0,0,0.08)',
                 border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  transform: 'translateY(-5px)',
-                  boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
-                }
+                height: '100%'
               }}
             >
-              <CardContent sx={{ p: 3 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <CardContent sx={{ p: 4 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                   <Box 
                     sx={{ 
-                      width: 50, 
-                      height: 50, 
+                      width: 56, 
+                      height: 56, 
                       borderRadius: 2,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      mr: 2,
-                      bgcolor: alpha('#4ECDC4', 0.2),
-                      color: '#4ECDC4'
+                      mr: 3,
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      color: 'white'
                     }}
                   >
-                    <BusinessIcon sx={{ fontSize: 24 }} />
+                    <BusinessIcon sx={{ fontSize: 28 }} />
                   </Box>
-                  <Typography variant="h4" component="div" sx={{ fontWeight: 'bold' }}>
-                    Gestion des Ressources Humaines - TVM
-                  </Typography>
+                  <Box>
+                    <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', mb: 1 }}>
+                      Gestion RH - TVM
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                      Système moderne de gestion
+                    </Typography>
+                  </Box>
                 </Box>
+                
                 <Typography variant="body1" sx={{ color: 'text.secondary', mb: 2 }}>
-                  Bienvenue dans le <strong>Système de Gestion des Ressources Humaines</strong> conçu spécifiquement pour <strong>Televiziona Malagasy (TVM)</strong>, la première chaîne de télévision nationale de Madagascar, gérée par l'<strong>Office de la Radio et de la Télévision Publiques de Madagascar (ORTM)</strong>.
+                  Bienvenue dans le <strong>Système de Gestion des Ressources Humaines</strong> conçu spécifiquement pour <strong>Televiziona Malagasy (TVM)</strong>, la première chaîne de télévision nationale de Madagascar.
                 </Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  Cette plateforme intuitive permet une gestion centralisée des ressources humaines avec des outils avancés pour suivre les employés, gérer les départements, et optimiser les processus administratifs.
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <Card 
+              sx={{ 
+                borderRadius: 3,
+                boxShadow: '0 5px 20px rgba(0,0,0,0.08)',
+                border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                height: '100%',
+                background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)'
+              }}
+            >
+              <CardContent sx={{ p: 4 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                  <Box 
+                    sx={{ 
+                      width: 56, 
+                      height: 56, 
+                      borderRadius: 2,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      mr: 3,
+                      background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                      color: 'white'
+                    }}
+                  >
+                    <TrendingUpIcon sx={{ fontSize: 28 }} />
+                  </Box>
+                  <Box>
+                    <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', mb: 1 }}>
+                      Fonctionnalités
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                      Outils avancés disponibles
+                    </Typography>
+                  </Box>
+                </Box>
+                
                 <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
-                  Cette application moderne et intuitive permet une gestion efficace et centralisée des ressources humaines de la TVM. Elle offre des outils avancés pour suivre les employés, gérer les départements, enregistrer les pointages, administrer les congés et absences, et planifier les événements internes. Notre objectif est d'optimiser les processus administratifs, d'améliorer la productivité et de soutenir le dynamisme de la TVM dans son rôle de média national de référence.
+                  Dotée d'une interface moderne et responsive, l'application s'adapte à tous les appareils et offre des tableaux de bord personnalisés avec des analyses en temps réel pour une prise de décision éclairée.
                 </Typography>
-                <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
-                  Dotée d'une interface conviviale et d'une conception responsive, cette application s'adapte à tous les appareils pour faciliter l'accès aux administrateurs, où qu'ils soient. Avec des fonctionnalités comme des tableaux de bord personnalisés et des rapports en temps réel, elle répond aux besoins spécifiques de la TVM tout en intégrant les dernières technologies pour une gestion fluide et sécurisée.
-                </Typography>
-                <Chip 
-                  label="Optimisation RH pour TVM" 
-                  size="small" 
-                  sx={{ 
-                    bgcolor: alpha(theme.palette.primary.main, 0.1),
-                    color: 'primary.dark',
-                    fontWeight: 'medium',
-                    fontSize: '0.7rem'
-                  }} 
-                />
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  <Chip 
+                    label="Interface moderne" 
+                    size="small" 
+                    sx={{ 
+                      bgcolor: alpha(theme.palette.primary.main, 0.1),
+                      color: 'primary.dark',
+                      fontWeight: 'medium'
+                    }} 
+                  />
+                  <Chip 
+                    label="Temps réel" 
+                    size="small" 
+                    sx={{ 
+                      bgcolor: alpha('#10B981', 0.1),
+                      color: '#10B981',
+                      fontWeight: 'medium'
+                    }} 
+                  />
+                  <Chip 
+                    label="Sécurisé" 
+                    size="small" 
+                    sx={{ 
+                      bgcolor: alpha('#F59E0B', 0.1),
+                      color: '#F59E0B',
+                      fontWeight: 'medium'
+                    }} 
+                  />
+                </Box>
               </CardContent>
             </Card>
           </Grid>
@@ -332,15 +502,20 @@ const Home = () => {
         sx={{
           py: 3,
           px: 2,
-          mt: 'auto',
-          backgroundColor: alpha(theme.palette.primary.main, 0.02),
+          mt: 4,
+          backgroundColor: 'white',
           borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}`
         }}
       >
         <Container maxWidth="xl">
-          <Typography variant="body2" color="text.secondary" align="center">
-            © {new Date().getFullYear()} HR Management System. Tous droits réservés.
-          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
+            <Typography variant="body2" color="text.secondary">
+              © {new Date().getFullYear()} HR Management System. Tous droits réservés.
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Développé pour TVM - ORTM Madagascar
+            </Typography>
+          </Box>
         </Container>
       </Paper>
     </Box>

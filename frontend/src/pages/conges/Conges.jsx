@@ -563,7 +563,7 @@ const Conges = () => {
         {/* Barre de recherche et filtres */}
         <Paper sx={{ p: 2, mb: 3, borderRadius: 3 }}>
           <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} sm={6} width={'500px'}>
               <TextField
                 fullWidth
                 placeholder="Rechercher un congé..."
@@ -588,7 +588,7 @@ const Conges = () => {
                 }}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} sm={6} width={'500px'}>
               <FormControl fullWidth>
                 <InputLabel id="status-filter-label">
                   Filtrer par statut

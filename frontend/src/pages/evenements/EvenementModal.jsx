@@ -1,8 +1,20 @@
 import React, { useState, useEffect } from "react";
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, Button, Grid
+  TextField, Button, Grid, Avatar, Box, Typography,
+  CircularProgress, Chip, Card, CardContent
 } from "@mui/material";
+import {
+  Event as EventIcon,
+  Title as TitleIcon,
+  Description as DescriptionIcon,
+  LocationOn as LocationIcon,
+  Edit as EditIcon,
+  Add as AddIcon,
+  Close as CloseIcon,
+  Schedule as ScheduleIcon,
+  CheckCircle as CheckCircleIcon
+} from "@mui/icons-material";
 import { format, parseISO } from "date-fns";
 
 import { createEvenement, updateEvenement } from "../../services/api";
@@ -46,6 +58,12 @@ const EvenementModal = ({ open, onClose, evenement, onSave, showSnackbar }) => {
     if (!dateString) return "";
     const date = parseISO(dateString);
     return format(date, "yyyy-MM-dd'T'HH:mm");
+  };
+
+  const formatDateForDisplay = (dateString) => {
+    if (!dateString) return "";
+    const date = parseISO(dateString);
+    return format(date, "dd/MM/yyyy à HH:mm");
   };
 
   const handleInputChange = (e) => {
@@ -107,20 +125,87 @@ const EvenementModal = ({ open, onClose, evenement, onSave, showSnackbar }) => {
     }
   };
 
+  // Calcul de la durée de l'événement
+  const calculateDuree = () => {
+    if (formData.date_debut && formData.date_fin) {
+      const start = new Date(formData.date_debut);
+      const end = new Date(formData.date_fin);
+      const diffTime = Math.abs(end - start);
+      const diffHours = Math.ceil(diffTime / (1000 * 60 * 60));
+      return diffHours;
+    }
+    return 0;
+  };
+
+  const dureeEvenement = calculateDuree();
+
   return (
     <Dialog
       open={open}
       onClose={onClose}
       maxWidth="md"
       fullWidth
-      PaperProps={{ sx: { borderRadius: 3 } }}
+      PaperProps={{ 
+        sx: { 
+          borderRadius: 4,
+          background: 'linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%)',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+          overflow: 'hidden'
+        } 
+      }}
     >
-      <DialogTitle>
-        {evenement ? "Modifier l'événement" : "Nouvel événement"}
+      {/* En-tête avec dégradé */}
+      <DialogTitle 
+        sx={{ 
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          color: 'white',
+          py: 3,
+          position: 'relative'
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Avatar 
+            sx={{ 
+              bgcolor: 'rgba(255,255,255,0.2)',
+              width: 48,
+              height: 48
+            }}
+          >
+            <EventIcon />
+          </Avatar>
+          <Box>
+            <Typography variant="h5" fontWeight="600">
+              {evenement ? "Modifier l'événement" : "Nouvel événement"}
+            </Typography>
+            <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
+              {evenement ? "Mettez à jour les détails de l'événement" : "Planifiez un nouvel événement"}
+            </Typography>
+          </Box>
+        </Box>
+        
+        {/* Badge durée si dates renseignées */}
+        {dureeEvenement > 0 && (
+          <Chip 
+            icon={<ScheduleIcon />}
+            label={`${dureeEvenement}h`}
+            color="primary"
+            sx={{ 
+              position: 'absolute',
+              right: 100,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: 'white',
+              fontWeight: '600',
+              '& .MuiChip-icon': { color: 'white' }
+            }}
+          />
+        )}
       </DialogTitle>
+
       <form onSubmit={handleSubmit}>
-        <DialogContent sx={{ pt: 3 }}>
-          <Grid container spacing={2}>
+        <DialogContent sx={{ pt: 4, pb: 2 }}>
+          <Grid container spacing={3}>
+            {/* ID Événement */}
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
@@ -130,27 +215,55 @@ const EvenementModal = ({ open, onClose, evenement, onSave, showSnackbar }) => {
                 value={formData.id_evenement}
                 onChange={handleInputChange}
                 error={!!errors.id_evenement}
-                helperText={errors.id_evenement || "Entrez un ID unique"}
+                helperText={errors.id_evenement || "Identifiant unique de l'événement"}
                 disabled={!!evenement}
                 inputProps={{ 
                   maxLength: 10,
                   autoComplete: "off"
                 }}
+                InputProps={{
+                  startAdornment: <EventIcon color="action" sx={{ mr: 1 }} />
+                }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 3,
+                    backgroundColor: 'white',
+                    '&:hover fieldset': {
+                      borderColor: '#667eea',
+                    },
+                  }
+                }}
               />
             </Grid>
+
+            {/* Titre */}
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
                 margin="dense"
-                label="Titre"
+                label="Titre de l'événement"
                 name="titre"
                 value={formData.titre}
                 onChange={handleInputChange}
                 error={!!errors.titre}
-                helperText={errors.titre}
+                helperText={errors.titre || "Titre descriptif de l'événement"}
                 required
+                InputProps={{
+                  startAdornment: <TitleIcon color="action" sx={{ mr: 1 }} />
+                }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 3,
+                    backgroundColor: 'white',
+                    '&:hover fieldset': {
+                      borderColor: '#667eea',
+                    },
+                  }
+                }}
               />
             </Grid>
+
+            {/* Description */}
             <Grid item xs={12}>
               <TextField
                 fullWidth
@@ -161,8 +274,23 @@ const EvenementModal = ({ open, onClose, evenement, onSave, showSnackbar }) => {
                 onChange={handleInputChange}
                 multiline
                 rows={3}
+                placeholder="Décrivez l'événement, son objectif, son programme..."
+                InputProps={{
+                  startAdornment: <DescriptionIcon color="action" sx={{ mr: 1, mt: 1.5, alignSelf: 'flex-start' }} />
+                }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 3,
+                    backgroundColor: 'white',
+                    '&:hover fieldset': {
+                      borderColor: '#667eea',
+                    },
+                  }
+                }}
               />
             </Grid>
+
+            {/* Dates et heures */}
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
@@ -173,11 +301,24 @@ const EvenementModal = ({ open, onClose, evenement, onSave, showSnackbar }) => {
                 value={formData.date_debut}
                 onChange={handleInputChange}
                 error={!!errors.date_debut}
-                helperText={errors.date_debut}
+                helperText={errors.date_debut || "Date et heure de commencement"}
                 InputLabelProps={{ shrink: true }}
                 required
+                InputProps={{
+                  startAdornment: <ScheduleIcon color="action" sx={{ mr: 1 }} />
+                }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 3,
+                    backgroundColor: 'white',
+                    '&:hover fieldset': {
+                      borderColor: '#667eea',
+                    },
+                  }
+                }}
               />
             </Grid>
+
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
@@ -188,37 +329,190 @@ const EvenementModal = ({ open, onClose, evenement, onSave, showSnackbar }) => {
                 value={formData.date_fin}
                 onChange={handleInputChange}
                 error={!!errors.date_fin}
-                helperText={errors.date_fin}
+                helperText={errors.date_fin || "Date et heure de clôture"}
                 InputLabelProps={{ shrink: true }}
                 required
+                InputProps={{
+                  startAdornment: <ScheduleIcon color="action" sx={{ mr: 1 }} />
+                }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 3,
+                    backgroundColor: formData.date_fin ? '#f0fff4' : 'white',
+                    '&:hover fieldset': {
+                      borderColor: formData.date_fin ? '#10b981' : '#667eea',
+                    },
+                  }
+                }}
               />
             </Grid>
+
+            {/* Lieu */}
             <Grid item xs={12}>
               <TextField
                 fullWidth
                 margin="dense"
-                label="Lieu"
+                label="Lieu de l'événement"
                 name="lieu"
                 value={formData.lieu}
                 onChange={handleInputChange}
+                placeholder="Ex: Salle de conférence, Adresse précise..."
+                InputProps={{
+                  startAdornment: <LocationIcon color="action" sx={{ mr: 1 }} />
+                }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 3,
+                    backgroundColor: 'white',
+                    '&:hover fieldset': {
+                      borderColor: '#667eea',
+                    },
+                  }
+                }}
               />
+            </Grid>
+
+            {/* Carte de résumé */}
+            {(formData.date_debut && formData.date_fin) && (
+              <Grid item xs={12}>
+                <Card 
+                  sx={{ 
+                    backgroundColor: 'rgba(255,255,255,0.8)', 
+                    borderRadius: 3,
+                    border: '2px dashed',
+                    borderColor: 'primary.light'
+                  }}
+                >
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom color="primary" fontWeight="600">
+                      📅 Résumé de l'événement
+                    </Typography>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={6}>
+                        <Typography variant="body2" color="text.secondary">
+                          Début
+                        </Typography>
+                        <Typography variant="body1" fontWeight="500">
+                          {new Date(formData.date_debut).toLocaleString('fr-FR')}
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <Typography variant="body2" color="text.secondary">
+                          Fin
+                        </Typography>
+                        <Typography variant="body1" fontWeight="500">
+                          {new Date(formData.date_fin).toLocaleString('fr-FR')}
+                        </Typography>
+                      </Grid>
+                      {dureeEvenement > 0 && (
+                        <Grid item xs={12}>
+                          <Typography variant="body2" color="text.secondary">
+                            Durée totale
+                          </Typography>
+                          <Typography variant="body1" fontWeight="500" color="success.main">
+                            {dureeEvenement} heure(s)
+                          </Typography>
+                        </Grid>
+                      )}
+                    </Grid>
+                  </CardContent>
+                </Card>
+              </Grid>
+            )}
+
+            {/* Badges d'information */}
+            <Grid item xs={12}>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                <Chip 
+                  icon={<EventIcon />}
+                  label={evenement ? "Événement existant" : "Nouvel événement"}
+                  color={evenement ? "primary" : "success"}
+                  variant="outlined"
+                />
+                {formData.lieu && (
+                  <Chip 
+                    icon={<LocationIcon />}
+                    label={`Lieu: ${formData.lieu}`}
+                    color="info"
+                    variant="outlined"
+                    size="small"
+                  />
+                )}
+              </Box>
             </Grid>
           </Grid>
         </DialogContent>
-        <DialogActions sx={{ p: 3, gap: 1 }}>
-          <Button onClick={onClose} color="inherit" disabled={loading}>
+
+        {/* Actions */}
+        <DialogActions sx={{ p: 3, gap: 2, background: 'rgba(255,255,255,0.6)' }}>
+          <Button 
+            onClick={onClose} 
+            color="inherit"
+            disabled={loading}
+            startIcon={<CloseIcon />}
+            sx={{ 
+              borderRadius: 3, 
+              px: 3,
+              py: 1,
+              border: '1px solid #ddd',
+              '&:hover': {
+                backgroundColor: 'rgba(0,0,0,0.04)'
+              }
+            }}
+          >
             Annuler
           </Button>
           <Button
             type="submit"
             variant="contained"
-            sx={{ borderRadius: 2, px: 3, py: 1 }}
             disabled={!formData.id_evenement || !formData.titre || !formData.date_debut || !formData.date_fin || loading}
+            startIcon={loading ? <CircularProgress size={16} /> : (evenement ? <EditIcon /> : <AddIcon />)}
+            sx={{ 
+              borderRadius: 3, 
+              px: 4, 
+              py: 1,
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
+              '&:hover': {
+                boxShadow: '0 6px 20px rgba(102, 126, 234, 0.4)',
+                transform: 'translateY(-1px)'
+              },
+              '&:disabled': {
+                background: 'grey.300'
+              },
+              transition: 'all 0.3s ease'
+            }}
           >
-            {evenement ? "Modifier" : "Créer"}
+            {loading ? "Traitement..." : (evenement ? "Modifier" : "Créer l'événement")}
           </Button>
         </DialogActions>
       </form>
+
+      {/* Overlay de chargement */}
+      {loading && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(255, 255, 255, 0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1,
+            borderRadius: '16px',
+          }}
+        >
+          <Box sx={{ textAlign: 'center' }}>
+            <CircularProgress size={60} thickness={4} />
+            <Typography variant="h6" sx={{ mt: 2, color: 'text.primary' }}>
+              {evenement ? "Mise à jour..." : "Création..."}
+            </Typography>
+          </Box>
+        </Box>
+      )}
     </Dialog>
   );
 };

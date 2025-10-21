@@ -453,7 +453,7 @@ const Evenements = () => {
         {/* Barre de recherche et filtres */}
         <Paper sx={{ p: 2, mb: 3, borderRadius: 3 }}>
           <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} md={4} width={'450px'}>
               <TextField
                 fullWidth
                 placeholder="Rechercher par titre, lieu ou description..."
@@ -478,7 +478,7 @@ const Evenements = () => {
                 }}
               />
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} md={4} width={'450px'}>
               <ToggleButtonGroup
                 value={statusFilter}
                 exclusive
@@ -503,7 +503,7 @@ const Evenements = () => {
                 </ToggleButton>
               </ToggleButtonGroup>
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} md={4} width={'450px'}>
               <FormControl fullWidth>
                 <InputLabel id="month-filter-label">
                   Filtrer par mois

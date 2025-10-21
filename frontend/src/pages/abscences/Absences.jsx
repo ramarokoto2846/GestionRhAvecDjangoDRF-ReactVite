@@ -484,7 +484,7 @@ const Absences = () => {
         {/* Barre de recherche et filtres */}
         <Paper sx={{ p: 2, mb: 3, borderRadius: 3 }}>
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={4} width={'450px'}>
               <TextField
                 fullWidth
                 placeholder="Rechercher une absence..."
@@ -509,7 +509,7 @@ const Absences = () => {
                 }}
               />
             </Grid>
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={4} width={'450px'}>
               <TextField
                 select
                 fullWidth
@@ -522,7 +522,7 @@ const Absences = () => {
                 <MenuItem value="unjustified">Non Justifiées</MenuItem>
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={4} width={'450px'}>
               <TextField
                 select
                 fullWidth
