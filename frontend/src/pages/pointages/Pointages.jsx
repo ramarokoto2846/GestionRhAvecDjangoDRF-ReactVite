@@ -33,7 +33,7 @@ import {
   deletePointage, 
   getEmployes, 
   getCurrentUser,
-  exportPointagesPDF // AJOUT IMPORT PDF
+  exportPointagesPDF
 } from "../../services/api";
 import Header, { triggerNotificationsRefresh } from "../../components/Header";
 import PointageTable from "./PointageTable";
@@ -76,11 +76,19 @@ const Pointages = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [exitFilter, setExitFilter] = useState("all");
   
-  // ✅ NOUVEAU ÉTAT POUR PDF
   const [generatingPDF, setGeneratingPDF] = useState(false);
 
+  // ✅ FONCTION POUR GÉNÉRER L'ID AUTOMATIQUE AU FORMAT PTG0025
+  const generatePointageId = () => {
+    // Génère un nombre aléatoire entre 1 et 9999 et le formate sur 4 chiffres
+    const randomNum = Math.floor(Math.random() * 9999) + 1;
+    const formattedNum = randomNum.toString().padStart(4, '0');
+    return `PTG${formattedNum}`;
+  };
+
+  // ✅ CORRIGÉ : id_pointage vide par défaut, sera généré automatiquement
   const initialFormData = {
-    id_pointage: `P${Date.now()}`,
+    id_pointage: "", // ← Vide par défaut, sera généré automatiquement
     employe: "",
     date_pointage: format(new Date(), "yyyy-MM-dd"),
     heure_entree: "08:00",
@@ -168,7 +176,103 @@ const Pointages = () => {
     }
   };
 
-  // ✅ NOUVELLE FONCTION POUR GÉNÉRER LE PDF
+  // ✅ FONCTIONS MANQUANTES AJOUTÉES
+  const calculateWorkingHours = (heureEntree, heureSortie) => {
+    if (!heureEntree || !heureSortie) return "-";
+    
+    const [entreeHours, entreeMinutes] = heureEntree.split(':').map(Number);
+    const [sortieHours, sortieMinutes] = heureSortie.split(':').map(Number);
+    
+    const entreeTotalMinutes = entreeHours * 60 + entreeMinutes;
+    const sortieTotalMinutes = sortieHours * 60 + sortieMinutes;
+    
+    const diffMinutes = sortieTotalMinutes - entreeTotalMinutes;
+    const hours = Math.floor(diffMinutes / 60);
+    const minutes = diffMinutes % 60;
+    
+    return `${hours}h ${minutes}min`;
+  };
+
+  const getStatusColor = (heureSortie) => {
+    return heureSortie ? "success" : "warning";
+  };
+
+  const getStatusText = (heureSortie) => {
+    return heureSortie ? "Terminé" : "En cours";
+  };
+
+  const closeDetails = () => {
+    setDetailView(null);
+  };
+
+  const handleUpdatePointage = async (idPointage, updateData) => {
+    setActionLoading(true);
+    try {
+      await updatePointage(idPointage, updateData);
+      showSnackbar("Sortie enregistrée avec succès !", "success");
+      await fetchData();
+      triggerNotificationsRefresh();
+    } catch (error) {
+      let errorMessage = error.message || "Erreur lors de l'enregistrement de la sortie.";
+      if (error.response?.data) {
+        const errors = error.response.data;
+        if (errors.non_field_errors) {
+          errorMessage = errors.non_field_errors.join(", ");
+        } else {
+          errorMessage = Object.keys(errors)
+            .map(key => `${key}: ${Array.isArray(errors[key]) ? errors[key].join(", ") : errors[key]}`)
+            .join("; ");
+        }
+      }
+      showSnackbar(errorMessage, "error");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    const result = await Swal.fire({
+      title: "Êtes-vous sûr ?",
+      text: "Voulez-vous supprimer ce pointage ?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Oui, supprimer",
+      cancelButtonText: "Annuler",
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33'
+    });
+    if (result.isConfirmed) {
+      setActionLoading(true);
+      setDeletingId(id);
+      try {
+        await deletePointage(id);
+        showSnackbar("Pointage supprimé avec succès !", "success");
+        await fetchData();
+        triggerNotificationsRefresh();
+      } catch (error) {
+        let errorMessage = error.message || "Erreur lors de la suppression.";
+        if (error.response?.data) {
+          const errors = error.response.data;
+          if (errors.non_field_errors) {
+            errorMessage = errors.non_field_errors.join(", ");
+          } else {
+            errorMessage = Object.keys(errors)
+              .map(key => `${key}: ${Array.isArray(errors[key]) ? errors[key].join(", ") : errors[key]}`)
+              .join("; ");
+          }
+        }
+        showSnackbar(errorMessage, "error");
+      } finally {
+        setActionLoading(false);
+        setDeletingId(null);
+      }
+    }
+  };
+
+  const showDetails = (pointage) => {
+    setDetailView(pointage);
+  };
+
   const handleGeneratePDF = async () => {
     setGeneratingPDF(true);
     try {
@@ -208,7 +312,11 @@ const Pointages = () => {
       });
     } else {
       setEditingPointage(null);
-      setFormData({ ...initialFormData, id_pointage: `P${Date.now()}` });
+      // ✅ GÉNÉRATION AUTOMATIQUE DE L'ID AU FORMAT PTG0025
+      setFormData({ 
+        ...initialFormData, 
+        id_pointage: generatePointageId() // ← ID généré automatiquement
+      });
     }
     setOpenDialog(true);
   };
@@ -216,7 +324,11 @@ const Pointages = () => {
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setEditingPointage(null);
-    setFormData(initialFormData);
+    // ✅ CORRIGÉ : Réinitialiser avec id_pointage vide
+    setFormData({ 
+      ...initialFormData, 
+      id_pointage: "" 
+    });
   };
 
   const handleInputChange = (e) => {
@@ -296,106 +408,7 @@ const Pointages = () => {
     }
   };
 
-  // FONCTION AJOUTÉE POUR LA MISE À JOUR DES SORTIES
-  const handleUpdatePointage = async (idPointage, updateData) => {
-    setActionLoading(true);
-    try {
-      await updatePointage(idPointage, updateData);
-      showSnackbar("Sortie enregistrée avec succès !", "success");
-      await fetchData();
-      triggerNotificationsRefresh();
-    } catch (error) {
-      let errorMessage = error.message || "Erreur lors de l'enregistrement de la sortie.";
-      if (error.response?.data) {
-        const errors = error.response.data;
-        if (errors.non_field_errors) {
-          errorMessage = errors.non_field_errors.join(", ");
-        } else {
-          errorMessage = Object.keys(errors)
-            .map(key => `${key}: ${Array.isArray(errors[key]) ? errors[key].join(", ") : errors[key]}`)
-            .join("; ");
-        }
-      }
-      showSnackbar(errorMessage, "error");
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleDelete = async (id) => {
-    const result = await Swal.fire({
-      title: "Êtes-vous sûr ?",
-      text: "Voulez-vous supprimer ce pointage ?",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Oui, supprimer",
-      cancelButtonText: "Annuler",
-      confirmButtonColor: '#3085d6',
-      cancelButtonColor: '#d33'
-    });
-    if (result.isConfirmed) {
-      setActionLoading(true);
-      setDeletingId(id);
-      try {
-        await deletePointage(id);
-        showSnackbar("Pointage supprimé avec succès !", "success");
-        await fetchData();
-        triggerNotificationsRefresh();
-      } catch (error) {
-        let errorMessage = error.message || "Erreur lors de la suppression.";
-        if (error.response?.data) {
-          const errors = error.response.data;
-          if (errors.non_field_errors) {
-            errorMessage = errors.non_field_errors.join(", ");
-          } else {
-            errorMessage = Object.keys(errors)
-              .map(key => `${key}: ${Array.isArray(errors[key]) ? errors[key].join(", ") : errors[key]}`)
-              .join("; ");
-          }
-        }
-        showSnackbar(errorMessage, "error");
-      } finally {
-        setActionLoading(false);
-        setDeletingId(null);
-      }
-    }
-  };
-
-  const showDetails = (pointage) => {
-    setDetailView(pointage);
-  };
-
-  const closeDetails = () => {
-    setDetailView(null);
-  };
-
-  // Fonction pour calculer la durée de travail
-  const calculateWorkingHours = (heureEntree, heureSortie) => {
-    if (!heureEntree || !heureSortie) return "-";
-    
-    const [entreeHours, entreeMinutes] = heureEntree.split(':').map(Number);
-    const [sortieHours, sortieMinutes] = heureSortie.split(':').map(Number);
-    
-    const entreeTotalMinutes = entreeHours * 60 + entreeMinutes;
-    const sortieTotalMinutes = sortieHours * 60 + sortieMinutes;
-    
-    const diffMinutes = sortieTotalMinutes - entreeTotalMinutes;
-    const hours = Math.floor(diffMinutes / 60);
-    const minutes = diffMinutes % 60;
-    
-    return `${hours}h ${minutes}min`;
-  };
-
-  // Fonction pour obtenir la couleur du statut
-  const getStatusColor = (heureSortie) => {
-    return heureSortie ? "success" : "warning";
-  };
-
-  // Fonction pour obtenir le texte du statut
-  const getStatusText = (heureSortie) => {
-    return heureSortie ? "Terminé" : "En cours";
-  };
-
+  // ✅ CORRECTION : Utiliser filteredPointages au lieu de filteredData
   const filteredPointages = pointages.filter(pointage => {
     if (!pointage || !pointage.id_pointage || !pointage.employe) {
       console.warn("Pointage invalide dans filteredPointages:", pointage);
@@ -422,7 +435,6 @@ const Pointages = () => {
       />
       <Sidebar open={open} setOpen={setOpen} />
       
-      {/* CONTENU PRINCIPAL AVEC BON STYLE */}
       <Box 
         component="main" 
         sx={{ 
@@ -443,8 +455,6 @@ const Pointages = () => {
             {error}
           </Alert>
         )}
-
-        {/* Titre + boutons */}
         <Box 
           sx={{ 
             display: "flex", 

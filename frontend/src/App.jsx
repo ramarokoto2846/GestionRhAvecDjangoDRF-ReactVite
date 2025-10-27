@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Routes, Route, useNavigate } from "react-router-dom";
+import { Routes, Route, useNavigate, Navigate } from "react-router-dom"; // Ajoutez Navigate
 import Auth from "./pages/Auth";
 import Home from "./pages/Home";
 import PrivateRoute from "./components/PrivateRoute";
@@ -93,10 +93,17 @@ function App() {
 
   return (
     <Routes>
+      {/* Route pour /login qui redirige vers la page d'auth */}
+      <Route 
+        path="/login" 
+        element={<Navigate to="/" replace />} 
+      />
+      
       <Route
         path="/"
         element={<Auth setIsAuthenticated={setIsAuthenticated} onLogin={handleLogin} />}
       />
+      
       {privateRoutes.map(({ path, element }) => (
         <Route
           key={path}
@@ -117,6 +124,9 @@ function App() {
           }
         />
       ))}
+      
+      {/* Route fallback pour les URLs inconnues */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

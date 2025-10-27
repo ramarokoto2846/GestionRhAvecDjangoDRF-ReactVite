@@ -265,56 +265,6 @@ const Home = () => {
           />
         </Box>
 
-        {/* Statistics Section */}
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          {stats.map((stat, index) => (
-            <Grid item xs={12} sm={6} md={3} key={index}>
-              <Card 
-                sx={{ 
-                  borderRadius: 3,
-                  boxShadow: '0 5px 20px rgba(0,0,0,0.08)',
-                  border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                  transition: 'all 0.3s ease',
-                  cursor: 'pointer',
-                  '&:hover': {
-                    transform: 'translateY(-5px)',
-                    boxShadow: '0 15px 30px rgba(0,0,0,0.15)'
-                  }
-                }}
-                onClick={() => navigate("/statistiques/overview")}
-              >
-                <CardContent sx={{ p: 3 }}>
-                  <Typography variant="h4" component="div" sx={{ fontWeight: 'bold', mb: 1 }}>
-                    {stat.value}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
-                    {stat.label}
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <TrendingUpIcon 
-                      sx={{ 
-                        fontSize: 16, 
-                        mr: 0.5,
-                        color: stat.trend === 'up' ? '#10B981' : '#EF4444',
-                        transform: stat.trend === 'down' ? 'rotate(180deg)' : 'none'
-                      }} 
-                    />
-                    <Typography 
-                      variant="caption" 
-                      sx={{ 
-                        color: stat.trend === 'up' ? '#10B981' : '#EF4444',
-                        fontWeight: 'medium'
-                      }}
-                    >
-                      {stat.change}
-                    </Typography>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-
         {/* Quick Actions */}
         <Typography variant="h5" gutterBottom sx={{ mb: 3, fontWeight: 'bold', color: 'text.primary' }}>
           Accès rapide

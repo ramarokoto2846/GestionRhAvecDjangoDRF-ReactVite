@@ -293,7 +293,39 @@ export const getEvenementsAVenir = async () => {
 };
 
 // ========================
-// NOUVEAU : EXPORT PDF POUR TOUTES LES TABLES
+// ✅ CORRECTION : ENVOI D'EMAILS POUR LES ÉVÉNEMENTS
+// ========================
+
+// Envoyer un événement spécifique (utilise 'send_email' avec underscore)
+export const sendEventEmail = async (eventId) => {
+  try {
+    const response = await axios.post(
+      `${BASE_URL}/evenements/${eventId}/send_email/`,  // ✅ CORRIGÉ : utilise 'send_email' avec underscore
+      {},
+      { headers: getAuthHeader() }
+    );
+    return response.data;
+  } catch (error) {
+    handleError(error, "Erreur lors de l'envoi de l'email pour l'événement.");
+  }
+};
+
+// Envoyer tous les événements (utilise 'send_all_email' avec underscore)
+export const sendAllEventsEmail = async () => {
+  try {
+    const response = await axios.post(
+      `${BASE_URL}/evenements/send_all_email/`,  // ✅ CORRIGÉ : utilise 'send_all_email' avec underscore
+      {},
+      { headers: getAuthHeader() }
+    );
+    return response.data;
+  } catch (error) {
+    handleError(error, "Erreur lors de l'envoi des emails pour tous les événements.");
+  }
+};
+
+// ========================
+// EXPORT PDF POUR TOUTES LES TABLES
 // ========================
 
 // Fonction générique pour exporter une table en PDF
@@ -1097,6 +1129,10 @@ export default {
   updateEvenement,
   deleteEvenement,
   getEvenementsAVenir,
+
+  // ✅ NOUVEAU : Envoi d'emails pour les événements
+  sendEventEmail,
+  sendAllEventsEmail,
 
   // ✅ NOUVEAU : Export PDF pour toutes les tables
   exportDepartementsPDF,

@@ -1,160 +1,33 @@
 import React from "react";
 import {
+  Dialog,
+  DialogTitle,
   DialogContent,
   DialogActions,
+  Button,
+  TextField,
   Grid,
-  IconButton,
-  styled,
-  CircularProgress,
-  Box,
   Typography,
+  CircularProgress,
+  MenuItem,
   Avatar,
+  Box,
   Chip,
   Card,
-  CardContent
+  CardContent,
+  IconButton
 } from "@mui/material";
 import {
-  Close as CloseIcon,
-  Save as SaveIcon,
   Business as BusinessIcon,
   Person as PersonIcon,
   LocationOn as LocationIcon,
   Description as DescriptionIcon,
-  Groups as GroupsIcon
+  Groups as GroupsIcon,
+  Close as CloseIcon,
+  Save as SaveIcon,
+  CheckCircle as CheckCircleIcon,
+  Cancel as CancelIcon
 } from "@mui/icons-material";
-import {
-  Dialog,
-  DialogTitle,
-  TextField,
-  Button
-} from "@mui/material";
-import { red } from "@mui/material/colors";
-
-// --- Styled Components ---
-const ModernDialog = styled(Dialog)(({ theme }) => ({
-  "& .MuiDialog-paper": {
-    borderRadius: 20,
-    background: "linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)",
-    boxShadow: "0 20px 60px rgba(0, 0, 0, 0.15)",
-    border: "1px solid rgba(255, 255, 255, 0.3)",
-    overflow: "hidden",
-    minWidth: 500,
-  },
-  "& .MuiBackdrop-root": {
-    backgroundColor: "rgba(0, 0, 0, 0.6)",
-    backdropFilter: "blur(4px)",
-  },
-}));
-
-const ModernDialogTitle = styled(DialogTitle)(({ theme }) => ({
-  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-  color: "white",
-  padding: theme.spacing(3),
-  fontWeight: "700",
-  fontSize: "1.5rem",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  position: "relative",
-  overflow: "hidden",
-  "&::before": {
-    content: '""',
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: "linear-gradient(45deg, rgba(255,255,255,0.1) 0%, transparent 50%)",
-  },
-  "& .MuiIconButton-root": {
-    color: "white",
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    backdropFilter: "blur(10px)",
-    "&:hover": {
-      backgroundColor: "rgba(255, 255, 255, 0.2)",
-      transform: "scale(1.1)",
-    },
-    transition: "all 0.3s ease",
-  },
-}));
-
-const ModernTextField = styled(TextField)(({ theme }) => ({
-  "& .MuiOutlinedInput-root": {
-    borderRadius: 14,
-    transition: "all 0.3s ease",
-    background: "rgba(255, 255, 255, 0.9)",
-    border: "1px solid rgba(0, 0, 0, 0.08)",
-    "&:hover": {
-      background: "rgba(255, 255, 255, 1)",
-      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
-      borderColor: theme.palette.primary.light,
-    },
-    "&.Mui-focused": {
-      background: "rgba(255, 255, 255, 1)",
-      boxShadow: `0 0 0 3px ${theme.palette.primary.main}20`,
-      borderColor: theme.palette.primary.main,
-    },
-    "&.Mui-disabled": {
-      background: "rgba(0, 0, 0, 0.02)",
-      color: "rgba(0, 0, 0, 0.38)",
-    },
-  },
-  "& .MuiInputLabel-root": {
-    fontWeight: 600,
-    color: theme.palette.text.secondary,
-    fontSize: "0.9rem",
-  },
-  "& .MuiInputLabel-root.Mui-focused": {
-    color: theme.palette.primary.main,
-  },
-  "& .MuiFormHelperText-root": {
-    marginLeft: 0,
-    fontSize: "0.75rem",
-  },
-}));
-
-const ModernButton = styled(Button)(({ theme }) => ({
-  borderRadius: 14,
-  padding: theme.spacing(1.2, 4),
-  fontWeight: "700",
-  textTransform: "none",
-  fontSize: "1rem",
-  minWidth: 140,
-  transition: "all 0.3s ease",
-  position: "relative",
-  overflow: "hidden",
-  "&::before": {
-    content: '""',
-    position: "absolute",
-    top: 0,
-    left: "-100%",
-    width: "100%",
-    height: "100%",
-    background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)",
-    transition: "left 0.5s ease",
-  },
-  "&:hover::before": {
-    left: "100%",
-  },
-  "&:hover": {
-    transform: "translateY(-3px)",
-    boxShadow: "0 8px 20px rgba(0, 0, 0, 0.2)",
-  },
-  "&:disabled": {
-    transform: "none",
-    boxShadow: "none",
-    opacity: 0.6,
-  },
-}));
-
-const StatCard = styled(Card)(({ theme }) => ({
-  borderRadius: 14,
-  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-  color: "white",
-  padding: theme.spacing(2),
-  textAlign: "center",
-  boxShadow: "0 4px 12px rgba(102, 126, 234, 0.3)",
-}));
 
 const DepartementModal = ({
   open,
@@ -188,69 +61,104 @@ const DepartementModal = ({
   };
 
   return (
-    <ModernDialog 
-      open={open} 
+    <Dialog
+      open={open}
       onClose={handleClose}
       maxWidth="md"
       fullWidth
-      disableEscapeKeyDown={processing}
+      PaperProps={{ 
+        sx: { 
+          borderRadius: 4,
+          background: 'linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%)',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+          overflow: 'hidden'
+        } 
+      }}
     >
-      <ModernDialogTitle>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2, position: "relative", zIndex: 1 }}>
+      {/* En-tête avec dégradé */}
+      <DialogTitle 
+        sx={{ 
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          color: 'white',
+          py: 3,
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Avatar 
             sx={{ 
-              bgcolor: "rgba(255, 255, 255, 0.2)",
-              width: 50,
-              height: 50
+              bgcolor: 'rgba(255,255,255,0.2)',
+              width: 48,
+              height: 48
             }}
           >
             <BusinessIcon />
           </Avatar>
           <Box>
-            <Typography variant="h5" fontWeight="700">
-              {editingDepartement ? "Modifier le Département" : "Nouveau Département"}
+            <Typography variant="h5" fontWeight="600">
+              {editingDepartement ? "Modifier le département" : "Nouveau département"}
             </Typography>
             <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
               {editingDepartement ? "Mettez à jour les informations du département" : "Créez un nouveau département dans l'organisation"}
             </Typography>
           </Box>
         </Box>
+
         <IconButton 
           onClick={handleClose} 
           disabled={processing}
-          size="large"
-          sx={{ position: "relative", zIndex: 1 }}
+          sx={{ 
+            color: 'white',
+            bgcolor: 'rgba(255,255,255,0.2)',
+            '&:hover': {
+              bgcolor: 'rgba(255,255,255,0.3)',
+            }
+          }}
         >
           <CloseIcon />
         </IconButton>
-      </ModernDialogTitle>
-      
+      </DialogTitle>
+
       <form onSubmit={handleFormSubmit}>
-        <DialogContent sx={{ padding: '10px', gap: '20px',  margin: '40px' }} >
+        <DialogContent sx={{ pt: 4, pb: 2 }}>
           <Grid container spacing={3}>
+
             {/* Carte statistique */}
             {editingDepartement && (
               <Grid item xs={12}>
-                <StatCard>
-                  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 2 }}>
-                    <GroupsIcon sx={{ fontSize: 32 }} />
-                    <Box>
-                      <Typography variant="h4" fontWeight="700">
-                        {formData.nbr_employe || 0}
-                      </Typography>
-                      <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                        Employé(s) dans ce département
-                      </Typography>
+                <Card 
+                  sx={{ 
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    border: '2px solid rgba(102, 126, 234, 0.2)',
+                    borderRadius: 3
+                  }}
+                >
+                  <CardContent>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <GroupsIcon color="primary" />
+                      <Box>
+                        <Typography variant="h6" fontWeight="600" color="primary.main">
+                          Effectif du département
+                        </Typography>
+                        <Typography variant="body1" color="text.secondary">
+                          {formData.nbr_employe || 0} employé(s) dans ce département
+                        </Typography>
+                      </Box>
                     </Box>
-                  </Box>
-                </StatCard>
+                  </CardContent>
+                </Card>
               </Grid>
             )}
 
+            {/* ID Département */}
             <Grid item xs={12} sm={6} width={'380px'}>
-              <ModernTextField
+              <TextField
                 fullWidth
-                label="ID Département *"
+                margin="dense"
+                label="ID Département"
                 name="id_departement"
                 value={formData.id_departement || ""}
                 onChange={(e) => handleInputChange("id_departement", e.target.value)}
@@ -262,13 +170,24 @@ const DepartementModal = ({
                 InputProps={{
                   startAdornment: <BusinessIcon color="action" sx={{ mr: 1 }} />
                 }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 3,
+                    backgroundColor: 'white',
+                    '&:hover fieldset': {
+                      borderColor: '#667eea',
+                    },
+                  }
+                }}
               />
             </Grid>
-            
+
+            {/* Nom du Département */}
             <Grid item xs={12} sm={6} width={'380px'}>
-              <ModernTextField
+              <TextField
                 fullWidth
-                label="Nom du Département *"
+                margin="dense"
+                label="Nom du Département"
                 name="nom"
                 value={formData.nom || ""}
                 onChange={(e) => handleInputChange("nom", e.target.value)}
@@ -277,13 +196,24 @@ const DepartementModal = ({
                 required
                 disabled={processing}
                 placeholder="Ex: Ressources Humaines"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 3,
+                    backgroundColor: 'white',
+                    '&:hover fieldset': {
+                      borderColor: '#667eea',
+                    },
+                  }
+                }}
               />
             </Grid>
-            
+
+            {/* Responsable */}
             <Grid item xs={12} sm={6} width={'380px'}>
-              <ModernTextField
+              <TextField
                 fullWidth
-                label="Responsable *"
+                margin="dense"
+                label="Responsable"
                 name="responsable"
                 value={formData.responsable || ""}
                 onChange={(e) => handleInputChange("responsable", e.target.value)}
@@ -295,12 +225,23 @@ const DepartementModal = ({
                 InputProps={{
                   startAdornment: <PersonIcon color="action" sx={{ mr: 1 }} />
                 }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 3,
+                    backgroundColor: 'white',
+                    '&:hover fieldset': {
+                      borderColor: '#667eea',
+                    },
+                  }
+                }}
               />
             </Grid>
-            
+
+            {/* Nombre d'employés */}
             <Grid item xs={12} sm={6} width={'380px'}>
-              <ModernTextField
+              <TextField
                 fullWidth
+                margin="dense"
                 label="Nombre d'employés"
                 value={formData.nbr_employe || 0}
                 InputProps={{
@@ -309,12 +250,23 @@ const DepartementModal = ({
                 }}
                 disabled
                 helperText="Calculé automatiquement"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 3,
+                    backgroundColor: 'white',
+                    '&:hover fieldset': {
+                      borderColor: '#667eea',
+                    },
+                  }
+                }}
               />
             </Grid>
-            
-            <Grid item xs={12} width={'380px'} >
-              <ModernTextField
+
+            {/* Description */}
+            <Grid item xs={12} width={'380px'}>
+              <TextField
                 fullWidth
+                margin="dense"
                 label="Description du département"
                 name="description"
                 value={formData.description || ""}
@@ -327,12 +279,23 @@ const DepartementModal = ({
                 InputProps={{
                   startAdornment: <DescriptionIcon color="action" sx={{ mr: 1, mt: 1.5, alignSelf: 'flex-start' }} />
                 }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 3,
+                    backgroundColor: 'white',
+                    '&:hover fieldset': {
+                      borderColor: '#667eea',
+                    },
+                  }
+                }}
               />
             </Grid>
-            
-            <Grid item xs={12} width={'380px'} height={'50px'}>
-              <ModernTextField
+
+            {/* Localisation */}
+            <Grid item xs={12} width={'380px'}>
+              <TextField
                 fullWidth
+                margin="dense"
                 label="Localisation"
                 name="localisation"
                 value={formData.localisation || ""}
@@ -343,12 +306,21 @@ const DepartementModal = ({
                 InputProps={{
                   startAdornment: <LocationIcon color="action" sx={{ mr: 1 }} />
                 }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 3,
+                    backgroundColor: 'white',
+                    '&:hover fieldset': {
+                      borderColor: '#667eea',
+                    },
+                  }
+                }}
               />
             </Grid>
 
             {/* Badge d'état */}
             <Grid item xs={12}>
-              <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                 <Chip 
                   icon={<BusinessIcon />}
                   label={editingDepartement ? "Département existant" : "Nouveau département"}
@@ -367,61 +339,52 @@ const DepartementModal = ({
             </Grid>
           </Grid>
         </DialogContent>
-        
-        <DialogActions sx={{ p: 3, gap: 2, background: "rgba(0, 0, 0, 0.02)" }}>
-          <ModernButton
-            onClick={handleClose}
+
+        {/* Actions */}
+        <DialogActions sx={{ p: 3, gap: 2, background: 'rgba(255,255,255,0.6)' }}>
+          <Button 
+            onClick={handleClose} 
+            disabled={processing} 
             color="inherit"
-            variant="outlined"
-            disabled={processing}
+            startIcon={<CloseIcon />}
             sx={{ 
-              width: '350px',
-              flex: 1,
-              color: 'red',
-              border: "2px solid",
-              borderColor: "grey.300",
-              "&:hover": {
-                borderColor: "grey.400",
-                backgroundColor: "rgba(0, 0, 0, 0.04)"
+              borderRadius: 3, 
+              px: 3,
+              py: 1,
+              border: '1px solid #ddd',
+              '&:hover': {
+                backgroundColor: 'rgba(0,0,0,0.04)'
               }
             }}
-            type="button"
           >
             Annuler
-          </ModernButton>
-          
-          <ModernButton
+          </Button>
+          <Button
             type="submit"
             variant="contained"
-            color="primary"
-            disabled={processing}
-            startIcon={
-              processing ? (
-                <CircularProgress size={20} color="inherit" />
-              ) : (
-                <SaveIcon />
-              )
-            }
+            disabled={processing || !formData.id_departement || !formData.nom || !formData.responsable}
+            startIcon={processing ? <CircularProgress size={16} /> : <SaveIcon />}
             sx={{ 
-              flex: 1,
-              width: '350px',
-              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-              "&:hover": {
-                background: "linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%)",
-              }
+              borderRadius: 3, 
+              px: 4, 
+              py: 1,
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
+              '&:hover': {
+                boxShadow: '0 6px 20px rgba(102, 126, 234, 0.4)',
+                transform: 'translateY(-1px)'
+              },
+              '&:disabled': {
+                background: 'grey.300'
+              },
+              transition: 'all 0.3s ease'
             }}
           >
-            {processing ? (
-              "Traitement..."
-            ) : editingDepartement ? (
-              "Mettre à jour"
-            ) : (
-              "Créer le département"
-            )}
-          </ModernButton>
+            {processing ? "Traitement..." : (editingDepartement ? "Modifier" : "Créer")}
+          </Button>
         </DialogActions>
       </form>
-      
+
       {/* Overlay de chargement */}
       {processing && (
         <Box
@@ -431,21 +394,20 @@ const DepartementModal = ({
             left: 0,
             right: 0,
             bottom: 0,
-            background: "linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(248,250,252,0.9) 100%)",
+            background: 'rgba(255, 255, 255, 0.8)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 1,
-            borderRadius: '20px',
-            backdropFilter: "blur(4px)",
+            borderRadius: '16px',
+            backdropFilter: 'blur(4px)',
           }}
         >
           <Box sx={{ textAlign: 'center' }}>
             <CircularProgress 
-              size={70} 
-              thickness={4}
+              size={60}
               sx={{ 
-                color: "primary.main",
+                color: '#667eea',
                 mb: 2
               }} 
             />
@@ -458,7 +420,7 @@ const DepartementModal = ({
           </Box>
         </Box>
       )}
-    </ModernDialog>
+    </Dialog>
   );
 };
 

@@ -66,8 +66,16 @@ const Absences = () => {
   const [stats, setStats] = useState({ total: 0, justifiees: 0, nonJustifiees: 0 });
   const [generatingPDF, setGeneratingPDF] = useState(false);
 
+  // ✅ FONCTION POUR GÉNÉRER L'ID AUTOMATIQUE AU FORMAT ABS0024
+  const generateAbsenceId = () => {
+    // Génère un nombre aléatoire entre 1 et 9999 et le formate sur 4 chiffres
+    const randomNum = Math.floor(Math.random() * 9999) + 1;
+    const formattedNum = randomNum.toString().padStart(4, '0');
+    return `ABS${formattedNum}`;
+  };
+
   const initialFormData = {
-    id_absence: `A${Date.now()}`,
+    id_absence: "", // ← Vide par défaut, sera généré automatiquement
     employe: "",
     date_debut_absence: format(new Date(), "yyyy-MM-dd"),
     date_fin_absence: format(new Date(), "yyyy-MM-dd"),
@@ -193,7 +201,11 @@ const Absences = () => {
       });
     } else {
       setEditingAbsence(null);
-      setFormData({ ...initialFormData, id_absence: `A${Date.now()}` });
+      // ✅ GÉNÉRATION AUTOMATIQUE DE L'ID AU FORMAT ABS0024
+      setFormData({ 
+        ...initialFormData, 
+        id_absence: generateAbsenceId() // ← ID généré automatiquement
+      });
     }
     setOpenDialog(true);
   };
@@ -313,7 +325,6 @@ const Absences = () => {
   const handleGeneratePDF = async () => {
     setGeneratingPDF(true);
     try {
-      // ✅ UTILISEZ LA NOUVELLE FONCTION D'EXPORT
       const result = await exportAbsencesPDF({
         search_term: searchTerm,
         justification_filter: justificationFilter,
@@ -367,7 +378,6 @@ const Absences = () => {
       />
       <Sidebar open={open} setOpen={setOpen} />
       
-      {/* CONTENU PRINCIPAL AVEC BON STYLE */}
       <Box 
         component="main" 
         sx={{ 

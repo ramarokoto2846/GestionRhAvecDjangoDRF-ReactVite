@@ -24,7 +24,9 @@ import {
   Warning as WarningIcon,
   BeachAccess as BeachAccessIcon,
   AccessTime as AccessTimeIcon,
-  ReportProblem as ReportProblemIcon
+  ReportProblem as ReportProblemIcon,
+  Person as PersonIcon,
+  Email as EmailIcon
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
@@ -43,6 +45,7 @@ const Header = ({ user, onMenuToggle }) => {
   const navigate = useNavigate();
   const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState(null);
+  const [settingsAnchorEl, setSettingsAnchorEl] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [notificationsCount, setNotificationsCount] = useState(0);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -82,6 +85,14 @@ const Header = ({ user, onMenuToggle }) => {
 
   const handleNotificationsClose = () => {
     setAnchorEl(null);
+  };
+
+  const handleSettingsClick = (event) => {
+    setSettingsAnchorEl(event.currentTarget);
+  };
+
+  const handleSettingsClose = () => {
+    setSettingsAnchorEl(null);
   };
 
   const handleNotificationClick = (type) => {
@@ -148,7 +159,7 @@ const Header = ({ user, onMenuToggle }) => {
         }] : [];
 
         // Absences non justifiées
-        const absencesNonJustifiees = absencesData.filter(a => !a.justifie);
+        const absencesNonJustifiees = absencesData.filter(a => !a.justifiee);
         console.log("Absences non justifiées:", absencesNonJustifiees); // Debug
         const absencesNotification = absencesNonJustifiees.length > 0 ? [{
           type: "absences",
@@ -290,6 +301,7 @@ const Header = ({ user, onMenuToggle }) => {
         </Menu>
 
         <IconButton
+          onClick={handleSettingsClick}
           sx={{
             mr: 1,
             bgcolor: alpha(theme.palette.grey[500], 0.1),
@@ -299,21 +311,60 @@ const Header = ({ user, onMenuToggle }) => {
           <SettingsIcon />
         </IconButton>
 
-        {user && (
-          <Box sx={{ display: "flex", alignItems: "center", mr: 2 }}>
-            <Avatar sx={{ bgcolor: "primary.main", width: 40, height: 40, mr: 1.5, fontWeight: "bold" }}>
-              {user.nom?.charAt(0)?.toUpperCase() || user.prenom?.charAt(0)?.toUpperCase() || user.email?.charAt(0)?.toUpperCase() || "U"}
-            </Avatar>
-            <Box sx={{ display: { xs: "none", sm: "block" } }}>
-              <Typography variant="body2" sx={{ fontWeight: "medium" }}>
-                {user.nom || user.prenom ? `${user.prenom || ''} ${user.nom || ''}`.trim() : user.email}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {user.role === 'admin' ? 'Administrateur' : 'Utilisateur'}
-              </Typography>
-            </Box>
+        <Menu
+          anchorEl={settingsAnchorEl}
+          open={Boolean(settingsAnchorEl)}
+          onClose={handleSettingsClose}
+          PaperProps={{
+            sx: {
+              width: 280,
+              mt: 1,
+              borderRadius: 2
+            }
+          }}
+        >
+          <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}` }}>
+            <Typography variant="h6" sx={{ fontWeight: "bold" }}>
+              Informations utilisateur
+            </Typography>
           </Box>
-        )}
+
+          {user && (
+            <Box sx={{ p: 2 }}>
+              <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                <Avatar 
+                  sx={{ 
+                    bgcolor: "primary.main", 
+                    width: 48, 
+                    height: 48, 
+                    mr: 2,
+                    fontWeight: "bold",
+                    fontSize: "1.2rem"
+                  }}
+                >
+                  <PersonIcon />
+                </Avatar>
+                <Box>
+                  <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
+                    {user.nom || user.prenom ? `${user.prenom || ''} ${user.nom || ''}`.trim() : "Utilisateur"}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {user.role === 'admin' ? 'Administrateur' : 'Utilisateur'}
+                  </Typography>
+                </Box>
+              </Box>
+
+              {user.email && (
+                <Box sx={{ display: "flex", alignItems: "center", mt: 2 }}>
+                  <EmailIcon color="action" sx={{ mr: 1.5, fontSize: 20 }} />
+                  <Typography variant="body2" color="text.secondary">
+                    {user.email}
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          )}
+        </Menu>
 
         <Button
           color="error"

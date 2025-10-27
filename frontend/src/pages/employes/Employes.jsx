@@ -37,7 +37,7 @@ import {
   getDepartements, 
   getCurrentUser, 
   isSuperuser,
-  exportEmployesPDF // AJOUT IMPORT PDF
+  exportEmployesPDF
 } from "../../services/api";
 import Header, { triggerNotificationsRefresh } from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
@@ -59,6 +59,8 @@ const Employes = ({ isSuperuser: isSuperuserProp }) => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [departementFilter, setDepartementFilter] = useState("");
+  // ✅ NOUVEAU ÉTAT POUR FILTRE STATUT
+  const [statutFilter, setStatutFilter] = useState("tous");
   const [formData, setFormData] = useState({
     matricule: "",
     titre: "stagiaire",
@@ -76,10 +78,8 @@ const Employes = ({ isSuperuser: isSuperuserProp }) => {
   const [isSuperuserState, setIsSuperuserState] = useState(isSuperuserProp);
   const [errors, setErrors] = useState({});
   
-  // ✅ NOUVEAU ÉTAT POUR PDF
   const [generatingPDF, setGeneratingPDF] = useState(false);
 
-  // --- Récupération utilisateur et données ---
   useEffect(() => {
     const fetchUserAndData = async () => {
       const token = localStorage.getItem("access_token");
@@ -89,19 +89,16 @@ const Employes = ({ isSuperuser: isSuperuserProp }) => {
       }
 
       try {
-        // Récupérer les informations de l'utilisateur
         const user = await getCurrentUser();
         setCurrentUser(user);
-        console.log("Utilisateur connecté:", user); // Débogage
+        console.log("Utilisateur connecté:", user);
 
-        // Vérifier le statut de superutilisateur si non passé en prop
         if (!isSuperuserProp) {
           const superuser = await isSuperuser();
           setIsSuperuserState(superuser);
-          console.log("Statut superutilisateur:", superuser); // Débogage
+          console.log("Statut superutilisateur:", superuser);
         }
 
-        // Récupérer les données
         await fetchData();
       } catch (err) {
         console.error("Erreur lors de la récupération de l'utilisateur:", err);
@@ -115,7 +112,6 @@ const Employes = ({ isSuperuser: isSuperuserProp }) => {
     fetchUserAndData();
   }, [navigate, isSuperuserProp]);
 
-  // --- CRUD Employés ---
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -126,7 +122,7 @@ const Employes = ({ isSuperuser: isSuperuserProp }) => {
       ]);
       setEmployes(Array.isArray(employesData) ? employesData : []);
       setDepartements(Array.isArray(departementsData) ? departementsData : []);
-      console.log("Employés mis à jour:", employesData); // Débogage
+      console.log("Employés mis à jour:", employesData);
       setLoading(false);
     } catch (err) {
       console.error("Erreur lors du chargement des données:", err);
@@ -136,7 +132,6 @@ const Employes = ({ isSuperuser: isSuperuserProp }) => {
     }
   };
 
-  // ✅ NOUVELLE FONCTION POUR GÉNÉRER LE PDF
   const handleGeneratePDF = async () => {
     setGeneratingPDF(true);
     try {
@@ -273,6 +268,12 @@ const Employes = ({ isSuperuser: isSuperuserProp }) => {
     setPage(0);
   };
 
+  // ✅ NOUVELLE FONCTION POUR FILTRE STATUT
+  const handleStatutFilterChange = (event) => {
+    setStatutFilter(event.target.value);
+    setPage(0);
+  };
+
   const showSnackbar = (message, severity = "success") => {
     setSnackbar({ open: true, message, severity });
   };
@@ -286,6 +287,7 @@ const Employes = ({ isSuperuser: isSuperuserProp }) => {
     setPage(0);
   };
 
+  // ✅ MODIFICATION DE LA FONCTION DE FILTRAGE POUR INCLURE LE STATUT
   const filteredData = employes.filter((employe) => {
     const matchesSearch =
       (employe.nom || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -298,7 +300,12 @@ const Employes = ({ isSuperuser: isSuperuserProp }) => {
       !departementFilter ||
       (employe.departement && String(employe.departement.id_departement) === departementFilter);
 
-    return matchesSearch && matchesDepartement;
+    // ✅ NOUVEAU FILTRE POUR LE STATUT
+    const matchesStatut =
+      statutFilter === "tous" ||
+      employe.statut === statutFilter;
+
+    return matchesSearch && matchesDepartement && matchesStatut;
   });
 
   const paginatedData = filteredData.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
@@ -335,7 +342,6 @@ const Employes = ({ isSuperuser: isSuperuserProp }) => {
       />
       <Sidebar open={open} setOpen={setOpen} />
       
-      {/* CONTENU PRINCIPAL AVEC BON STYLE */}
       <Box 
         component="main" 
         sx={{ 
@@ -351,7 +357,6 @@ const Employes = ({ isSuperuser: isSuperuserProp }) => {
           }),
         }}
       >
-        {/* Titre + boutons */}
         <Box 
           sx={{ 
             display: "flex", 
@@ -371,7 +376,6 @@ const Employes = ({ isSuperuser: isSuperuserProp }) => {
             </Typography>
           </Box>
           
-          {/* ✅ NOUVEAU : STACK AVEC BOUTON PDF ET NOUVEL EMPLOYÉ */}
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
             <Button
               variant="outlined"
@@ -409,7 +413,6 @@ const Employes = ({ isSuperuser: isSuperuserProp }) => {
           </Stack>
         </Box>
 
-        {/* Cartes de statistiques */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid item xs={12} sm={6} md={3}>
             <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
@@ -434,6 +437,16 @@ const Employes = ({ isSuperuser: isSuperuserProp }) => {
           <Grid item xs={12} sm={6} md={3}>
             <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
               <CardContent>
+                <Typography color="text.secondary">Employés Inactifs</Typography>
+                <Typography variant="h4" sx={{ fontWeight: "bold", color: "error.main" }}>
+                  {employes.filter(e => e.statut === 'inactif').length}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
+              <CardContent>
                 <Typography color="text.secondary">Départements</Typography>
                 <Typography variant="h4" sx={{ fontWeight: "bold", color: "info.main" }}>
                   {departements.length}
@@ -443,10 +456,10 @@ const Employes = ({ isSuperuser: isSuperuserProp }) => {
           </Grid>
         </Grid>
 
-        {/* Barre de recherche et filtres */}
+        {/* ✅ MODIFICATION DE LA BARRE DE FILTRES POUR AJOUTER LE FILTRE STATUT */}
         <Paper sx={{ p: 2, mb: 3, borderRadius: 3 }}>
           <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={6} width={'500px'}>
+            <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
                 placeholder="Rechercher un employé..."
@@ -471,7 +484,7 @@ const Employes = ({ isSuperuser: isSuperuserProp }) => {
                 }}
               />
             </Grid>
-            <Grid item xs={12} md={6} width={'500px'}>
+            <Grid item xs={12} md={4}>
               <FormControl fullWidth>
                 <InputLabel id="departement-filter-label">
                   Filtrer par département
@@ -501,10 +514,29 @@ const Employes = ({ isSuperuser: isSuperuserProp }) => {
                 </Select>
               </FormControl>
             </Grid>
+            {/* ✅ NOUVEAU FILTRE STATUT */}
+            <Grid item xs={12} md={4}>
+              <FormControl fullWidth>
+                <InputLabel id="statut-filter-label">
+                  Filtrer par statut
+                </InputLabel>
+                <Select
+                  labelId="statut-filter-label"
+                  value={statutFilter}
+                  label="Filtrer par statut"
+                  onChange={handleStatutFilterChange}
+                >
+                  <MenuItem value="tous">
+                    <em>Tous les statuts</em>
+                  </MenuItem>
+                  <MenuItem value="actif">Actif</MenuItem>
+                  <MenuItem value="inactif">Inactif</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
           </Grid>
         </Paper>
 
-        {/* Tableau des employés */}
         <EmployeTableau
           employes={employes}
           filteredData={filteredData}
@@ -522,7 +554,6 @@ const Employes = ({ isSuperuser: isSuperuserProp }) => {
           isSuperuser={isSuperuserState}
         />
 
-        {/* Modal d'ajout/modification */}
         <EmployModal
           openDialog={openDialog}
           handleCloseDialog={handleCloseDialog}
@@ -536,7 +567,6 @@ const Employes = ({ isSuperuser: isSuperuserProp }) => {
           theme={theme}
         />
 
-        {/* Snackbar pour les notifications */}
         <Snackbar
           open={snackbar.open}
           autoHideDuration={6000}

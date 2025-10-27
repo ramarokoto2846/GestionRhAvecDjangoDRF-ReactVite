@@ -19,13 +19,16 @@ import UpcomingIcon from '@mui/icons-material/Upcoming';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
 import PrintIcon from '@mui/icons-material/Print';
+import EmailIcon from '@mui/icons-material/Email';
 
 import { 
   getEvenements, 
   getCurrentUser, 
   deleteEvenement, 
   isSuperuser,
-  exportEvenementsPDF // AJOUT IMPORT PDF
+  exportEvenementsPDF,
+  sendAllEventsEmail,
+  sendEventEmail
 } from "../../services/api";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
@@ -50,52 +53,233 @@ const Evenements = () => {
   const [statusFilter, setStatusFilter] = useState("tous");
   const [monthFilter, setMonthFilter] = useState("tous");
   
-  // ✅ NOUVEAU ÉTAT POUR PDF
+  // États pour les fonctionnalités
   const [generatingPDF, setGeneratingPDF] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [sendingSingleEmail, setSendingSingleEmail] = useState(null);
   
   const notificationsCount = 3;
 
+  // Fonction showSnackbar
+  const showSnackbar = (message, severity = "success") => {
+    setSnackbar({ open: true, message, severity });
+  };
+
+  // Effet de montage
   useEffect(() => {
+    let isMounted = true;
+
     const fetchUserAndData = async () => {
       try {
         const token = localStorage.getItem("access_token");
         if (!token) {
-          setError("Vous devez être connecté pour accéder à cette page.");
           navigate("/");
           return;
         }
+        
         setLoading(true);
-        const userData = await getCurrentUser();
-        setUser(userData);
+        setError(null);
         
-        // Vérifier le statut superutilisateur
-        const superuserStatus = await isSuperuser();
-        setIsSuperuserState(superuserStatus);
+        const [userData, superuserStatus, eventsData] = await Promise.all([
+          getCurrentUser(),
+          isSuperuser(),
+          getEvenements()
+        ]);
         
-        await fetchEvenements();
+        if (isMounted) {
+          setUser(userData);
+          setIsSuperuserState(superuserStatus);
+          setEvenements(Array.isArray(eventsData) ? eventsData : (Array.isArray(eventsData?.data) ? eventsData.data : []));
+        }
       } catch (error) {
-        setError(error.message || "Erreur lors de l'initialisation des données.");
-        navigate("/");
+        if (isMounted) {
+          setError(error.message || "Erreur lors du chargement des données.");
+          showSnackbar("Erreur lors du chargement des données", "error");
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
+
     fetchUserAndData();
+
+    return () => {
+      isMounted = false;
+    };
   }, [navigate]);
 
+  // Fonction pour recharger les événements
   const fetchEvenements = async () => {
     try {
-      setLoading(true);
-      setError(null);
       const data = await getEvenements();
-      setEvenements(Array.isArray(data) ? data : (Array.isArray(data.data) ? data.data : []));
+      setEvenements(Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : []));
     } catch (error) {
-      setError("Erreur lors du chargement des événements");
-      showSnackbar("Impossible de charger les événements", "error");
-    } finally {
-      setLoading(false);
+      showSnackbar("Erreur lors du rechargement des événements", "error");
     }
   };
 
-  // ✅ NOUVELLE FONCTION POUR GÉNÉRER LE PDF
+  // ✅ FONCTION POUR ENVOYER UN ÉVÉNEMENT INDIVIDUEL
+  const handleSendSingleEmail = async (evenement) => {
+    // Vérifier si l'événement est passé
+    const eventStatus = getEventStatus(evenement);
+    if (eventStatus === "passe") {
+      await Swal.fire({
+        title: 'Événement terminé',
+        text: 'Impossible d\'envoyer un email pour un événement déjà terminé.',
+        icon: 'warning',
+        confirmButtonColor: '#3085d6',
+        confirmButtonText: 'OK'
+      });
+      return;
+    }
+
+    // Demander confirmation
+    const result = await Swal.fire({
+      title: 'Envoyer cet événement ?',
+      html: `
+        <div style="text-align: left;">
+          <p>Vous allez envoyer cet événement à <strong>tous les employés</strong> :</p>
+          <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
+            <p><strong>${evenement.titre || "Sans titre"}</strong></p>
+            <p><strong>Date :</strong> ${formatDateForDisplay(evenement.date_debut)}</p>
+            <p><strong>Lieu :</strong> ${evenement.lieu || "Non spécifié"}</p>
+            ${evenement.description ? `<p><strong>Description :</strong> ${evenement.description}</p>` : ''}
+          </div>
+          <p style="color: #666; font-size: 14px;">Cette action enverra un email à tous les employés actifs.</p>
+        </div>
+      `,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Oui, envoyer !',
+      cancelButtonText: 'Annuler',
+      width: 500
+    });
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    setSendingSingleEmail(evenement.id_evenement);
+    try {
+      const result = await sendEventEmail(evenement.id_evenement);
+      
+      // Afficher une Sweet Alert de succès
+      await Swal.fire({
+        title: 'Événement envoyé !',
+        html: `
+          <div style="text-align: center;">
+            <div style="font-size: 48px; color: #4CAF50; margin-bottom: 20px;">✓</div>
+            <p style="font-size: 18px; margin-bottom: 10px;"><strong>${result.message}</strong></p>
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
+              <p><strong>Événement :</strong> ${evenement.titre || "Sans titre"}</p>
+              <p><strong>Date :</strong> ${formatDateForDisplay(evenement.date_debut)}</p>
+              <p><strong>Destinataires :</strong> ${result.destinataires} employés</p>
+            </div>
+            <p style="color: #666; font-size: 14px;">Les employés ont reçu l'événement par email.</p>
+          </div>
+        `,
+        icon: 'success',
+        confirmButtonColor: '#3085d6',
+        confirmButtonText: 'OK',
+        width: 550
+      });
+      
+    } catch (error) {
+      await Swal.fire({
+        title: 'Erreur',
+        text: error.message || "Erreur lors de l'envoi de l'email",
+        icon: 'error',
+        confirmButtonColor: '#d33',
+        confirmButtonText: 'OK'
+      });
+    } finally {
+      setSendingSingleEmail(null);
+    }
+  };
+
+  // ✅ FONCTION UNIQUE POUR ENVOYER TOUS LES ÉVÉNEMENTS
+  const handleSendAllEmails = async () => {
+    // Vérifier s'il y a des événements
+    if (evenements.length === 0) {
+      await Swal.fire({
+        title: 'Aucun événement',
+        text: 'Il n\'y a aucun événement à envoyer.',
+        icon: 'warning',
+        confirmButtonColor: '#3085d6',
+        confirmButtonText: 'OK'
+      });
+      return;
+    }
+
+    // Demander confirmation
+    const result = await Swal.fire({
+      title: 'Envoyer le calendrier ?',
+      html: `
+        <div style="text-align: center;">
+          <p>Vous allez envoyer le calendrier des événements à <strong>tous les employés</strong>.</p>
+          <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
+            <p><strong>Événements à envoyer :</strong> ${evenements.length}</p>
+            <p><strong>Période couverte :</strong> Tous les événements</p>
+          </div>
+          <p style="color: #666; font-size: 14px;">Cette action enverra un email à tous les employés actifs.</p>
+        </div>
+      `,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Oui, envoyer !',
+      cancelButtonText: 'Annuler',
+      width: 500
+    });
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    setSendingEmail(true);
+    try {
+      const result = await sendAllEventsEmail();
+      
+      // Afficher une Sweet Alert de succès
+      await Swal.fire({
+        title: 'Calendrier envoyé !',
+        html: `
+          <div style="text-align: center;">
+            <div style="font-size: 48px; color: #4CAF50; margin-bottom: 20px;">✓</div>
+            <p style="font-size: 18px; margin-bottom: 10px;"><strong>${result.message}</strong></p>
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
+              <p><strong>Destinataires :</strong> ${result.destinataires} employés</p>
+              <p><strong>Événements inclus :</strong> ${result.evenements_inclus}</p>
+              ${result.periode ? `<p><strong>Période :</strong> ${result.periode}</p>` : ''}
+            </div>
+            <p style="color: #666; font-size: 14px;">Les employés ont reçu le calendrier par email.</p>
+          </div>
+        `,
+        icon: 'success',
+        confirmButtonColor: '#3085d6',
+        confirmButtonText: 'OK',
+        width: 550
+      });
+      
+    } catch (error) {
+      await Swal.fire({
+        title: 'Erreur',
+        text: error.message,
+        icon: 'error',
+        confirmButtonColor: '#d33',
+        confirmButtonText: 'OK'
+      });
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
+  // ✅ FONCTION POUR GÉNÉRER LE PDF
   const handleGeneratePDF = async () => {
     setGeneratingPDF(true);
     try {
@@ -146,10 +330,6 @@ const Evenements = () => {
     }
   };
 
-  const showSnackbar = (message, severity = "success") => {
-    setSnackbar({ open: true, message, severity });
-  };
-
   const handleCloseSnackbar = () => {
     setSnackbar({ ...snackbar, open: false });
   };
@@ -173,6 +353,18 @@ const Evenements = () => {
   const handleMonthFilterChange = (event) => {
     setMonthFilter(event.target.value);
     setPage(0);
+  };
+
+  // ✅ FONCTION POUR FORMATER LA DATE POUR L'AFFICHAGE
+  const formatDateForDisplay = (dateString) => {
+    if (!dateString) return "Date non spécifiée";
+    try {
+      const date = parseISO(dateString);
+      return format(date, "dd MMMM yyyy 'à' HH:mm", { locale: fr });
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return "Date invalide";
+    }
   };
 
   const getEventStatus = (evenement) => {
@@ -235,18 +427,21 @@ const Evenements = () => {
     
     evenements.forEach(evenement => {
       try {
-        const dateDebut = parseISO(evenement.date_debut);
-        if (isValid(dateDebut)) {
-          const month = dateDebut.getMonth() + 1;
-          monthsSet.add(month);
+        if (evenement && evenement.date_debut) {
+          const dateDebut = parseISO(evenement.date_debut);
+          if (isValid(dateDebut)) {
+            const month = dateDebut.getMonth() + 1;
+            monthsSet.add(month);
+          }
         }
       } catch (error) {
         console.error("Error parsing date:", error);
       }
     });
     
-    for (let month = 1; month <= 12; month++) {
-      monthsSet.add(month);
+    // S'assurer qu'il y a au moins quelques mois
+    if (monthsSet.size === 0) {
+      return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
     }
     
     const months = Array.from(monthsSet).sort((a, b) => a - b);
@@ -304,8 +499,21 @@ const Evenements = () => {
     return format(date, "MMMM", { locale: fr });
   };
 
-  if (loading) return <Box sx={{ display: "flex", justifyContent: "center", mt: 10 }}><CircularProgress /></Box>;
-  if (error) return <Box sx={{ display: "flex", justifyContent: "center", mt: 10 }}><Typography color="error">{error}</Typography></Box>;
+  if (loading) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
+        <Alert severity="error">{error}</Alert>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ display: "flex" }}>
@@ -339,7 +547,7 @@ const Evenements = () => {
           </Alert>
         )}
 
-        {/* Titre + boutons */}
+        {/* Titre + boutons - STYLE SIMILAIRE À EMPLOYÉS */}
         <Box 
           sx={{ 
             display: "flex", 
@@ -359,8 +567,9 @@ const Evenements = () => {
             </Typography>
           </Box>
           
-          {/* ✅ NOUVEAU : STACK AVEC BOUTON PDF ET NOUVEL ÉVÉNEMENT */}
+          {/* ✅ STACK AVEC BOUTONS PDF, EMAIL ET NOUVEL ÉVÉNEMENT */}
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            {/* Bouton PDF */}
             <Button
               variant="outlined"
               onClick={handleGeneratePDF}
@@ -368,7 +577,7 @@ const Evenements = () => {
               startIcon={generatingPDF ? <CircularProgress size={20} /> : <PrintIcon />}
               sx={{
                 borderRadius: 2,
-                minWidth: 200,
+                minWidth: 180,
                 px: 3,
                 textTransform: "none",
                 fontWeight: "bold",
@@ -377,7 +586,33 @@ const Evenements = () => {
             >
               {generatingPDF ? "Génération..." : "Imprimer PDF"}
             </Button>
+
+            {/* ✅ BOUTON UNIQUE POUR ENVOYER TOUS LES ÉVÉNEMENTS PAR EMAIL */}
+            {isSuperuserState && (
+              <Button
+                variant="contained"
+                color="secondary"
+                onClick={handleSendAllEmails}
+                disabled={sendingEmail || evenements.length === 0}
+                startIcon={sendingEmail ? <CircularProgress size={20} /> : <EmailIcon />}
+                sx={{
+                  borderRadius: 2,
+                  minWidth: 250,
+                  px: 3,
+                  textTransform: "none",
+                  fontWeight: "bold",
+                  fontSize: '1rem',
+                  bgcolor: 'secondary.main',
+                  '&:hover': {
+                    bgcolor: 'secondary.dark',
+                  }
+                }}
+              >
+                {sendingEmail ? "Envoi en cours..." : `Envoyer calendrier (${evenements.length})`}
+              </Button>
+            )}
             
+            {/* Bouton Nouvel Événement */}
             <Fab
               color="primary"
               onClick={() => handleOpenDialog()}
@@ -397,14 +632,14 @@ const Evenements = () => {
           </Stack>
         </Box>
 
-        {/* Cartes de statistiques */}
+        {/* ✅ CARTES DE STATISTIQUES - STYLE SIMILAIRE À EMPLOYÉS */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid item xs={12} sm={6} md={3}>
             <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
               <CardContent>
                 <Typography color="text.secondary">Total Événements</Typography>
                 <Typography variant="h4" sx={{ fontWeight: "bold", color: "primary.main" }}>
-                  {evenements.length}
+                  {eventCounts.tous}
                 </Typography>
               </CardContent>
             </Card>
@@ -412,10 +647,7 @@ const Evenements = () => {
           <Grid item xs={12} sm={6} md={3}>
             <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
               <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <UpcomingIcon color="info" sx={{ mr: 1 }} />
-                  <Typography color="text.secondary">Événements à venir</Typography>
-                </Box>
+                <Typography color="text.secondary">À Venir</Typography>
                 <Typography variant="h4" sx={{ fontWeight: "bold", color: "info.main" }}>
                   {eventCounts["a-venir"]}
                 </Typography>
@@ -425,10 +657,7 @@ const Evenements = () => {
           <Grid item xs={12} sm={6} md={3}>
             <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
               <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <EventAvailableIcon color="success" sx={{ mr: 1 }} />
-                  <Typography color="text.secondary">Événements en cours</Typography>
-                </Box>
+                <Typography color="text.secondary">En Cours</Typography>
                 <Typography variant="h4" sx={{ fontWeight: "bold", color: "success.main" }}>
                   {eventCounts["en-cours"]}
                 </Typography>
@@ -438,11 +667,8 @@ const Evenements = () => {
           <Grid item xs={12} sm={6} md={3}>
             <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
               <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <EventBusyIcon color="error" sx={{ mr: 1 }} />
-                  <Typography color="text.secondary">Événements passés</Typography>
-                </Box>
-                <Typography variant="h4" sx={{ fontWeight: "bold", color: "error.main" }}>
+                <Typography color="text.secondary">Terminés</Typography>
+                <Typography variant="h4" sx={{ fontWeight: "bold", color: "grey.600" }}>
                   {eventCounts["passe"]}
                 </Typography>
               </CardContent>
@@ -450,13 +676,13 @@ const Evenements = () => {
           </Grid>
         </Grid>
 
-        {/* Barre de recherche et filtres */}
+        {/* ✅ BARRE DE FILTRES - STYLE SIMILAIRE À EMPLOYÉS */}
         <Paper sx={{ p: 2, mb: 3, borderRadius: 3 }}>
           <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={4} width={'450px'}>
+            <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
-                placeholder="Rechercher par titre, lieu ou description..."
+                placeholder="Rechercher un événement..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 InputProps={{
@@ -474,53 +700,39 @@ const Evenements = () => {
                         <CloseIcon />
                       </IconButton>
                     </InputAdornment>
-                  )
+                  ),
                 }}
               />
             </Grid>
-            <Grid item xs={12} md={4} width={'450px'}>
-              <ToggleButtonGroup
-                value={statusFilter}
-                exclusive
-                onChange={handleStatusFilterChange}
-                aria-label="filtre statut événement"
-                fullWidth
-              >
-                <ToggleButton value="tous" aria-label="tous les événements">
-                  <Typography variant="body2">Tous ({eventCounts.tous})</Typography>
-                </ToggleButton>
-                <ToggleButton value="a-venir" aria-label="événements à venir">
-                  <UpcomingIcon sx={{ mr: 1 }} />
-                  <Typography variant="body2">À venir ({eventCounts["a-venir"]})</Typography>
-                </ToggleButton>
-                <ToggleButton value="en-cours" aria-label="événements en cours">
-                  <EventAvailableIcon sx={{ mr: 1 }} />
-                  <Typography variant="body2">En cours ({eventCounts["en-cours"]})</Typography>
-                </ToggleButton>
-                <ToggleButton value="passe" aria-label="événements passés">
-                  <EventBusyIcon sx={{ mr: 1 }} />
-                  <Typography variant="body2">Passés ({eventCounts["passe"]})</Typography>
-                </ToggleButton>
-              </ToggleButtonGroup>
-            </Grid>
-            <Grid item xs={12} md={4} width={'450px'}>
+            
+            <Grid item xs={12} md={4}>
               <FormControl fullWidth>
-                <InputLabel id="month-filter-label">
-                  Filtrer par mois
-                </InputLabel>
+                <InputLabel id="status-filter-label">Statut</InputLabel>
+                <Select
+                  labelId="status-filter-label"
+                  value={statusFilter}
+                  label="Statut"
+                  onChange={(e) => handleStatusFilterChange(null, e.target.value)}
+                >
+                  <MenuItem value="tous">Tous les statuts</MenuItem>
+                  <MenuItem value="a-venir">À venir</MenuItem>
+                  <MenuItem value="en-cours">En cours</MenuItem>
+                  <MenuItem value="passe">Terminés</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12} md={4}>
+              <FormControl fullWidth>
+                <InputLabel id="month-filter-label">Mois</InputLabel>
                 <Select
                   labelId="month-filter-label"
                   value={monthFilter}
-                  label="Filtrer par mois"
+                  label="Mois"
                   onChange={handleMonthFilterChange}
-                  startAdornment={
-                    <InputAdornment position="start">
-                      <FilterListIcon />
-                    </InputAdornment>
-                  }
                 >
                   <MenuItem value="tous">Tous les mois</MenuItem>
-                  {availableMonths.map(month => (
+                  {availableMonths.map((month) => (
                     <MenuItem key={month} value={month.toString()}>
                       {formatMonthForDisplay(month.toString())}
                     </MenuItem>
@@ -540,21 +752,19 @@ const Evenements = () => {
           onRowsPerPageChange={handleChangeRowsPerPage}
           onEdit={handleOpenDialog}
           onDelete={handleDelete}
+          onSendEmail={handleSendSingleEmail}
           getEventStatus={getEventStatus}
           getEventDuration={getEventDuration}
           user={user}
           isSuperuser={isSuperuserState}
         />
 
-        {/* Modal d'ajout/modification */}
+        {/* Modal d'édition/création */}
         <EvenementModal
           open={openDialog}
           onClose={handleCloseDialog}
           evenement={currentEvenement}
-          onSave={() => {
-            fetchEvenements();
-            handleCloseDialog();
-          }}
+          onSave={fetchEvenements}
           showSnackbar={showSnackbar}
         />
 
