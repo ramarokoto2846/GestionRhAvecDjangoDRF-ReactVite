@@ -14,8 +14,7 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import AddIcon from '@mui/icons-material/Add';
 import LockIcon from '@mui/icons-material/Lock';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import EmailIcon from '@mui/icons-material/Email';
-import MarkEmailReadIcon from '@mui/icons-material/MarkEmailRead'; // ✅ Nouvelle icône
+// SUPPRIMER les imports EmailIcon et MarkEmailReadIcon
 
 const EvenementTable = ({
   evenements,
@@ -25,7 +24,7 @@ const EvenementTable = ({
   onRowsPerPageChange,
   onEdit,
   onDelete,
-  onSendEmail,
+  // SUPPRIMER onSendEmail - plus nécessaire
   getEventStatus,
   getEventDuration,
   user,
@@ -45,10 +44,7 @@ const EvenementTable = ({
     return status === "passe";
   };
 
-  // ✅ NOUVELLE FONCTION : Vérifier si l'email a déjà été envoyé
-  const isEmailSent = (evenement) => {
-    return evenement.email_envoye === true || evenement.email_sent === true;
-  };
+  // SUPPRIMER la fonction isEmailSent - plus nécessaire
 
   // Vérifier si l'utilisateur peut modifier/supprimer (créateur ou superutilisateur)
   const canEditOrDelete = (evenement) => {
@@ -103,8 +99,6 @@ const EvenementTable = ({
               const status = getEventStatus(evenement);
               const duration = getEventDuration(evenement);
               const canEditDelete = canEditOrDelete(evenement);
-              const eventPassed = isEventPassed(evenement);
-              const emailSent = isEmailSent(evenement); // ✅ Vérifier si email envoyé
               
               return (
                 <TableRow key={evenement.id_evenement} hover>
@@ -150,46 +144,8 @@ const EvenementTable = ({
                   <TableCell>{evenement.lieu || "Non spécifié"}</TableCell>
                   <TableCell align="center">
                     <Box sx={{ display: "flex", gap: 1, alignItems: "center", justifyContent: "center" }}>
-                      {/* ✅ ICÔNE EMAIL AMÉLIORÉE */}
-                      {emailSent ? (
-                        // ✅ Icône "email déjà envoyé" (vert)
-                        <Tooltip title="Email déjà envoyé">
-                          <span>
-                            <IconButton
-                              color="success"
-                              disabled
-                              sx={{
-                                opacity: 0.7,
-                                '&:hover': {
-                                  backgroundColor: 'transparent',
-                                }
-                              }}
-                            >
-                              <MarkEmailReadIcon />
-                            </IconButton>
-                          </span>
-                        </Tooltip>
-                      ) : (
-                        // ✅ Icône "envoyer email" (normal)
-                        <Tooltip title={eventPassed ? "Événement terminé - Envoi d'email désactivé" : "Envoyer un email"}>
-                          <span>
-                            <IconButton
-                              color="secondary"
-                              onClick={() => !eventPassed && onSendEmail(evenement)}
-                              disabled={eventPassed}
-                              sx={{
-                                opacity: eventPassed ? 0.5 : 1,
-                                '&:hover': {
-                                  backgroundColor: eventPassed ? 'transparent' : theme.palette.secondary.light,
-                                }
-                              }}
-                            >
-                              <EmailIcon />
-                            </IconButton>
-                          </span>
-                        </Tooltip>
-                      )}
-
+                      {/* SUPPRIMER TOUTE LA SECTION DES BOUTONS EMAIL */}
+                      
                       {canEditDelete ? (
                         <>
                           <Tooltip title="Modifier">

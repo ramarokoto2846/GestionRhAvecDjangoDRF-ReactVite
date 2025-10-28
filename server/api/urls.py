@@ -4,8 +4,6 @@ from . import views
 from .views import (
     RegisterViewSet, DepartementViewSet, EmployeViewSet, ExportPDFAPIView,
     PointageViewSet, AbsenceViewSet, CongeViewSet, EvenementViewSet, CurrentUserView,
-    EmployeeStatisticsAPIView, DepartmentStatisticsAPIView, GlobalStatisticsAPIView,
-    DetailedStatisticsAPIView, ExportStatisticsPDFAPIView,
     # EvenementEmailAPIView  # ✅ SUPPRIMER CET IMPORT
 )
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
@@ -17,7 +15,7 @@ router.register('employes', EmployeViewSet)
 router.register('pointages', PointageViewSet)
 router.register('absences', AbsenceViewSet)
 router.register('conges', CongeViewSet)
-router.register('evenements', EvenementViewSet)  # ✅ Cette ligne crée des routes automatiques
+router.register('evenements', EvenementViewSet)
 
 urlpatterns = [   
     # ✅ INCLURE LE ROUTER APRÈS

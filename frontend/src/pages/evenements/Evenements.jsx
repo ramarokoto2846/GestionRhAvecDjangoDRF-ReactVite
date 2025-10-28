@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import {
   Box, Typography, Fab, Grid, Card, CardContent, Paper,
   TextField, InputAdornment, IconButton, FormControl, InputLabel,
-  Select, MenuItem, ToggleButtonGroup, ToggleButton, CircularProgress,
+  Select, MenuItem, CircularProgress,
   Alert, Snackbar, useTheme, Button, Stack
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
@@ -14,21 +14,16 @@ import Swal from "sweetalert2";
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
-import FilterListIcon from '@mui/icons-material/FilterList';
-import UpcomingIcon from '@mui/icons-material/Upcoming';
-import EventAvailableIcon from '@mui/icons-material/EventAvailable';
-import EventBusyIcon from '@mui/icons-material/EventBusy';
 import PrintIcon from '@mui/icons-material/Print';
-import EmailIcon from '@mui/icons-material/Email';
+// SUPPRIMER EmailIcon
 
 import { 
   getEvenements, 
   getCurrentUser, 
   deleteEvenement, 
   isSuperuser,
-  exportEvenementsPDF,
-  sendAllEventsEmail,
-  sendEventEmail
+  exportEvenementsPDF
+  // SUPPRIMER sendAllEventsEmail, sendEventEmail
 } from "../../services/api";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
@@ -55,8 +50,7 @@ const Evenements = () => {
   
   // États pour les fonctionnalités
   const [generatingPDF, setGeneratingPDF] = useState(false);
-  const [sendingEmail, setSendingEmail] = useState(false);
-  const [sendingSingleEmail, setSendingSingleEmail] = useState(null);
+  // SUPPRIMER sendingEmail et sendingSingleEmail
   
   const notificationsCount = 3;
 
@@ -120,164 +114,9 @@ const Evenements = () => {
     }
   };
 
-  // ✅ FONCTION POUR ENVOYER UN ÉVÉNEMENT INDIVIDUEL
-  const handleSendSingleEmail = async (evenement) => {
-    // Vérifier si l'événement est passé
-    const eventStatus = getEventStatus(evenement);
-    if (eventStatus === "passe") {
-      await Swal.fire({
-        title: 'Événement terminé',
-        text: 'Impossible d\'envoyer un email pour un événement déjà terminé.',
-        icon: 'warning',
-        confirmButtonColor: '#3085d6',
-        confirmButtonText: 'OK'
-      });
-      return;
-    }
+  // SUPPRIMER handleSendSingleEmail - plus nécessaire
 
-    // Demander confirmation
-    const result = await Swal.fire({
-      title: 'Envoyer cet événement ?',
-      html: `
-        <div style="text-align: left;">
-          <p>Vous allez envoyer cet événement à <strong>tous les employés</strong> :</p>
-          <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
-            <p><strong>${evenement.titre || "Sans titre"}</strong></p>
-            <p><strong>Date :</strong> ${formatDateForDisplay(evenement.date_debut)}</p>
-            <p><strong>Lieu :</strong> ${evenement.lieu || "Non spécifié"}</p>
-            ${evenement.description ? `<p><strong>Description :</strong> ${evenement.description}</p>` : ''}
-          </div>
-          <p style="color: #666; font-size: 14px;">Cette action enverra un email à tous les employés actifs.</p>
-        </div>
-      `,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonColor: '#3085d6',
-      cancelButtonColor: '#d33',
-      confirmButtonText: 'Oui, envoyer !',
-      cancelButtonText: 'Annuler',
-      width: 500
-    });
-
-    if (!result.isConfirmed) {
-      return;
-    }
-
-    setSendingSingleEmail(evenement.id_evenement);
-    try {
-      const result = await sendEventEmail(evenement.id_evenement);
-      
-      // Afficher une Sweet Alert de succès
-      await Swal.fire({
-        title: 'Événement envoyé !',
-        html: `
-          <div style="text-align: center;">
-            <div style="font-size: 48px; color: #4CAF50; margin-bottom: 20px;">✓</div>
-            <p style="font-size: 18px; margin-bottom: 10px;"><strong>${result.message}</strong></p>
-            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
-              <p><strong>Événement :</strong> ${evenement.titre || "Sans titre"}</p>
-              <p><strong>Date :</strong> ${formatDateForDisplay(evenement.date_debut)}</p>
-              <p><strong>Destinataires :</strong> ${result.destinataires} employés</p>
-            </div>
-            <p style="color: #666; font-size: 14px;">Les employés ont reçu l'événement par email.</p>
-          </div>
-        `,
-        icon: 'success',
-        confirmButtonColor: '#3085d6',
-        confirmButtonText: 'OK',
-        width: 550
-      });
-      
-    } catch (error) {
-      await Swal.fire({
-        title: 'Erreur',
-        text: error.message || "Erreur lors de l'envoi de l'email",
-        icon: 'error',
-        confirmButtonColor: '#d33',
-        confirmButtonText: 'OK'
-      });
-    } finally {
-      setSendingSingleEmail(null);
-    }
-  };
-
-  // ✅ FONCTION UNIQUE POUR ENVOYER TOUS LES ÉVÉNEMENTS
-  const handleSendAllEmails = async () => {
-    // Vérifier s'il y a des événements
-    if (evenements.length === 0) {
-      await Swal.fire({
-        title: 'Aucun événement',
-        text: 'Il n\'y a aucun événement à envoyer.',
-        icon: 'warning',
-        confirmButtonColor: '#3085d6',
-        confirmButtonText: 'OK'
-      });
-      return;
-    }
-
-    // Demander confirmation
-    const result = await Swal.fire({
-      title: 'Envoyer le calendrier ?',
-      html: `
-        <div style="text-align: center;">
-          <p>Vous allez envoyer le calendrier des événements à <strong>tous les employés</strong>.</p>
-          <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
-            <p><strong>Événements à envoyer :</strong> ${evenements.length}</p>
-            <p><strong>Période couverte :</strong> Tous les événements</p>
-          </div>
-          <p style="color: #666; font-size: 14px;">Cette action enverra un email à tous les employés actifs.</p>
-        </div>
-      `,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonColor: '#3085d6',
-      cancelButtonColor: '#d33',
-      confirmButtonText: 'Oui, envoyer !',
-      cancelButtonText: 'Annuler',
-      width: 500
-    });
-
-    if (!result.isConfirmed) {
-      return;
-    }
-
-    setSendingEmail(true);
-    try {
-      const result = await sendAllEventsEmail();
-      
-      // Afficher une Sweet Alert de succès
-      await Swal.fire({
-        title: 'Calendrier envoyé !',
-        html: `
-          <div style="text-align: center;">
-            <div style="font-size: 48px; color: #4CAF50; margin-bottom: 20px;">✓</div>
-            <p style="font-size: 18px; margin-bottom: 10px;"><strong>${result.message}</strong></p>
-            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
-              <p><strong>Destinataires :</strong> ${result.destinataires} employés</p>
-              <p><strong>Événements inclus :</strong> ${result.evenements_inclus}</p>
-              ${result.periode ? `<p><strong>Période :</strong> ${result.periode}</p>` : ''}
-            </div>
-            <p style="color: #666; font-size: 14px;">Les employés ont reçu le calendrier par email.</p>
-          </div>
-        `,
-        icon: 'success',
-        confirmButtonColor: '#3085d6',
-        confirmButtonText: 'OK',
-        width: 550
-      });
-      
-    } catch (error) {
-      await Swal.fire({
-        title: 'Erreur',
-        text: error.message,
-        icon: 'error',
-        confirmButtonColor: '#d33',
-        confirmButtonText: 'OK'
-      });
-    } finally {
-      setSendingEmail(false);
-    }
-  };
+  // SUPPRIMER handleSendAllEmails - plus nécessaire
 
   // ✅ FONCTION POUR GÉNÉRER LE PDF
   const handleGeneratePDF = async () => {
@@ -567,7 +406,7 @@ const Evenements = () => {
             </Typography>
           </Box>
           
-          {/* ✅ STACK AVEC BOUTONS PDF, EMAIL ET NOUVEL ÉVÉNEMENT */}
+          {/* ✅ STACK AVEC BOUTONS PDF ET NOUVEL ÉVÉNEMENT SEULEMENT */}
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
             {/* Bouton PDF */}
             <Button
@@ -586,31 +425,6 @@ const Evenements = () => {
             >
               {generatingPDF ? "Génération..." : "Imprimer PDF"}
             </Button>
-
-            {/* ✅ BOUTON UNIQUE POUR ENVOYER TOUS LES ÉVÉNEMENTS PAR EMAIL */}
-            {isSuperuserState && (
-              <Button
-                variant="contained"
-                color="secondary"
-                onClick={handleSendAllEmails}
-                disabled={sendingEmail || evenements.length === 0}
-                startIcon={sendingEmail ? <CircularProgress size={20} /> : <EmailIcon />}
-                sx={{
-                  borderRadius: 2,
-                  minWidth: 250,
-                  px: 3,
-                  textTransform: "none",
-                  fontWeight: "bold",
-                  fontSize: '1rem',
-                  bgcolor: 'secondary.main',
-                  '&:hover': {
-                    bgcolor: 'secondary.dark',
-                  }
-                }}
-              >
-                {sendingEmail ? "Envoi en cours..." : `Envoyer calendrier (${evenements.length})`}
-              </Button>
-            )}
             
             {/* Bouton Nouvel Événement */}
             <Fab
@@ -752,7 +566,7 @@ const Evenements = () => {
           onRowsPerPageChange={handleChangeRowsPerPage}
           onEdit={handleOpenDialog}
           onDelete={handleDelete}
-          onSendEmail={handleSendSingleEmail}
+          // SUPPRIMER onSendEmail
           getEventStatus={getEventStatus}
           getEventDuration={getEventDuration}
           user={user}

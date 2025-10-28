@@ -41,7 +41,7 @@ export const triggerNotificationsRefresh = () => {
   }
 };
 
-const Header = ({ user, onMenuToggle }) => {
+const Header = ({ user, onMenuToggle, onLogoutCheck }) => { // ← Ajouter onLogoutCheck en prop
   const navigate = useNavigate();
   const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState(null);
@@ -60,23 +60,84 @@ const Header = ({ user, onMenuToggle }) => {
     };
   }, []);
 
-  const handleLogout = () => {
-    Swal.fire({
-      title: "Déconnexion",
-      text: "Voulez-vous vraiment vous déconnecter ?",
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonColor: "#1976d2",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Oui, déconnexion",
-      cancelButtonText: "Annuler",
-      reverseButtons: true
-    }).then(result => {
-      if (result.isConfirmed) {
-        localStorage.removeItem("access_token");
-        navigate("/");
+  const handleLogout = async () => {
+    // ✅ VÉRIFICATION DES POINTAGES EN COURS AVANT DÉCONNEXION
+    try {
+      // Vérifier s'il y a des pointages en cours
+      const pointagesData = await getPointages();
+      const pointagesEnCours = pointagesData.filter(p => !p.heure_sortie);
+      
+      if (pointagesEnCours.length > 0) {
+        const result = await Swal.fire({
+          title: 'Pointages en cours détectés',
+          html: `
+            <div style="text-align: center;">
+              <div style="font-size: 48px; color: #ff9800; margin-bottom: 20px;">⚠️</div>
+              <p style="font-size: 18px; margin-bottom: 10px;">
+                <strong>${pointagesEnCours.length} pointage(s) en cours</strong>
+              </p>
+              <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                <p>Il y a encore des employés qui n'ont pas enregistré leur heure de sortie.</p>
+                <p><strong>Voulez-vous vraiment vous déconnecter ?</strong></p>
+              </div>
+            </div>
+          `,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#d33',
+          cancelButtonColor: '#3085d6',
+          confirmButtonText: 'Oui, se déconnecter',
+          cancelButtonText: 'Annuler et vérifier',
+          width: 500
+        });
+
+        if (!result.isConfirmed) {
+          // Rediriger vers la page des pointages pour vérifier
+          navigate("/pointages");
+          return;
+        }
       }
-    });
+
+      // Si pas de pointages en cours ou confirmation, procéder à la déconnexion normale
+      Swal.fire({
+        title: "Déconnexion",
+        text: "Voulez-vous vraiment vous déconnecter ?",
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonColor: "#1976d2",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "Oui, déconnexion",
+        cancelButtonText: "Annuler",
+        reverseButtons: true
+      }).then(result => {
+        if (result.isConfirmed) {
+          localStorage.removeItem("access_token");
+          localStorage.removeItem("refresh_token");
+          navigate("/");
+        }
+      });
+
+    } catch (error) {
+      console.error("Erreur lors de la vérification des pointages:", error);
+      // En cas d'erreur, procéder à la déconnexion normale
+      Swal.fire({
+        title: "Déconnexion",
+        text: "Voulez-vous vraiment vous déconnecter ?",
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonColor: "#1976d2",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "Oui, déconnexion",
+        cancelButtonText: "Annuler",
+        reverseButtons: true
+      }).then(result => {
+        if (result.isConfirmed) {
+          localStorage.removeItem("access_token");
+          localStorage.removeItem("refresh_token");
+          navigate("/");
+        }
+      });
+    }
   };
 
   const handleNotificationsClick = (event) => {

@@ -293,36 +293,12 @@ export const getEvenementsAVenir = async () => {
 };
 
 // ========================
-// ✅ CORRECTION : ENVOI D'EMAILS POUR LES ÉVÉNEMENTS
+// SUPPRIMER : FONCTIONS D'ENVOI D'EMAIL MANUEL
 // ========================
 
-// Envoyer un événement spécifique (utilise 'send_email' avec underscore)
-export const sendEventEmail = async (eventId) => {
-  try {
-    const response = await axios.post(
-      `${BASE_URL}/evenements/${eventId}/send_email/`,  // ✅ CORRIGÉ : utilise 'send_email' avec underscore
-      {},
-      { headers: getAuthHeader() }
-    );
-    return response.data;
-  } catch (error) {
-    handleError(error, "Erreur lors de l'envoi de l'email pour l'événement.");
-  }
-};
-
-// Envoyer tous les événements (utilise 'send_all_email' avec underscore)
-export const sendAllEventsEmail = async () => {
-  try {
-    const response = await axios.post(
-      `${BASE_URL}/evenements/send_all_email/`,  // ✅ CORRIGÉ : utilise 'send_all_email' avec underscore
-      {},
-      { headers: getAuthHeader() }
-    );
-    return response.data;
-  } catch (error) {
-    handleError(error, "Erreur lors de l'envoi des emails pour tous les événements.");
-  }
-};
+// ❌ SUPPRIMER CES FONCTIONS - Les emails sont maintenant envoyés automatiquement
+// export const sendEventEmail = async (eventId) => { ... }
+// export const sendAllEventsEmail = async () => { ... }
 
 // ========================
 // EXPORT PDF POUR TOUTES LES TABLES
@@ -617,7 +593,7 @@ export const deleteSavedStatistics = async (id) => {
   }
 };
 
-// ✅ CORRECTION : Export PDF des statistiques avec nom de fichier personnalisé
+// Export PDF des statistiques avec nom de fichier personnalisé
 export const exportStatisticsPDF = async (exportType, params = {}) => {
   try {
     const response = await axios.get(`${BASE_URL}/statistiques/export-pdf/`, {
@@ -635,7 +611,7 @@ export const exportStatisticsPDF = async (exportType, params = {}) => {
     const link = document.createElement('a');
     link.href = url;
     
-    // ✅ CORRECTION : Générer un nom de fichier personnalisé basé sur le type et les paramètres
+    // Générer un nom de fichier personnalisé basé sur le type et les paramètres
     let filename = '';
     
     // Fonction pour normaliser les noms de fichiers
@@ -991,7 +967,7 @@ export const StatisticsUtils = {
     ];
   },
 
-  // ✅ NOUVEAU : Fonction pour normaliser les noms de fichiers
+  // Fonction pour normaliser les noms de fichiers
   normalizeFileName: (name) => {
     if (!name) return '';
     return name
@@ -1002,7 +978,7 @@ export const StatisticsUtils = {
       .toLowerCase();
   },
 
-  // ✅ NOUVEAU : Générer un nom de fichier pour l'export PDF
+  // Générer un nom de fichier pour l'export PDF
   generatePDFFileName: (type, params = {}) => {
     const normalize = StatisticsUtils.normalizeFileName;
     const date = new Date().toISOString().split('T')[0];
@@ -1130,11 +1106,11 @@ export default {
   deleteEvenement,
   getEvenementsAVenir,
 
-  // ✅ NOUVEAU : Envoi d'emails pour les événements
-  sendEventEmail,
-  sendAllEventsEmail,
+  // ❌ SUPPRIMÉ : Fonctions d'envoi d'email manuel
+  // sendEventEmail,
+  // sendAllEventsEmail,
 
-  // ✅ NOUVEAU : Export PDF pour toutes les tables
+  // Export PDF pour toutes les tables
   exportDepartementsPDF,
   exportEmployesPDF,
   exportPointagesPDF,

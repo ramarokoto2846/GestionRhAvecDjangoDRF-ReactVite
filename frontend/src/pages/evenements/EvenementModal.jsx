@@ -100,7 +100,7 @@ const EvenementModal = ({ open, onClose, evenement, onSave, showSnackbar }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
-
+  
     setLoading(true);
     try {
       if (evenement) {
@@ -110,7 +110,13 @@ const EvenementModal = ({ open, onClose, evenement, onSave, showSnackbar }) => {
         await createEvenement(formData);
         showSnackbar("Événement créé avec succès", "success");
       }
+      
+      // AJOUTEZ CETTE LIGNE POUR FERMER LE MODAL
+      onClose(); // Fermer le modal après l'enregistrement réussi
+      
+      // Puis rafraîchir les données
       onSave();
+      
     } catch (error) {
       let errorMessage = error.message || "Erreur lors de l'opération.";
       if (error.response?.data) {

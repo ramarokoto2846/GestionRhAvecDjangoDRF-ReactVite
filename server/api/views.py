@@ -210,7 +210,6 @@ def send_event_notification_email(event, employes, action="creation"):
             🗓️ Date de début : {event.date_debut.strftime('%d/%m/%Y à %H:%M')}
             🗓️ Date de fin : {event.date_fin.strftime('%d/%m/%Y à %H:%M') if event.date_fin else 'Non définie'}
             📍 Lieu : {event.lieu or 'Non spécifié'}
-            🏷️ Type : {getattr(event, 'type_evenement', 'Non spécifié') or 'Non spécifié'}
             
             Cordialement,
             L'équipe de gestion RH
@@ -227,7 +226,6 @@ def send_event_notification_email(event, employes, action="creation"):
             🗓️ Date de début : {event.date_debut.strftime('%d/%m/%Y à %H:%M')}
             🗓️ Date de fin : {event.date_fin.strftime('%d/%m/%Y à %H:%M') if event.date_fin else 'Non définie'}
             📍 Lieu : {event.lieu or 'Non spécifié'}
-            🏷️ Type : {getattr(event, 'type_evenement', 'Non spécifié') or 'Non spécifié'}
             
             Cordialement,
             L'équipe de gestion RH
@@ -271,13 +269,6 @@ def send_event_notification_email(event, employes, action="creation"):
         # ✅ ENVOI RÉEL D'EMAIL
         logger.info(f"Envoi email événement '{event.titre}' à {len(destinataires)} employés")
         
-        print(f"\n" + "="*60)
-        print(f"EMAIL ÉVÉNEMENT ENVOYÉ - Action: {action}")
-        print(f"Événement: {event.titre}")
-        print(f"Destinataires: {len(destinataires)} employés")
-        print(f"Date: {event.date_debut}")
-        print("="*60 + "\n")
-        
         # ENVOI RÉEL
         send_mail(
             subject=subject,
@@ -319,7 +310,6 @@ def send_calendar_email(events, employes, periode_debut, periode_fin):
            🗓️ Début : {event.date_debut.strftime('%d/%m/%Y à %H:%M')}
            🗓️ Fin : {event.date_fin.strftime('%d/%m/%Y à %H:%M') if event.date_fin else 'Non définie'}
            📍 Lieu : {event.lieu or 'Non spécifié'}
-           🏷️ Type : {getattr(event, 'type_evenement', 'Non spécifié') or 'Non spécifié'}
         """
         
         body += """
@@ -337,14 +327,6 @@ def send_calendar_email(events, employes, periode_debut, periode_fin):
         
         # ✅ ENVOI RÉEL
         logger.info(f"Envoi calendrier de {len(events)} événements à {len(destinataires)} employés")
-        
-        print(f"\n" + "="*60)
-        print(f"CALENDRIER ENVOYÉ - {len(events)} événements")
-        print(f"Période: {periode_debut.strftime('%d/%m/%Y')} - {periode_fin.strftime('%d/%m/%Y')}")
-        print(f"Destinataires: {len(destinataires)} employés")
-        for event in events:
-            print(f"- {event.titre} ({event.date_debut})")
-        print("="*60 + "\n")
         
         # ENVOI RÉEL
         send_mail(
@@ -879,30 +861,28 @@ class ExportPDFAPIView(APIView):
         elements.append(info_text)
         elements.append(Spacer(1, 20))
         
-        headers = ['Titre', 'Description', 'Date Début', 'Date Fin', 'Lieu', 'Type']
+        # SUPPRIMER LA COLONNE "TYPE" DU TABLEAU
+        headers = ['Titre', 'Description', 'Date Début', 'Date Fin', 'Lieu']
         
         data = [headers]
         for event in evenements:
-            type_evenement = getattr(event, 'type_evenement', 'Non spécifié') or 'Non spécifié'
-            
             data.append([
                 event.titre,
                 event.description or 'Non spécifié',
                 self._format_datetime(event.date_debut),
                 self._format_datetime(event.date_fin) if event.date_fin else 'Non défini',
-                event.lieu or 'Non spécifié',
-                type_evenement
+                event.lieu or 'Non spécifié'
             ])
         
-        col_widths = [35*mm, 50*mm, 25*mm, 25*mm, 30*mm, 25*mm]
+        # Ajuster les largeurs de colonnes après suppression du type
+        col_widths = [40*mm, 55*mm, 30*mm, 30*mm, 35*mm]
         
         max_text_lengths = [
             25,
-            40,
+            45,
             None,
             None,
-            25,
-            20
+            25
         ]
         
         table = self._create_styled_table(data, col_widths, '#2E86AB', max_text_lengths)
@@ -1207,109 +1187,6 @@ class EvenementViewSet(viewsets.ModelViewSet):
         pdf_view = ExportPDFAPIView()
         pdf_view.request = request
         return pdf_view._export_evenements_pdf(request)
-
-    # ✅ ACTION POUR ENVOYER UN ÉVÉNEMENT SPÉCIFIQUE PAR EMAIL
-    @action(detail=True, methods=['post'])
-    def send_email(self, request, pk=None):
-        """Envoyer un événement spécifique par email à tous les employés"""
-        try:
-            evenement = self.get_object()
-            employes_actifs = Employe.objects.filter(statut='actif')
-            
-            if not employes_actifs.exists():
-                return Response(
-                    {"error": "Aucun employé actif trouvé"},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-            # ✅ ENVOI RÉEL D'EMAIL
-            success = send_event_notification_email(evenement, employes_actifs, "notification")
-            
-            if success:
-                return Response({
-                    "success": True,
-                    "message": f"Événement '{evenement.titre}' envoyé par email à {employes_actifs.count()} employés",
-                    "destinataires": employes_actifs.count(),
-                    "evenement": {
-                        "id": evenement.id_evenement,
-                        "titre": evenement.titre,
-                        "date_debut": evenement.date_debut,
-                    }
-                })
-            else:
-                return Response(
-                    {"error": "Erreur lors de l'envoi de l'email"},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-                
-        except Evenement.DoesNotExist:
-            return Response(
-                {"error": "Événement non trouvé"},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        except Exception as e:
-            logger.error(f"Erreur envoi email événement: {str(e)}")
-            return Response(
-                {"error": f"Erreur lors de l'envoi de l'email: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-    # ✅ ACTION POUR ENVOYER TOUS LES ÉVÉNEMENTS À VENIR PAR EMAIL
-    @action(detail=False, methods=['post'])
-    def send_all_email(self, request):
-        """Envoyer tous les événements à venir par email"""
-        try:
-            # Récupérer les événements à venir (30 prochains jours)
-            date_debut = timezone.now()
-            date_fin = date_debut + timezone.timedelta(days=30)
-            
-            evenements = Evenement.objects.filter(
-                date_debut__gte=date_debut,
-                date_debut__lte=date_fin
-            ).order_by('date_debut')
-            
-            if not evenements.exists():
-                return Response(
-                    {"error": "Aucun événement à venir trouvé pour les 30 prochains jours"},
-                    status=status.HTTP_404_NOT_FOUND
-                )
-            
-            # Récupérer tous les employés actifs
-            employes_actifs = Employe.objects.filter(statut='actif')
-            
-            if not employes_actifs.exists():
-                return Response(
-                    {"error": "Aucun employé actif trouvé"},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-            # ✅ ENVOI RÉEL D'EMAIL
-            success = send_calendar_email(evenements, employes_actifs, date_debut, date_fin)
-            
-            if success:
-                return Response({
-                    "success": True,
-                    "message": f"Calendrier de {evenements.count()} événements envoyé à {employes_actifs.count()} employés",
-                    "destinataires": employes_actifs.count(),
-                    "evenements_inclus": evenements.count(),
-                    "periode": f"{date_debut.strftime('%d/%m/%Y')} - {date_fin.strftime('%d/%m/%Y')}",
-                })
-            else:
-                return Response(
-                    {"error": "Erreur lors de l'envoi du calendrier"},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-                
-        except Exception as e:
-            logger.error(f"Erreur envoi calendrier: {str(e)}")
-            return Response(
-                {"error": f"Erreur lors de l'envoi du calendrier: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-
-# ✅ SUPPRESSION DE LA CLASSE DUPLIQUÉE EvenementEmailAPIView
-# Elle causait des conflits avec les actions du ViewSet
 
 
 class EmployeeStatisticsAPIView(APIView):

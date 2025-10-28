@@ -761,21 +761,7 @@ const Auth = ({ setIsAuthenticated }) => {
                           }
                         }}
                       />
-                      <Box sx={{ textAlign: 'right', mt: 1 }}>
-                        <Button 
-                          size="small" 
-                          sx={{ 
-                            color: '#667eea', 
-                            textTransform: 'none',
-                            fontWeight: 500,
-                            '&:hover': {
-                              backgroundColor: 'rgba(102, 126, 234, 0.04)'
-                            }
-                          }}
-                        >
-                          Mot de passe oublié ?
-                        </Button>
-                      </Box>
+          
                       <Button 
                         type="submit" 
                         variant="contained" 
