@@ -27,11 +27,6 @@ import {
   ExpandLess,
   ExpandMore,
   Person as PersonIcon,
-  Groups as GroupsIcon,
-  Public as PublicIcon,
-  BarChart as BarChartIcon,
-  PieChart as PieChartIcon,
-  Timeline as TimelineIcon
 } from "@mui/icons-material";
 
 const Sidebar = ({ open, setOpen }) => {
@@ -65,18 +60,6 @@ const Sidebar = ({ open, setOpen }) => {
       icon: <PersonIcon />,
       description: "Statistiques individuelles"
     },
-    { 
-      text: "Par Département", 
-      path: "/statistiques/departements", 
-      icon: <GroupsIcon />,
-      description: "Analyse par service"
-    },
-    { 
-      text: "Analyses Détaillées", 
-      path: "/statistiques/analyses", 
-      icon: <BarChartIcon />,
-      description: "Congés, pointages, absences"
-    }
   ];
 
   // Vérifier si on est dans une section statistiques

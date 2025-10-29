@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Routes, Route, useNavigate, Navigate } from "react-router-dom"; // Ajoutez Navigate
+import { Routes, Route, useNavigate, Navigate } from "react-router-dom";
 import Auth from "./pages/Auth";
 import Home from "./pages/Home";
 import PrivateRoute from "./components/PrivateRoute";
@@ -11,11 +11,9 @@ import Evenements from "./pages/evenements/Evenements";
 import Conges from "./pages/conges/Conges";
 import { getCurrentUser, isSuperuser } from "./services/api";
 
-// Import des pages de statistiques
+// Import des pages de statistiques (UNIQUEMENT EMPLOYÉ ET VUE D'ENSEMBLE)
 import StatisticsOverview from "./pages/statistiques/StatisticsOverview";
 import EmployeeStatistics from "./pages/statistiques/EmployeeStatistics";
-import DepartmentStatistics from "./pages/statistiques/DepartmentStatistics";
-import StatisticsAnalysis from "./pages/statistiques/StatisticsAnalysis";
 
 const privateRoutes = [
   { path: "/home", element: <Home /> },
@@ -25,11 +23,9 @@ const privateRoutes = [
   { path: "/conges", element: <Conges /> },
   { path: "/absences", element: <Absences /> },
   { path: "/evenements", element: <Evenements /> },
-  // Routes des statistiques
+  // Routes des statistiques (UNIQUEMENT EMPLOYÉ ET VUE D'ENSEMBLE)
   { path: "/statistiques/overview", element: <StatisticsOverview /> },
   { path: "/statistiques/employes", element: <EmployeeStatistics /> },
-  { path: "/statistiques/departements", element: <DepartmentStatistics /> },
-  { path: "/statistiques/analyses", element: <StatisticsAnalysis /> },
 ];
 
 function App() {

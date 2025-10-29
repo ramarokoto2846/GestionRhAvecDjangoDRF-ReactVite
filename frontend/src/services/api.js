@@ -293,219 +293,7 @@ export const getEvenementsAVenir = async () => {
 };
 
 // ========================
-// SUPPRIMER : FONCTIONS D'ENVOI D'EMAIL MANUEL
-// ========================
-
-// ❌ SUPPRIMER CES FONCTIONS - Les emails sont maintenant envoyés automatiquement
-// export const sendEventEmail = async (eventId) => { ... }
-// export const sendAllEventsEmail = async () => { ... }
-
-// ========================
-// EXPORT PDF POUR TOUTES LES TABLES
-// ========================
-
-// Fonction générique pour exporter une table en PDF
-const exportTablePDF = async (tableName, params = {}) => {
-  try {
-    const response = await axios.get(`${BASE_URL}/export/pdf/`, {
-      headers: getAuthHeader(),
-      params: {
-        table: tableName,
-        ...params
-      },
-      responseType: 'blob'
-    });
-
-    // Télécharger le PDF
-    const blob = new Blob([response.data], { type: 'application/pdf' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    
-    // Générer un nom de fichier personnalisé
-    const date = new Date().toISOString().split('T')[0];
-    const filename = `liste_${tableName}_${date}.pdf`;
-    
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-    
-    console.log(`✅ PDF exporté: ${filename}`);
-    return { success: true, message: `PDF ${tableName} exporté avec succès`, filename };
-    
-  } catch (error) {
-    handleError(error, `Erreur lors de l'export PDF des ${tableName}.`);
-  }
-};
-
-// Export PDF pour chaque table
-export const exportDepartementsPDF = async (params = {}) => {
-  return exportTablePDF('departements', params);
-};
-
-export const exportEmployesPDF = async (params = {}) => {
-  return exportTablePDF('employes', params);
-};
-
-export const exportPointagesPDF = async (params = {}) => {
-  return exportTablePDF('pointages', params);
-};
-
-export const exportAbsencesPDF = async (params = {}) => {
-  return exportTablePDF('absences', params);
-};
-
-export const exportCongesPDF = async (params = {}) => {
-  return exportTablePDF('conges', params);
-};
-
-export const exportEvenementsPDF = async (params = {}) => {
-  return exportTablePDF('evenements', params);
-};
-
-// Export PDF via endpoints spécifiques
-export const exportDepartementsPDFSpecific = async () => {
-  try {
-    const response = await axios.get(`${BASE_URL}/departements/export-pdf/`, {
-      headers: getAuthHeader(),
-      responseType: 'blob'
-    });
-
-    const blob = new Blob([response.data], { type: 'application/pdf' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `liste_departements_${new Date().toISOString().split('T')[0]}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-    
-    return { success: true, message: "PDF départements exporté avec succès" };
-  } catch (error) {
-    handleError(error, "Erreur lors de l'export PDF des départements.");
-  }
-};
-
-export const exportEmployesPDFSpecific = async () => {
-  try {
-    const response = await axios.get(`${BASE_URL}/employes/export-pdf/`, {
-      headers: getAuthHeader(),
-      responseType: 'blob'
-    });
-
-    const blob = new Blob([response.data], { type: 'application/pdf' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `liste_employes_${new Date().toISOString().split('T')[0]}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-    
-    return { success: true, message: "PDF employés exporté avec succès" };
-  } catch (error) {
-    handleError(error, "Erreur lors de l'export PDF des employés.");
-  }
-};
-
-export const exportPointagesPDFSpecific = async () => {
-  try {
-    const response = await axios.get(`${BASE_URL}/pointages/export-pdf/`, {
-      headers: getAuthHeader(),
-      responseType: 'blob'
-    });
-
-    const blob = new Blob([response.data], { type: 'application/pdf' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `liste_pointages_${new Date().toISOString().split('T')[0]}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-    
-    return { success: true, message: "PDF pointages exporté avec succès" };
-  } catch (error) {
-    handleError(error, "Erreur lors de l'export PDF des pointages.");
-  }
-};
-
-export const exportAbsencesPDFSpecific = async () => {
-  try {
-    const response = await axios.get(`${BASE_URL}/absences/export-pdf/`, {
-      headers: getAuthHeader(),
-      responseType: 'blob'
-    });
-
-    const blob = new Blob([response.data], { type: 'application/pdf' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `liste_absences_${new Date().toISOString().split('T')[0]}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-    
-    return { success: true, message: "PDF absences exporté avec succès" };
-  } catch (error) {
-    handleError(error, "Erreur lors de l'export PDF des absences.");
-  }
-};
-
-export const exportCongesPDFSpecific = async () => {
-  try {
-    const response = await axios.get(`${BASE_URL}/conges/export-pdf/`, {
-      headers: getAuthHeader(),
-      responseType: 'blob'
-    });
-
-    const blob = new Blob([response.data], { type: 'application/pdf' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `liste_conges_${new Date().toISOString().split('T')[0]}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-    
-    return { success: true, message: "PDF congés exporté avec succès" };
-  } catch (error) {
-    handleError(error, "Erreur lors de l'export PDF des congés.");
-  }
-};
-
-export const exportEvenementsPDFSpecific = async () => {
-  try {
-    const response = await axios.get(`${BASE_URL}/evenements/export-pdf/`, {
-      headers: getAuthHeader(),
-      responseType: 'blob'
-    });
-
-    const blob = new Blob([response.data], { type: 'application/pdf' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `liste_evenements_${new Date().toISOString().split('T')[0]}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-    
-    return { success: true, message: "PDF événements exporté avec succès" };
-  } catch (error) {
-    handleError(error, "Erreur lors de l'export PDF des événements.");
-  }
-};
-
-// ========================
-// STATISTIQUES
+// STATISTIQUES (UNIQUEMENT EMPLOYÉ ET GLOBALES)
 // ========================
 
 // Statistiques employé
@@ -525,23 +313,6 @@ export const getEmployeeStatistics = async (matricule = null, params = {}) => {
   }
 };
 
-// Statistiques département
-export const getDepartmentStatistics = async (departementId = null, params = {}) => {
-  try {
-    let url = `${BASE_URL}/statistiques/departement/`;
-    if (departementId) {
-      url = `${BASE_URL}/statistiques/departement/${departementId}/`;
-    }
-    const response = await axios.get(url, {
-      headers: getAuthHeader(),
-      params,
-    });
-    return response.data;
-  } catch (error) {
-    handleError(error, "Erreur lors de la récupération des statistiques département.");
-  }
-};
-
 // Statistiques globales
 export const getGlobalStatistics = async (params = {}) => {
   try {
@@ -552,44 +323,6 @@ export const getGlobalStatistics = async (params = {}) => {
     return response.data;
   } catch (error) {
     handleError(error, "Erreur lors de la récupération des statistiques globales.");
-  }
-};
-
-// Statistiques détaillées par type
-export const getDetailedStatistics = async (params = {}) => {
-  try {
-    const response = await axios.get(`${BASE_URL}/statistiques/detaillees/`, {
-      headers: getAuthHeader(),
-      params,
-    });
-    return response.data;
-  } catch (error) {
-    handleError(error, "Erreur lors de la récupération des statistiques détaillées.");
-  }
-};
-
-// Statistiques sauvegardées
-export const getSavedStatistics = async (params = {}) => {
-  try {
-    const response = await axios.get(`${BASE_URL}/statistiques/sauvegardees/`, {
-      headers: getAuthHeader(),
-      params,
-    });
-    return extractData(response.data);
-  } catch (error) {
-    handleError(error, "Erreur lors de la récupération des statistiques sauvegardées.");
-  }
-};
-
-// Supprimer une statistique sauvegardée
-export const deleteSavedStatistics = async (id) => {
-  try {
-    const response = await axios.delete(`${BASE_URL}/statistiques/sauvegardees/${id}/`, {
-      headers: getAuthHeader(),
-    });
-    return response.data || { success: true };
-  } catch (error) {
-    handleError(error, "Erreur lors de la suppression de la statistique sauvegardée.");
   }
 };
 
@@ -642,21 +375,6 @@ export const exportStatisticsPDF = async (exportType, params = {}) => {
         }
         break;
         
-      case 'departement':
-        // Utiliser le nom du département si fourni
-        if (params.nom_departement) {
-          const nomNormalise = normalizeFileName(params.nom_departement);
-          filename = `statistiques_departement_${nomNormalise}.pdf`;
-        } else if (params.departement) {
-          // Sinon utiliser l'ID du département
-          filename = `statistiques_departement_${params.departement}.pdf`;
-        } else {
-          // Fallback avec date
-          const date = new Date().toISOString().split('T')[0];
-          filename = `statistiques_departement_${date}.pdf`;
-        }
-        break;
-        
       case 'global':
         // Pour les statistiques globales, utiliser la date
         const date = new Date().toISOString().split('T')[0];
@@ -679,134 +397,6 @@ export const exportStatisticsPDF = async (exportType, params = {}) => {
     
   } catch (error) {
     handleError(error, "Erreur lors de l'export PDF des statistiques.");
-  }
-};
-
-// ========================
-// RAPPORTS ET ANALYSES
-// ========================
-
-// Historique des rapports PDF générés
-export const getReportHistory = async (params = {}) => {
-  try {
-    const response = await axios.get(`${BASE_URL}/rapports/historique/`, {
-      headers: getAuthHeader(),
-      params,
-    });
-    return extractData(response.data);
-  } catch (error) {
-    handleError(error, "Erreur lors de la récupération de l'historique des rapports.");
-  }
-};
-
-// Générer un nouveau rapport
-export const generateReport = async (params = {}) => {
-  try {
-    const response = await axios.post(`${BASE_URL}/rapports/generer/`, params, {
-      headers: getAuthHeader(),
-    });
-    return response.data;
-  } catch (error) {
-    handleError(error, "Erreur lors de la génération du rapport.");
-  }
-};
-
-// Télécharger un rapport existant
-export const downloadReport = async (reportId) => {
-  try {
-    const response = await axios.get(`${BASE_URL}/rapports/${reportId}/telecharger/`, {
-      headers: getAuthHeader(),
-      responseType: 'blob'
-    });
-    
-    // Créer un blob URL pour télécharger le PDF
-    const blob = new Blob([response.data], { type: 'application/pdf' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    
-    // Utiliser le nom de fichier de la réponse ou générer un nom par défaut
-    const filename = response.headers['content-disposition'] 
-      ? response.headers['content-disposition'].split('filename=')[1]?.replace(/"/g, '')
-      : `rapport_${reportId}.pdf`;
-    
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-    
-    return { success: true, message: "Rapport téléchargé avec succès" };
-  } catch (error) {
-    handleError(error, "Erreur lors du téléchargement du rapport.");
-  }
-};
-
-// Analyses comparatives
-export const getComparativeAnalysis = async (params = {}) => {
-  try {
-    const response = await axios.get(`${BASE_URL}/analyses/comparatives/`, {
-      headers: getAuthHeader(),
-      params,
-    });
-    return response.data;
-  } catch (error) {
-    handleError(error, "Erreur lors de la récupération de l'analyse comparative.");
-  }
-};
-
-// Tendances et évolutions
-export const getTrendsAnalysis = async (params = {}) => {
-  try {
-    const response = await axios.get(`${BASE_URL}/analyses/tendances/`, {
-      headers: getAuthHeader(),
-      params,
-    });
-    return response.data;
-  } catch (error) {
-    handleError(error, "Erreur lors de la récupération de l'analyse des tendances.");
-  }
-};
-
-// ========================
-// NOTIFICATIONS
-// ========================
-
-// Récupérer les notifications
-export const getNotifications = async () => {
-  try {
-    const response = await axios.get(`${BASE_URL}/notifications/`, {
-      headers: getAuthHeader(),
-    });
-    return extractData(response.data);
-  } catch (error) {
-    handleError(error, "Erreur lors de la récupération des notifications.");
-  }
-};
-
-// Marquer une notification comme lue
-export const markNotificationAsRead = async (notificationId) => {
-  try {
-    const response = await axios.patch(
-      `${BASE_URL}/notifications/${notificationId}/`,
-      { lue: true },
-      { headers: getAuthHeader() }
-    );
-    return response.data;
-  } catch (error) {
-    handleError(error, "Erreur lors du marquage de la notification comme lue.");
-  }
-};
-
-// Supprimer une notification
-export const deleteNotification = async (notificationId) => {
-  try {
-    const response = await axios.delete(`${BASE_URL}/notifications/${notificationId}/`, {
-      headers: getAuthHeader(),
-    });
-    return response.data || { success: true };
-  } catch (error) {
-    handleError(error, "Erreur lors de la suppression de la notification.");
   }
 };
 
@@ -994,16 +584,6 @@ export const StatisticsUtils = {
           return `statistiques_employe_${date}.pdf`;
         }
         
-      case 'departement':
-        if (params.nom_departement) {
-          const nomNormalise = normalize(params.nom_departement);
-          return `statistiques_departement_${nomNormalise}.pdf`;
-        } else if (params.departement) {
-          return `statistiques_departement_${params.departement}.pdf`;
-        } else {
-          return `statistiques_departement_${date}.pdf`;
-        }
-        
       case 'global':
         return `statistiques_globales_${date}.pdf`;
         
@@ -1106,44 +686,10 @@ export default {
   deleteEvenement,
   getEvenementsAVenir,
 
-  // ❌ SUPPRIMÉ : Fonctions d'envoi d'email manuel
-  // sendEventEmail,
-  // sendAllEventsEmail,
-
-  // Export PDF pour toutes les tables
-  exportDepartementsPDF,
-  exportEmployesPDF,
-  exportPointagesPDF,
-  exportAbsencesPDF,
-  exportCongesPDF,
-  exportEvenementsPDF,
-  exportDepartementsPDFSpecific,
-  exportEmployesPDFSpecific,
-  exportPointagesPDFSpecific,
-  exportAbsencesPDFSpecific,
-  exportCongesPDFSpecific,
-  exportEvenementsPDFSpecific,
-
-  // Statistiques
+  // Statistiques (UNIQUEMENT EMPLOYÉ ET GLOBALES)
   getEmployeeStatistics,
-  getDepartmentStatistics,
   getGlobalStatistics,
-  getDetailedStatistics,
-  getSavedStatistics,
-  deleteSavedStatistics,
   exportStatisticsPDF,
-
-  // Rapports et Analyses
-  getReportHistory,
-  generateReport,
-  downloadReport,
-  getComparativeAnalysis,
-  getTrendsAnalysis,
-
-  // Notifications
-  getNotifications,
-  markNotificationAsRead,
-  deleteNotification,
 
   // Utilitaires
   StatisticsUtils,

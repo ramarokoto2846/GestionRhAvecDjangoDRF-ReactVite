@@ -22,8 +22,6 @@ import {
   getCurrentUser, 
   deleteEvenement, 
   isSuperuser,
-  exportEvenementsPDF
-  // SUPPRIMER sendAllEventsEmail, sendEventEmail
 } from "../../services/api";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
@@ -111,29 +109,6 @@ const Evenements = () => {
       setEvenements(Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : []));
     } catch (error) {
       showSnackbar("Erreur lors du rechargement des événements", "error");
-    }
-  };
-
-  // SUPPRIMER handleSendSingleEmail - plus nécessaire
-
-  // SUPPRIMER handleSendAllEmails - plus nécessaire
-
-  // ✅ FONCTION POUR GÉNÉRER LE PDF
-  const handleGeneratePDF = async () => {
-    setGeneratingPDF(true);
-    try {
-      const result = await exportEvenementsPDF();
-      
-      if (result && result.success) {
-        showSnackbar("PDF généré avec succès !", "success");
-      } else {
-        throw new Error(result?.message || "Erreur inconnue");
-      }
-    } catch (error) {
-      console.error("Erreur lors de la génération du PDF:", error);
-      showSnackbar(error.message || "Erreur lors de la génération du PDF", "error");
-    } finally {
-      setGeneratingPDF(false);
     }
   };
 
@@ -408,25 +383,6 @@ const Evenements = () => {
           
           {/* ✅ STACK AVEC BOUTONS PDF ET NOUVEL ÉVÉNEMENT SEULEMENT */}
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            {/* Bouton PDF */}
-            <Button
-              variant="outlined"
-              onClick={handleGeneratePDF}
-              disabled={generatingPDF || evenements.length === 0}
-              startIcon={generatingPDF ? <CircularProgress size={20} /> : <PrintIcon />}
-              sx={{
-                borderRadius: 2,
-                minWidth: 180,
-                px: 3,
-                textTransform: "none",
-                fontWeight: "bold",
-                fontSize: '1rem'
-              }}
-            >
-              {generatingPDF ? "Génération..." : "Imprimer PDF"}
-            </Button>
-            
-            {/* Bouton Nouvel Événement */}
             <Fab
               color="primary"
               onClick={() => handleOpenDialog()}

@@ -33,7 +33,6 @@ import {
   deletePointage, 
   getEmployes, 
   getCurrentUser,
-  exportPointagesPDF
 } from "../../services/api";
 import Header, { triggerNotificationsRefresh } from "../../components/Header";
 import PointageTable from "./PointageTable";
@@ -88,7 +87,7 @@ const Pointages = () => {
 
   // ✅ CORRIGÉ : id_pointage vide par défaut, sera généré automatiquement
   const initialFormData = {
-    id_pointage: "", // ← Vide par défaut, sera généré automatiquement
+    id_pointage: "",
     employe: "",
     date_pointage: format(new Date(), "yyyy-MM-dd"),
     heure_entree: "08:00",
@@ -271,24 +270,6 @@ const Pointages = () => {
 
   const showDetails = (pointage) => {
     setDetailView(pointage);
-  };
-
-  const handleGeneratePDF = async () => {
-    setGeneratingPDF(true);
-    try {
-      const result = await exportPointagesPDF();
-      
-      if (result && result.success) {
-        showSnackbar("PDF généré avec succès !", "success");
-      } else {
-        throw new Error(result?.message || "Erreur inconnue");
-      }
-    } catch (error) {
-      console.error("Erreur lors de la génération du PDF:", error);
-      showSnackbar(error.message || "Erreur lors de la génération du PDF", "error");
-    } finally {
-      setGeneratingPDF(false);
-    }
   };
 
   const showSnackbar = (message, severity = "success") => {
@@ -475,24 +456,7 @@ const Pointages = () => {
           </Box>
           
           {/* ✅ NOUVEAU : STACK AVEC BOUTON PDF ET NOUVEAU POINTAGE */}
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            <Button
-              variant="outlined"
-              onClick={handleGeneratePDF}
-              disabled={generatingPDF || pointages.length === 0}
-              startIcon={generatingPDF ? <CircularProgress size={20} /> : <PrintIcon />}
-              sx={{
-                borderRadius: 2,
-                minWidth: 200,
-                px: 3,
-                textTransform: "none",
-                fontWeight: "bold",
-                fontSize: '1rem'
-              }}
-            >
-              {generatingPDF ? "Génération..." : "Imprimer PDF"}
-            </Button>
-            
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>            
             <Fab
               color="primary"
               onClick={() => handleOpenDialog()}

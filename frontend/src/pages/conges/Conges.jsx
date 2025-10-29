@@ -42,8 +42,7 @@ import {
   validerConge, 
   refuserConge, 
   getCurrentUser, 
-  isSuperuser,
-  exportCongesPDF  // ✅ AJOUTEZ CET IMPORT
+  isSuperuser
 } from "../../services/api";
 import Header, { triggerNotificationsRefresh } from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
@@ -137,50 +136,6 @@ const Conges = () => {
       showSnackbar(errorMessage, "error");
     } finally {
       setLoading(false);
-    }
-  };
-
-  // ✅ NOUVELLE FONCTION POUR GÉNÉRER LE PDF
-  // Fonction pour générer le PDF
-// Fonction pour générer le PDF
-  const handleGeneratePDF = async () => {
-    setGeneratingPDF(true);
-    try {
-      // ✅ CORRECTION : Utiliser l'URL complète du backend Django
-      const response = await fetch(`http://localhost:8000/api/export/pdf/?table=conges`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
-      }
-
-      // Télécharger le PDF
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      
-      // Générer un nom de fichier
-      const date = new Date().toISOString().split('T')[0];
-      const filename = `liste_conges_${date}.pdf`;
-      
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      
-      showSnackbar("PDF généré avec succès !", "success");
-      
-    } catch (error) {
-      console.error("Erreur lors de la génération du PDF:", error);
-      showSnackbar(error.message || "Erreur lors de la génération du PDF", "error");
-    } finally {
-      setGeneratingPDF(false);
     }
   };
 
@@ -478,24 +433,7 @@ const Conges = () => {
           </Box>
           
           {/* ✅ NOUVEAU : STACK AVEC BOUTON PDF ET NOUVEAU CONGÉ */}
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            <Button
-              variant="outlined"
-              onClick={handleGeneratePDF}
-              disabled={generatingPDF || filteredData.length === 0}
-              startIcon={generatingPDF ? <CircularProgress size={20} /> : <PrintIcon />}
-              sx={{
-                borderRadius: 2,
-                minWidth: 200,
-                px: 3,
-                textTransform: "none",
-                fontWeight: "bold",
-                fontSize: '1rem'
-              }}
-            >
-              {generatingPDF ? "Génération..." : "Imprimer PDF"}
-            </Button>
-            
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>            
             <Fab
               color="primary"
               onClick={() => handleOpenDialog()}

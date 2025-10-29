@@ -266,11 +266,11 @@ const Home = () => {
         </Box>
 
         {/* Quick Actions */}
-        <Typography variant="h5" gutterBottom sx={{ mb: 3, fontWeight: 'bold', color: 'text.primary' }}>
+        <Typography variant="h5" gutterBottom sx={{ mb: 3, fontWeight: 'bold', color: 'text.primary', ml: -15 }}>
           Accès rapide
         </Typography>
         
-        <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid container spacing={3} sx={{ mb: 4, width: '1730px', ml: -15 }}>
           {navItems.map((item, index) => (
             <Grid item xs={12} sm={6} md={4} key={index}>
               <Card 
@@ -365,79 +365,6 @@ const Home = () => {
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                   Cette plateforme intuitive permet une gestion centralisée des ressources humaines avec des outils avancés pour suivre les employés, gérer les départements, et optimiser les processus administratifs.
                 </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <Card 
-              sx={{ 
-                borderRadius: 3,
-                boxShadow: '0 5px 20px rgba(0,0,0,0.08)',
-                border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                height: '100%',
-                background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)'
-              }}
-            >
-              <CardContent sx={{ p: 4 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                  <Box 
-                    sx={{ 
-                      width: 56, 
-                      height: 56, 
-                      borderRadius: 2,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      mr: 3,
-                      background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                      color: 'white'
-                    }}
-                  >
-                    <TrendingUpIcon sx={{ fontSize: 28 }} />
-                  </Box>
-                  <Box>
-                    <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', mb: 1 }}>
-                      Fonctionnalités
-                    </Typography>
-                    <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-                      Outils avancés disponibles
-                    </Typography>
-                  </Box>
-                </Box>
-                
-                <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
-                  Dotée d'une interface moderne et responsive, l'application s'adapte à tous les appareils et offre des tableaux de bord personnalisés avec des analyses en temps réel pour une prise de décision éclairée.
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                  <Chip 
-                    label="Interface moderne" 
-                    size="small" 
-                    sx={{ 
-                      bgcolor: alpha(theme.palette.primary.main, 0.1),
-                      color: 'primary.dark',
-                      fontWeight: 'medium'
-                    }} 
-                  />
-                  <Chip 
-                    label="Temps réel" 
-                    size="small" 
-                    sx={{ 
-                      bgcolor: alpha('#10B981', 0.1),
-                      color: '#10B981',
-                      fontWeight: 'medium'
-                    }} 
-                  />
-                  <Chip 
-                    label="Sécurisé" 
-                    size="small" 
-                    sx={{ 
-                      bgcolor: alpha('#F59E0B', 0.1),
-                      color: '#F59E0B',
-                      fontWeight: 'medium'
-                    }} 
-                  />
-                </Box>
               </CardContent>
             </Card>
           </Grid>

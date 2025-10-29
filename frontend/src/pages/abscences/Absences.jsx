@@ -37,8 +37,7 @@ import {
   deleteAbsence, 
   getEmployes, 
   getCurrentUser, 
-  isSuperuser,
-  exportAbsencesPDF
+  isSuperuser
 } from "../../services/api";
 import Header, { triggerNotificationsRefresh } from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
@@ -321,29 +320,6 @@ const Absences = () => {
     }
   };
 
-  // Fonction pour générer le PDF
-  const handleGeneratePDF = async () => {
-    setGeneratingPDF(true);
-    try {
-      const result = await exportAbsencesPDF({
-        search_term: searchTerm,
-        justification_filter: justificationFilter,
-        month_filter: monthFilter
-      });
-      
-      if (result && result.success) {
-        showSnackbar("PDF généré avec succès !", "success");
-      } else {
-        showSnackbar("Erreur lors de la génération du PDF", "error");
-      }
-    } catch (error) {
-      console.error("Erreur lors de la génération du PDF:", error);
-      showSnackbar(error.message || "Erreur lors de la génération du PDF", "error");
-    } finally {
-      setGeneratingPDF(false);
-    }
-  };
-
   const filteredData = absences.filter(absence => {
     if (!absence || !absence.id_absence || !absence.employe) {
       console.warn("Absence invalide dans filteredData:", absence);
@@ -419,24 +395,7 @@ const Absences = () => {
             </Typography>
           </Box>
           
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            <Button
-              variant="outlined"
-              onClick={handleGeneratePDF}
-              disabled={generatingPDF || filteredData.length === 0}
-              startIcon={generatingPDF ? <CircularProgress size={20} /> : <PrintIcon />}
-              sx={{
-                borderRadius: 2,
-                minWidth: 200,
-                px: 3,
-                textTransform: "none",
-                fontWeight: "bold",
-                fontSize: '1rem'
-              }}
-            >
-              {generatingPDF ? "Génération..." : "Imprimer PDF"}
-            </Button>
-            
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>           
             <Fab
               color="primary"
               onClick={() => handleOpenDialog()}

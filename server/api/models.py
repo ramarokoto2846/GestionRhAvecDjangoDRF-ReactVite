@@ -329,7 +329,7 @@ class Evenement(models.Model):
     
 
 # ========================
-# Statistiques
+# Statistiques (UNIQUEMENT EMPLOYÉ ET GLOBALES)
 # ========================
 class StatistiquesEmploye(models.Model):
     PERIODE_TYPE = [
@@ -378,47 +378,6 @@ class StatistiquesEmploye(models.Model):
     
     def __str__(self):
         return f"Stats {self.employe} - {self.periode_debut} à {self.periode_fin}"
-
-class StatistiquesDepartement(models.Model):
-    departement = models.ForeignKey('Departement', on_delete=models.CASCADE, related_name="statistiques")
-    mois = models.DateField()
-    
-    # Statistiques Globales
-    taux_absence_moyen = models.FloatField(default=0)
-    heures_travail_moyennes = models.DurationField(null=True, blank=True)
-    total_employes = models.IntegerField(default=0)
-    employes_actifs = models.IntegerField(default=0)
-    
-    # Statistiques Pointage
-    total_heures_travail = models.DurationField(null=True, blank=True)
-    pointages_total = models.IntegerField(default=0)
-    retard_moyen = models.DurationField(null=True, blank=True)
-    
-    # Statistiques Absence
-    total_absences = models.IntegerField(default=0)
-    absences_justifiees = models.IntegerField(default=0)
-    absences_non_justifiees = models.IntegerField(default=0)
-    
-    # Statistiques Congé
-    total_conges_valides = models.IntegerField(default=0)
-    total_conges_refuses = models.IntegerField(default=0)
-    total_conges_en_attente = models.IntegerField(default=0)
-    taux_approbation_conges = models.FloatField(default=0)
-    
-    evenements_count = models.IntegerField(default=0)
-    date_calcul = models.DateTimeField(auto_now=True)
-    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_statistiques_departement')
-    
-    class Meta:
-        unique_together = ('departement', 'mois')
-        verbose_name = "Statistiques département"
-        verbose_name_plural = "Statistiques départements"
-        indexes = [
-            models.Index(fields=['departement', 'mois']),
-        ]
-    
-    def __str__(self):
-        return f"Stats {self.departement} - {self.mois.strftime('%Y-%m')}"
 
 class StatistiquesGlobales(models.Model):
     periode = models.DateField(unique=True)  # Premier jour du mois

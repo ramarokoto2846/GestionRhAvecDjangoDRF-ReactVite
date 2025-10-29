@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import CustomUser, Departement, Employe, Pointage, Absence, Conge, Evenement, StatistiquesEmploye, StatistiquesDepartement, StatistiquesGlobales
+from .models import CustomUser, Departement, Employe, Pointage, Absence, Conge, Evenement, StatistiquesEmploye, StatistiquesGlobales
 from django.contrib.auth.hashers import make_password
 
 # -----------------------
@@ -216,45 +216,6 @@ class StatistiquesEmployeSerializer(serializers.ModelSerializer):
         else:
             return f"Mois de {obj.periode_debut.strftime('%B %Y')}"
 
-class StatistiquesDepartementSerializer(serializers.ModelSerializer):
-    departement = DepartementMinimalSerializer(read_only=True)
-    heures_travail_moyennes_str = serializers.SerializerMethodField()
-    total_heures_travail_str = serializers.SerializerMethodField()
-    mois_display = serializers.SerializerMethodField()
-    created_by_username = serializers.CharField(source='created_by.email', read_only=True)
-    created_by_nom = serializers.CharField(source='created_by.nom', read_only=True)
-    
-    class Meta:
-        model = StatistiquesDepartement
-        fields = [
-            'id', 'departement', 'mois', 'mois_display',
-            
-            # Global
-            'total_employes', 'employes_actifs', 'taux_absence_moyen',
-            'heures_travail_moyennes', 'heures_travail_moyennes_str',
-            
-            # Pointage
-            'total_heures_travail', 'total_heures_travail_str', 'pointages_total',
-            
-            # Absence
-            'total_absences', 'absences_justifiees', 'absences_non_justifiees',
-            
-            # Congé
-            'total_conges_valides', 'total_conges_refuses', 'total_conges_en_attente',
-            'taux_approbation_conges',
-            
-            'evenements_count', 'date_calcul', 'created_by', 'created_by_username', 'created_by_nom'
-        ]
-    
-    def get_heures_travail_moyennes_str(self, obj):
-        return StatisticsService.format_duration(obj.heures_travail_moyennes)
-    
-    def get_total_heures_travail_str(self, obj):
-        return StatisticsService.format_duration(obj.total_heures_travail)
-    
-    def get_mois_display(self, obj):
-        return obj.mois.strftime('%B %Y')
-
 class StatistiquesGlobalesSerializer(serializers.ModelSerializer):
     heures_travail_total_str = serializers.SerializerMethodField()
     periode_display = serializers.SerializerMethodField()
@@ -325,41 +286,6 @@ class EmployeeStatsCalculatedSerializer(serializers.Serializer):
     def get_moyenne_heures_quotidiennes_str(self, obj):
         return StatisticsService.format_duration(obj['moyenne_heures_quotidiennes'])
 
-class DepartmentStatsCalculatedSerializer(serializers.Serializer):
-    departement = DepartementMinimalSerializer()
-    mois = serializers.DateField()
-    
-    # Global
-    total_employes = serializers.IntegerField()
-    employes_actifs = serializers.IntegerField()
-    taux_absence_moyen = serializers.FloatField()
-    heures_travail_moyennes = serializers.DurationField()
-    heures_travail_moyennes_str = serializers.SerializerMethodField()
-    
-    # Pointage
-    total_heures_travail = serializers.DurationField()
-    total_heures_travail_str = serializers.SerializerMethodField()
-    pointages_total = serializers.IntegerField()
-    
-    # Absence
-    total_absences = serializers.IntegerField()
-    absences_justifiees = serializers.IntegerField()
-    absences_non_justifiees = serializers.IntegerField()
-    
-    # Congé
-    total_conges_valides = serializers.IntegerField()
-    total_conges_refuses = serializers.IntegerField()
-    total_conges_en_attente = serializers.IntegerField()
-    taux_approbation_conges = serializers.FloatField()
-    
-    evenements_count = serializers.IntegerField()
-    
-    def get_heures_travail_moyennes_str(self, obj):
-        return StatisticsService.format_duration(obj['heures_travail_moyennes'])
-    
-    def get_total_heures_travail_str(self, obj):
-        return StatisticsService.format_duration(obj['total_heures_travail'])
-
 class GlobalStatsCalculatedSerializer(serializers.Serializer):
     periode = serializers.DateField()
     type_periode = serializers.CharField()
@@ -395,44 +321,3 @@ class GlobalStatsCalculatedSerializer(serializers.Serializer):
     
     def get_periode_display(self, obj):
         return obj['periode'].strftime('%B %Y')
-
-# Serializers pour statistiques détaillées
-class CongeStatisticsSerializer(serializers.Serializer):
-    total = serializers.IntegerField()
-    valides = serializers.IntegerField()
-    refuses = serializers.IntegerField()
-    en_attente = serializers.IntegerField()
-    moyenne_jours = serializers.FloatField()
-    total_jours_valides = serializers.IntegerField()
-    taux_validation = serializers.SerializerMethodField()
-    
-    def get_taux_validation(self, obj):
-        total_traites = obj['valides'] + obj['refuses']
-        return (obj['valides'] / total_traites * 100) if total_traites > 0 else 0
-
-class PointageStatisticsSerializer(serializers.Serializer):
-    total = serializers.IntegerField()
-    heures_total = serializers.DurationField()
-    heures_total_str = serializers.SerializerMethodField()
-    moyenne_quotidienne = serializers.DurationField()
-    moyenne_quotidienne_str = serializers.SerializerMethodField()
-    pointages_reguliers = serializers.IntegerField()
-    pointages_irreguliers = serializers.IntegerField()
-    taux_regularite = serializers.SerializerMethodField()
-    
-    def get_heures_total_str(self, obj):
-        return StatisticsService.format_duration(obj['heures_total'])
-    
-    def get_moyenne_quotidienne_str(self, obj):
-        return StatisticsService.format_duration(obj['moyenne_quotidienne'])
-    
-    def get_taux_regularite(self, obj):
-        return (obj['pointages_reguliers'] / obj['total'] * 100) if obj['total'] > 0 else 0
-
-class AbsenceStatisticsSerializer(serializers.Serializer):
-    total = serializers.IntegerField()
-    jours_total = serializers.IntegerField()
-    justifiees = serializers.IntegerField()
-    non_justifiees = serializers.IntegerField()
-    moyenne_jours = serializers.FloatField()
-    taux_justification = serializers.FloatField()
