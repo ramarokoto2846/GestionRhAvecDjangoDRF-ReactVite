@@ -45,7 +45,6 @@ import {
   isSuperuser
 } from "../../services/api";
 import Header, { triggerNotificationsRefresh } from "../../components/Header";
-import Sidebar from "../../components/Sidebar";
 import CongeTable from "./CongeTable";
 import CongeModal from "./CongeModal";
 
@@ -67,8 +66,6 @@ const Conges = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [stats, setStats] = useState({ total: 0, enAttente: 0, valides: 0, refuses: 0 });
-  const [generatingPDF, setGeneratingPDF] = useState(false); // ✅ NOUVEAU STATE
-
   const initialFormData = {
     id_conge: "",
     employe: "",
@@ -386,9 +383,6 @@ const Conges = () => {
         user={user}
         onMenuToggle={() => setOpen(!open)}
       />
-      
-      {/* Sidebar */}
-      <Sidebar open={open} setOpen={setOpen} />
 
       {/* Main Content - STYLE CORRIGÉ */}
       <Box 

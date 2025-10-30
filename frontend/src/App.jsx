@@ -6,12 +6,11 @@ import PrivateRoute from "./components/PrivateRoute";
 import Employes from "./pages/employes/Employes";
 import Departements from "./pages/departements/Departements";
 import Pointages from "./pages/pointages/Pointages";
-import Absences from "./pages/abscences/Absences";
 import Evenements from "./pages/evenements/Evenements";
 import Conges from "./pages/conges/Conges";
 import { getCurrentUser, isSuperuser } from "./services/api";
 
-// Import des pages de statistiques (UNIQUEMENT EMPLOYÉ ET VUE D'ENSEMBLE)
+// Import des pages de statistiques
 import StatisticsOverview from "./pages/statistiques/StatisticsOverview";
 import EmployeeStatistics from "./pages/statistiques/EmployeeStatistics";
 
@@ -21,11 +20,12 @@ const privateRoutes = [
   { path: "/departements", element: <Departements /> },
   { path: "/pointages", element: <Pointages /> },
   { path: "/conges", element: <Conges /> },
-  { path: "/absences", element: <Absences /> },
   { path: "/evenements", element: <Evenements /> },
-  // Routes des statistiques (UNIQUEMENT EMPLOYÉ ET VUE D'ENSEMBLE)
+  // Routes des statistiques
   { path: "/statistiques/overview", element: <StatisticsOverview /> },
   { path: "/statistiques/employes", element: <EmployeeStatistics /> },
+  // Redirection pour la route racine des statistiques
+  { path: "/statistiques", element: <Navigate to="/statistiques/overview" replace /> },
 ];
 
 function App() {

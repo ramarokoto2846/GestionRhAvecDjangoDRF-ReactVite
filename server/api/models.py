@@ -162,42 +162,6 @@ class Pointage(models.Model):
         return f"Pointage {self.id_pointage} - {self.employe}"
 
 # ========================
-# Absence
-# ========================
-class Absence(models.Model):
-    id_absence = models.CharField(max_length=10, primary_key=True)
-    employe = models.ForeignKey(Employe, on_delete=models.CASCADE, related_name="absences")
-    date_debut_absence = models.DateField()
-    date_fin_absence = models.DateField()
-    nbr_jours = models.IntegerField(editable=False)
-    motif = models.TextField()
-    justifiee = models.BooleanField(default=False)
-    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_absences')
-
-    def clean(self):
-        if self.date_fin_absence < self.date_debut_absence:
-            raise ValidationError("La date de fin doit être après la date de début")
-        
-        overlapping_absences = Absence.objects.filter(
-            employe=self.employe,
-            date_debut_absence__lte=self.date_fin_absence,
-            date_fin_absence__gte=self.date_debut_absence
-        ).exclude(id_absence=self.id_absence)
-        
-        if overlapping_absences.exists():
-            raise ValidationError("Cet employé a déjà une absence sur cette période.")
-        
-        super().clean()
-
-    def save(self, *args, **kwargs):
-        delta = self.date_fin_absence - self.date_debut_absence
-        self.nbr_jours = delta.days + 1
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"Absence {self.id_absence} - {self.employe}"
-
-# ========================
 # Conge
 # ========================
 class Conge(models.Model):
@@ -327,9 +291,9 @@ class Evenement(models.Model):
     def __str__(self):
         return f"{self.titre} ({self.date_debut} - {self.date_fin})"
     
-
+    
 # ========================
-# Statistiques (UNIQUEMENT EMPLOYÉ ET GLOBALES)
+# Statistiques (SANS ABSENCES)
 # ========================
 class StatistiquesEmploye(models.Model):
     PERIODE_TYPE = [
@@ -349,12 +313,7 @@ class StatistiquesEmploye(models.Model):
     moyenne_heures_quotidiennes = models.DurationField(null=True, blank=True)
     pointages_reguliers = models.IntegerField(default=0)
     pointages_irreguliers = models.IntegerField(default=0)
-    
-    # Statistiques Absence
-    taux_absence = models.FloatField(default=0)
-    jours_absence = models.IntegerField(default=0)
-    absences_justifiees = models.IntegerField(default=0)
-    absences_non_justifiees = models.IntegerField(default=0)
+    taux_regularite = models.FloatField(default=0)  # Ajouté pour remplacer les absences
     
     # Statistiques Congé
     conges_valides = models.IntegerField(default=0)
@@ -385,23 +344,24 @@ class StatistiquesGlobales(models.Model):
     
     # Statistiques Globales
     total_employes = models.IntegerField(default=0)
+    employes_actifs = models.IntegerField(default=0)  # Ajouté
     total_departements = models.IntegerField(default=0)
+    departements_actifs = models.IntegerField(default=0)  # Ajouté
     taux_activite_global = models.FloatField(default=0)
     
     # Statistiques Pointage
     total_pointages = models.IntegerField(default=0)
+    pointages_reguliers = models.IntegerField(default=0)  # Ajouté
     heures_travail_total = models.DurationField(null=True, blank=True)
+    moyenne_heures_quotidiennes = models.DurationField(null=True, blank=True)  # Ajouté
     taux_presence = models.FloatField(default=0)
-    
-    # Statistiques Absence
-    total_absences = models.IntegerField(default=0)
-    taux_absence_global = models.FloatField(default=0)
-    absences_justifiees = models.IntegerField(default=0)
+    taux_regularite_global = models.FloatField(default=0)  # Ajouté pour remplacer les absences
     
     # Statistiques Congé
     total_conges = models.IntegerField(default=0)
     conges_valides = models.IntegerField(default=0)
     conges_refuses = models.IntegerField(default=0)
+    conges_en_attente = models.IntegerField(default=0)  # Ajouté
     taux_validation_conges = models.FloatField(default=0)
     
     # Statistiques Événements

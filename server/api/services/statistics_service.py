@@ -9,7 +9,7 @@ class StatisticsService:
     
     @staticmethod
     def calculate_employee_weekly_stats(employe, date_reference=None):
-        """Calcule les statistiques hebdomadaires complètes d'un employé"""
+        """Calcule les statistiques hebdomadaires complètes d'un employé (SANS ABSENCES)"""
         # Convertir la date_reference en objet date si c'est une string
         if isinstance(date_reference, str):
             try:
@@ -49,32 +49,12 @@ class StatisticsService:
         pointages_reguliers = pointages.filter(heure_entree__lte=time(9, 0)).count()
         pointages_irreguliers = jours_travailles - pointages_reguliers
         
-        # === STATISTIQUES ABSENCE ===
-        absences = employe.absences.filter(
-            date_debut_absence__lte=end_of_week,
-            date_fin_absence__gte=start_of_week
+        # Taux de régularité (remplace les absences)
+        taux_regularite = (
+            (pointages_reguliers / jours_travailles * 100) 
+            if jours_travailles > 0 
+            else 0
         )
-        
-        print(f"⚠️ [STATS SEMAINE] Absences trouvées: {absences.count()}")
-        
-        jours_absence = 0
-        absences_justifiees = 0
-        absences_non_justifiees = 0
-        
-        for absence in absences:
-            debut = max(absence.date_debut_absence, start_of_week)
-            fin = min(absence.date_fin_absence, end_of_week)
-            jours_absence_periode = (fin - debut).days + 1
-            jours_absence += jours_absence_periode
-            
-            if absence.justifiee:
-                absences_justifiees += jours_absence_periode
-            else:
-                absences_non_justifiees += jours_absence_periode
-        
-        # Jours ouvrables dans la semaine (5 jours)
-        jours_ouvrables = 5
-        taux_absence = (jours_absence / jours_ouvrables) * 100 if jours_ouvrables > 0 else 0
         
         # === STATISTIQUES CONGÉ ===
         conges = employe.conges.filter(
@@ -99,6 +79,9 @@ class StatisticsService:
         total_conges_traites = conges_valides + conges_refuses
         taux_approbation = (conges_valides / total_conges_traites * 100) if total_conges_traites > 0 else 0
         
+        # Jours ouvrables dans la semaine (5 jours)
+        jours_ouvrables = 5
+        
         stats = {
             'employe': employe,
             'periode_debut': start_of_week,
@@ -111,14 +94,9 @@ class StatisticsService:
             'moyenne_heures_quotidiennes': moyenne_quotidienne,
             'pointages_reguliers': pointages_reguliers,
             'pointages_irreguliers': pointages_irreguliers,
+            'taux_regularite': round(taux_regularite, 2),
             
-            # Absence
-            'taux_absence': round(taux_absence, 2),
-            'jours_absence': jours_absence,
-            'absences_justifiees': absences_justifiees,
-            'absences_non_justifiees': absences_non_justifiees,
-            
-            # Congé
+            # Congé (SANS ABSENCES)
             'conges_valides': conges_valides,
             'conges_refuses': conges_refuses,
             'conges_en_attente': conges_en_attente,
@@ -128,12 +106,12 @@ class StatisticsService:
             'jours_ouvrables': jours_ouvrables
         }
         
-        print(f"✅ [STATS SEMAINE] Stats finales - Jours travaillés: {jours_travailles}, Absences: {jours_absence}")
+        print(f"✅ [STATS SEMAINE] Stats finales - Jours travaillés: {jours_travailles}, Régularité: {taux_regularite}%")
         return stats
     
     @staticmethod
     def calculate_employee_monthly_stats(employe, mois=None):
-        """Calcule les statistiques mensuelles complètes d'un employé"""
+        """Calcule les statistiques mensuelles complètes d'un employé (SANS ABSENCES)"""
         # Convertir le mois en objet date si c'est une string
         if isinstance(mois, str):
             try:
@@ -178,32 +156,12 @@ class StatisticsService:
         pointages_reguliers = pointages.filter(heure_entree__lte=time(8, 30)).count()
         pointages_irreguliers = jours_travailles - pointages_reguliers
         
-        # === STATISTIQUES ABSENCE ===
-        absences = employe.absences.filter(
-            date_debut_absence__lte=end_of_month,
-            date_fin_absence__gte=start_of_month
+        # Taux de régularité (remplace les absences)
+        taux_regularite = (
+            (pointages_reguliers / jours_travailles * 100) 
+            if jours_travailles > 0 
+            else 0
         )
-        
-        print(f"⚠️ [STATS MOIS] Absences trouvées: {absences.count()}")
-        
-        jours_absence = 0
-        absences_justifiees = 0
-        absences_non_justifiees = 0
-        
-        for absence in absences:
-            debut = max(absence.date_debut_absence, start_of_month)
-            fin = min(absence.date_fin_absence, end_of_month)
-            jours_absence_periode = (fin - debut).days + 1
-            jours_absence += jours_absence_periode
-            
-            if absence.justifiee:
-                absences_justifiees += jours_absence_periode
-            else:
-                absences_non_justifiees += jours_absence_periode
-        
-        # Jours ouvrables dans le mois (approximatif)
-        jours_ouvrables = 22
-        taux_absence = (jours_absence / jours_ouvrables) * 100 if jours_ouvrables > 0 else 0
         
         # === STATISTIQUES CONGÉ ===
         conges = employe.conges.filter(
@@ -226,6 +184,9 @@ class StatisticsService:
         total_conges_traites = conges_valides + conges_refuses
         taux_approbation = (conges_valides / total_conges_traites * 100) if total_conges_traites > 0 else 0
         
+        # Jours ouvrables dans le mois (approximatif)
+        jours_ouvrables = 22
+        
         stats = {
             'employe': employe,
             'periode_debut': start_of_month,
@@ -238,14 +199,9 @@ class StatisticsService:
             'moyenne_heures_quotidiennes': moyenne_quotidienne,
             'pointages_reguliers': pointages_reguliers,
             'pointages_irreguliers': pointages_irreguliers,
+            'taux_regularite': round(taux_regularite, 2),
             
-            # Absence
-            'taux_absence': round(taux_absence, 2),
-            'jours_absence': jours_absence,
-            'absences_justifiees': absences_justifiees,
-            'absences_non_justifiees': absences_non_justifiees,
-            
-            # Congé
+            # Congé (SANS ABSENCES)
             'conges_valides': conges_valides,
             'conges_refuses': conges_refuses,
             'conges_en_attente': conges_en_attente,
@@ -255,12 +211,12 @@ class StatisticsService:
             'jours_ouvrables': jours_ouvrables
         }
         
-        print(f"✅ [STATS MOIS] Stats finales - Jours travaillés: {jours_travailles}, Absences: {jours_absence}")
+        print(f"✅ [STATS MOIS] Stats finales - Jours travaillés: {jours_travailles}, Régularité: {taux_regularite}%")
         return stats
     
     @staticmethod
     def calculate_department_monthly_stats(departement, mois=None):
-        """Calcule les statistiques mensuelles complètes d'un département"""
+        """Calcule les statistiques mensuelles complètes d'un département (SANS ABSENCES)"""
         # Convertir le mois en objet date si c'est une string
         if isinstance(mois, str):
             try:
@@ -286,13 +242,10 @@ class StatisticsService:
                 'mois': mois,
                 'total_employes': 0,
                 'employes_actifs': 0,
-                'taux_absence_moyen': 0,
+                'taux_regularite_moyen': 0,
                 'heures_travail_moyennes': timedelta(),
                 'total_heures_travail': timedelta(),
                 'pointages_total': 0,
-                'total_absences': 0,
-                'absences_justifiees': 0,
-                'absences_non_justifiees': 0,
                 'total_conges_valides': 0,
                 'total_conges_refuses': 0,
                 'total_conges_en_attente': 0,
@@ -302,12 +255,9 @@ class StatisticsService:
             return stats
         
         # Calcul des statistiques agrégées
-        total_taux_absence = 0
+        total_taux_regularite = 0
         total_heures_seconds = 0
         total_pointages = 0
-        total_absences = 0
-        total_absences_justifiees = 0
-        total_absences_non_justifiees = 0
         total_conges_valides = 0
         total_conges_refuses = 0
         total_conges_en_attente = 0
@@ -315,18 +265,15 @@ class StatisticsService:
         for employe in employes_departement:
             emp_stats = StatisticsService.calculate_employee_monthly_stats(employe, mois)
             
-            total_taux_absence += emp_stats['taux_absence']
+            total_taux_regularite += emp_stats['taux_regularite']
             total_heures_seconds += emp_stats['heures_travail_total'].total_seconds()
             total_pointages += emp_stats['jours_travailles']
-            total_absences += emp_stats['jours_absence']
-            total_absences_justifiees += emp_stats['absences_justifiees']
-            total_absences_non_justifiees += emp_stats['absences_non_justifiees']
             total_conges_valides += emp_stats['conges_valides']
             total_conges_refuses += emp_stats['conges_refuses']
             total_conges_en_attente += emp_stats['conges_en_attente']
         
         # Calcul des moyennes et totaux
-        taux_absence_moyen = total_taux_absence / total_employes
+        taux_regularite_moyen = total_taux_regularite / total_employes
         heures_moyennes = timedelta(seconds=total_heures_seconds / total_employes)
         total_heures_travail = timedelta(seconds=total_heures_seconds)
         
@@ -348,17 +295,12 @@ class StatisticsService:
             # Global
             'total_employes': total_employes,
             'employes_actifs': employes_actifs,
-            'taux_absence_moyen': round(taux_absence_moyen, 2),
+            'taux_regularite_moyen': round(taux_regularite_moyen, 2),
             'heures_travail_moyennes': heures_moyennes,
             
             # Pointage
             'total_heures_travail': total_heures_travail,
             'pointages_total': total_pointages,
-            
-            # Absence
-            'total_absences': total_absences,
-            'absences_justifiees': total_absences_justifiees,
-            'absences_non_justifiees': total_absences_non_justifiees,
             
             # Congé
             'total_conges_valides': total_conges_valides,
@@ -373,7 +315,7 @@ class StatisticsService:
     
     @staticmethod
     def calculate_global_monthly_stats(mois=None):
-        """Calcule les statistiques globales mensuelles"""
+        """Calcule les statistiques globales mensuelles (SANS ABSENCES)"""
         # Convertir le mois en objet date si c'est une string
         if isinstance(mois, str):
             try:
@@ -389,7 +331,7 @@ class StatisticsService:
         start_of_month = mois
         end_of_month = (mois + timedelta(days=32)).replace(day=1) - timedelta(days=1)
         
-        from ..models import Employe, Departement, Pointage, Absence, Conge, Evenement
+        from ..models import Employe, Departement, Pointage, Conge, Evenement
         
         # Données de base
         total_employes = Employe.objects.count()
@@ -407,19 +349,19 @@ class StatisticsService:
             timedelta()
         )
         
+        # Pointages réguliers
+        pointages_reguliers = pointages_mois.filter(heure_entree__lte=time(8, 30)).count()
+        
         # Taux de présence (jours travaillés / jours ouvrables potentiels)
         jours_ouvrables_potentiels = 22 * total_employes  # Approximation
         taux_presence = (total_pointages / jours_ouvrables_potentiels * 100) if jours_ouvrables_potentiels > 0 else 0
         
-        # === STATISTIQUES ABSENCE ===
-        absences_mois = Absence.objects.filter(
-            date_debut_absence__lte=end_of_month,
-            date_fin_absence__gte=start_of_month
+        # Taux de régularité global (remplace les absences)
+        taux_regularite_global = (
+            (pointages_reguliers / total_pointages * 100) 
+            if total_pointages > 0 
+            else 0
         )
-        
-        total_absences = sum(absence.nbr_jours for absence in absences_mois)
-        absences_justifiees = sum(absence.nbr_jours for absence in absences_mois.filter(justifiee=True))
-        taux_absence_global = (total_absences / jours_ouvrables_potentiels * 100) if jours_ouvrables_potentiels > 0 else 0
         
         # === STATISTIQUES CONGÉ ===
         conges_mois = Conge.objects.filter(
@@ -430,6 +372,7 @@ class StatisticsService:
         total_conges = conges_mois.count()
         conges_valides = conges_mois.filter(statut='valide').count()
         conges_refuses = conges_mois.filter(statut='refuse').count()
+        conges_en_attente = conges_mois.filter(statut='en_attente').count()
         taux_validation_conges = (conges_valides / total_conges * 100) if total_conges > 0 else 0
         
         # === STATISTIQUES ÉVÉNEMENTS ===
@@ -447,23 +390,24 @@ class StatisticsService:
             
             # Global
             'total_employes': total_employes,
+            'employes_actifs': employes_actifs,
             'total_departements': total_departements,
+            'departements_actifs': total_departements,  # Estimation
             'taux_activite_global': round(taux_activite, 2),
             
             # Pointage
             'total_pointages': total_pointages,
+            'pointages_reguliers': pointages_reguliers,
             'heures_travail_total': total_heures,
+            'moyenne_heures_quotidiennes': total_heures / total_pointages if total_pointages > 0 else timedelta(),
             'taux_presence': round(taux_presence, 2),
+            'taux_regularite_global': round(taux_regularite_global, 2),
             
-            # Absence
-            'total_absences': total_absences,
-            'taux_absence_global': round(taux_absence_global, 2),
-            'absences_justifiees': absences_justifiees,
-            
-            # Congé
+            # Congé (SANS ABSENCES)
             'total_conges': total_conges,
             'conges_valides': conges_valides,
             'conges_refuses': conges_refuses,
+            'conges_en_attente': conges_en_attente,
             'taux_validation_conges': round(taux_validation_conges, 2),
             
             # Événements
@@ -474,7 +418,7 @@ class StatisticsService:
     
     @staticmethod
     def get_conge_statistics(employe=None, departement=None, periode=None):
-        """Statistiques détaillées sur les congés"""
+        """Statistiques détaillées sur les congés (SANS ABSENCES)"""
         from ..models import Conge
         
         queryset = Conge.objects.all()
@@ -504,7 +448,7 @@ class StatisticsService:
     
     @staticmethod
     def get_pointage_statistics(employe=None, departement=None, periode=None):
-        """Statistiques détaillées sur les pointages"""
+        """Statistiques détaillées sur les pointages (SANS ABSENCES)"""
         from ..models import Pointage
         
         queryset = Pointage.objects.exclude(duree_travail=None)
@@ -532,38 +476,8 @@ class StatisticsService:
         return stats
     
     @staticmethod
-    def get_absence_statistics(employe=None, departement=None, periode=None):
-        """Statistiques détaillées sur les absences"""
-        from ..models import Absence
-        
-        queryset = Absence.objects.all()
-        
-        if employe:
-            queryset = queryset.filter(employe=employe)
-        if departement:
-            queryset = queryset.filter(employe__departement=departement)
-        if periode:
-            start_date = periode
-            end_date = (periode + timedelta(days=32)).replace(day=1) - timedelta(days=1)
-            queryset = queryset.filter(
-                date_debut_absence__lte=end_date,
-                date_fin_absence__gte=start_date
-            )
-        
-        stats = {
-            'total': queryset.count(),
-            'jours_total': sum(absence.nbr_jours for absence in queryset),
-            'justifiees': queryset.filter(justifiee=True).count(),
-            'non_justifiees': queryset.filter(justifiee=False).count(),
-            'moyenne_jours': queryset.aggregate(Avg('nbr_jours'))['nbr_jours__avg'] or 0,
-            'taux_justification': (queryset.filter(justifiee=True).count() / queryset.count() * 100) if queryset.count() > 0 else 0
-        }
-        
-        return stats
-    
-    @staticmethod
     def save_employee_stats_to_db(stats_data):
-        """Sauvegarde les statistiques employé en base de données"""
+        """Sauvegarde les statistiques employé en base de données (SANS ABSENCES)"""
         from ..models import StatistiquesEmploye
         
         stats, created = StatistiquesEmploye.objects.update_or_create(
@@ -578,12 +492,7 @@ class StatisticsService:
                 'moyenne_heures_quotidiennes': stats_data['moyenne_heures_quotidiennes'],
                 'pointages_reguliers': stats_data['pointages_reguliers'],
                 'pointages_irreguliers': stats_data['pointages_irreguliers'],
-                
-                # Absence
-                'taux_absence': stats_data['taux_absence'],
-                'jours_absence': stats_data['jours_absence'],
-                'absences_justifiees': stats_data['absences_justifiees'],
-                'absences_non_justifiees': stats_data['absences_non_justifiees'],
+                'taux_regularite': stats_data.get('taux_regularite', 0),
                 
                 # Congé
                 'conges_valides': stats_data['conges_valides'],
@@ -593,41 +502,6 @@ class StatisticsService:
                 'taux_approbation_conges': stats_data['taux_approbation_conges'],
                 
                 'jours_ouvrables': stats_data['jours_ouvrables']
-            }
-        )
-        return stats
-    
-    @staticmethod
-    def save_department_stats_to_db(stats_data):
-        """Sauvegarde les statistiques département en base de données"""
-        from ..models import StatistiquesDepartement
-        
-        stats, created = StatistiquesDepartement.objects.update_or_create(
-            departement=stats_data['departement'],
-            mois=stats_data['mois'],
-            defaults={
-                # Global
-                'total_employes': stats_data['total_employes'],
-                'employes_actifs': stats_data['employes_actifs'],
-                'taux_absence_moyen': stats_data['taux_absence_moyen'],
-                'heures_travail_moyennes': stats_data['heures_travail_moyennes'],
-                
-                # Pointage
-                'total_heures_travail': stats_data['total_heures_travail'],
-                'pointages_total': stats_data['pointages_total'],
-                
-                # Absence
-                'total_absences': stats_data['total_absences'],
-                'absences_justifiees': stats_data['absences_justifiees'],
-                'absences_non_justifiees': stats_data['absences_non_justifiees'],
-                
-                # Congé
-                'total_conges_valides': stats_data['total_conges_valides'],
-                'total_conges_refuses': stats_data['total_conges_refuses'],
-                'total_conges_en_attente': stats_data['total_conges_en_attente'],
-                'taux_approbation_conges': stats_data['taux_approbation_conges'],
-                
-                'evenements_count': stats_data['evenements_count']
             }
         )
         return stats

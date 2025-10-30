@@ -24,7 +24,6 @@ import WorkIcon from '@mui/icons-material/Work';
 import EmailIcon from '@mui/icons-material/Email';
 import PhoneIcon from '@mui/icons-material/Phone';
 import BusinessIcon from '@mui/icons-material/Business';
-import PrintIcon from '@mui/icons-material/Print';
 
 import { 
   getPointages, 
@@ -37,7 +36,6 @@ import {
 import Header, { triggerNotificationsRefresh } from "../../components/Header";
 import PointageTable from "./PointageTable";
 import PointageModal from "./PointageModal";
-import Sidebar from "../../components/Sidebar";
 
 // Composant pour afficher les éléments de détail
 const DetailItem = ({ icon, label, value, color = "text.primary" }) => (
@@ -414,7 +412,6 @@ const Pointages = () => {
         user={user}
         onMenuToggle={() => setOpen(!open)}
       />
-      <Sidebar open={open} setOpen={setOpen} />
       
       <Box 
         component="main" 

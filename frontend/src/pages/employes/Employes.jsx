@@ -39,7 +39,6 @@ import {
   isSuperuser,
 } from "../../services/api";
 import Header, { triggerNotificationsRefresh } from "../../components/Header";
-import Sidebar from "../../components/Sidebar";
 import Swal from "sweetalert2";
 import EmployeTableau from "./EmployeTableau";
 import EmployModal from "./EmployModal";
@@ -321,7 +320,6 @@ const Employes = ({ isSuperuser: isSuperuserProp }) => {
         user={currentUser}
         onMenuToggle={() => setOpen(!open)}
       />
-      <Sidebar open={open} setOpen={setOpen} />
       
       <Box 
         component="main" 

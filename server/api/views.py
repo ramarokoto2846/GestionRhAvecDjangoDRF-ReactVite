@@ -25,10 +25,10 @@ try:
 except ImportError:
     REPORTLAB_AVAILABLE = False
 
-from .models import Departement, Employe, Pointage, Absence, Conge, Evenement
+from .models import Departement, Employe, Pointage, Conge, Evenement
 from .serializers import (
     CustomUserSerializer, DepartementSerializer, EmployeSerializer,
-    PointageSerializer, AbsenceSerializer, CongeSerializer, EvenementSerializer,
+    PointageSerializer, CongeSerializer, EvenementSerializer,
     EmployeeStatsCalculatedSerializer, GlobalStatsCalculatedSerializer
 )
 from .permissions import IsOwnerOrAdminForWrite
@@ -50,10 +50,7 @@ except ImportError as e:
                 'moyenne_heures_quotidiennes': timezone.timedelta(hours=8),
                 'pointages_reguliers': 4,
                 'pointages_irreguliers': 1,
-                'taux_absence': 5.0,
-                'jours_absence': 1,
-                'absences_justifiees': 1,
-                'absences_non_justifiees': 0,
+                'taux_regularite': 80.0,
                 'conges_valides': 2,
                 'conges_refuses': 0,
                 'conges_en_attente': 1,
@@ -74,10 +71,7 @@ except ImportError as e:
                 'moyenne_heures_quotidiennes': timezone.timedelta(hours=8),
                 'pointages_reguliers': 18,
                 'pointages_irreguliers': 2,
-                'taux_absence': 8.0,
-                'jours_absence': 2,
-                'absences_justifiees': 2,
-                'absences_non_justifiees': 0,
+                'taux_regularite': 90.0,
                 'conges_valides': 3,
                 'conges_refuses': 1,
                 'conges_en_attente': 0,
@@ -92,17 +86,20 @@ except ImportError as e:
                 'periode': timezone.now().date().replace(day=1),
                 'type_periode': 'mensuel',
                 'total_employes': 150,
+                'employes_actifs': 140,
                 'total_departements': 8,
+                'departements_actifs': 8,
                 'taux_activite_global': 95.0,
                 'total_pointages': 3000,
+                'pointages_reguliers': 2700,
                 'heures_travail_total': timezone.timedelta(hours=24000),
+                'moyenne_heures_quotidiennes': timezone.timedelta(hours=8),
                 'taux_presence': 92.0,
-                'total_absences': 120,
-                'taux_absence_global': 8.0,
-                'absences_justifiees': 100,
+                'taux_regularite_global': 90.0,
                 'total_conges': 45,
                 'conges_valides': 35,
                 'conges_refuses': 5,
+                'conges_en_attente': 5,
                 'taux_validation_conges': 87.5,
                 'total_evenements': 12
             }
@@ -331,20 +328,6 @@ class PointageViewSet(viewsets.ModelViewSet):
             'total_heures': total_heures,
             'nombre_pointages': pointages.count()
         })
-
-
-class AbsenceViewSet(viewsets.ModelViewSet):
-    queryset = Absence.objects.select_related('employe').all()
-    serializer_class = AbsenceSerializer
-    permission_classes = [IsOwnerOrAdminForWrite]
-    filter_backends = [filters.SearchFilter, DjangoFilterBackend, filters.OrderingFilter]
-    search_fields = ['employe__nom', 'employe__prenom', 'motif']
-    filterset_fields = ['date_debut_absence', 'date_fin_absence', 'justifiee', 'employe']
-    ordering_fields = ['date_debut_absence', 'date_fin_absence']
-    ordering = ['-date_debut_absence']
-
-    def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
 
 
 class CongeViewSet(viewsets.ModelViewSet):
@@ -691,7 +674,7 @@ class ExportStatisticsPDFAPIView(APIView):
                 ['Moyenne quotidienne', self._format_duration(stats.get('moyenne_heures_quotidiennes'))],
                 ['Pointages réguliers', f"{stats.get('pointages_reguliers', 0)}"],
                 ['Pointages irréguliers', f"{stats.get('pointages_irreguliers', 0)}"],
-                ['Taux de régularité', f"{(stats.get('pointages_reguliers', 0) / stats.get('jours_travailles', 1) * 100) if stats.get('jours_travailles', 0) > 0 else 0:.1f}%"],
+                ['Taux de régularité', f"{stats.get('taux_regularite', 0):.1f}%"],
             ]
             
             pointage_table = Table(pointage_data, colWidths=[100*mm, 60*mm])
@@ -708,33 +691,6 @@ class ExportStatisticsPDFAPIView(APIView):
                 ('PADDING', (0, 0), (-1, -1), 6),
             ]))
             elements.append(pointage_table)
-            elements.append(Spacer(1, 20))
-            
-            elements.append(Paragraph("⚠️ ABSENCES", section_style))
-            elements.append(Spacer(1, 10))
-            
-            absence_data = [
-                ['Taux d\'absence', f"{stats.get('taux_absence', 0):.1f}%"],
-                ['Jours d\'absence totaux', f"{stats.get('jours_absence', 0)} jours"],
-                ['Absences justifiées', f"{stats.get('absences_justifiees', 0)}"],
-                ['Absences non justifiées', f"{stats.get('absences_non_justifiees', 0)}"],
-                ['Jours ouvrables', f"{stats.get('jours_ouvrables', 0)} jours"],
-            ]
-            
-            absence_table = Table(absence_data, colWidths=[100*mm, 60*mm])
-            absence_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#A23B72')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 12),
-                ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#FFF0F5')),
-                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-                ('FONTSIZE', (0, 1), (-1, -1), 10),
-                ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#CCCCCC')),
-                ('PADDING', (0, 0), (-1, -1), 6),
-            ]))
-            elements.append(absence_table)
             elements.append(Spacer(1, 20))
             
             elements.append(Paragraph("🏖️ CONGÉS", section_style))
@@ -811,12 +767,16 @@ class ExportStatisticsPDFAPIView(APIView):
             
             global_data = [
                 ['Total employés', f"{stats.get('total_employes', 0)}"],
+                ['Employés actifs', f"{stats.get('employes_actifs', 0)}"],
                 ['Total départements', f"{stats.get('total_departements', 0)}"],
+                ['Départements actifs', f"{stats.get('departements_actifs', 0)}"],
                 ['Taux d\'activité global', f"{stats.get('taux_activite_global', 0):.1f}%"],
                 ['Total pointages', f"{stats.get('total_pointages', 0)}"],
+                ['Pointages réguliers', f"{stats.get('pointages_reguliers', 0)}"],
                 ['Heures totales travaillées', self._format_duration(stats.get('heures_travail_total'))],
+                ['Moyenne quotidienne', self._format_duration(stats.get('moyenne_heures_quotidiennes'))],
                 ['Taux de présence', f"{stats.get('taux_presence', 0):.1f}%"],
-                ['Taux d\'absence global', f"{stats.get('taux_absence_global', 0):.1f}%"],
+                ['Taux de régularité global', f"{stats.get('taux_regularite_global', 0):.1f}%"],
                 ['Congés validés', f"{stats.get('conges_valides', 0)}"],
                 ['Taux validation congés', f"{stats.get('taux_validation_conges', 0):.1f}%"],
                 ['Événements organisés', f"{stats.get('total_evenements', 0)}"],

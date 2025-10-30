@@ -225,16 +225,6 @@ export const getPointagesStatsMensuelles = async (mois, annee) => {
 };
 
 // ========================
-// ABSENCES
-// ========================
-const absencesCrud = createCrudFunctions("absences", "id_absence");
-export const getAbsences = absencesCrud.getAll;
-export const getAbsence = absencesCrud.getOne;
-export const createAbsence = absencesCrud.create;
-export const updateAbsence = absencesCrud.update;
-export const deleteAbsence = absencesCrud.deleteOne;
-
-// ========================
 // CONGÉS
 // ========================
 const congesCrud = createCrudFunctions("conges", "id_conge");
@@ -661,13 +651,6 @@ export default {
   updatePointage,
   deletePointage,
   getPointagesStatsMensuelles,
-
-  // Absences
-  getAbsences,
-  getAbsence,
-  createAbsence,
-  updateAbsence,
-  deleteAbsence,
 
   // Congés
   getConges,

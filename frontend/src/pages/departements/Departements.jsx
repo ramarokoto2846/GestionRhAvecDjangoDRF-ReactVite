@@ -26,7 +26,6 @@ import {
 } from "@mui/icons-material";
 import Swal from "sweetalert2";
 import Header from "../../components/Header";
-import Sidebar from "../../components/Sidebar";
 import DepartementTableau from "./DepartementTableau";
 import DepartementModal from "./DepartementModal";
 import {
@@ -417,7 +416,7 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
       />
 
       {/* Sidebar */}
-      <Sidebar open={open} setOpen={setOpen} />
+      {/* <Sidebar open={open} setOpen={setOpen} /> */}
 
       {/* Contenu principal */}
       <Box

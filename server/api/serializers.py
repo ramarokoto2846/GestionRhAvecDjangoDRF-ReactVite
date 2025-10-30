@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import CustomUser, Departement, Employe, Pointage, Absence, Conge, Evenement, StatistiquesEmploye, StatistiquesGlobales
+from .models import CustomUser, Departement, Employe, Pointage, Conge, Evenement, StatistiquesEmploye, StatistiquesGlobales
 from django.contrib.auth.hashers import make_password
 
 # -----------------------
@@ -102,20 +102,6 @@ class PointageSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 # -----------------------
-# Absence
-# -----------------------
-class AbsenceSerializer(serializers.ModelSerializer):
-    nbr_jours = serializers.IntegerField(read_only=True)
-    employe_nom = serializers.CharField(source='employe.nom_complet', read_only=True)
-    created_by = serializers.PrimaryKeyRelatedField(read_only=True)
-    created_by_username = serializers.CharField(source='created_by.email', read_only=True)
-    created_by_nom = serializers.CharField(source='created_by.nom', read_only=True)
-
-    class Meta:
-        model = Absence
-        fields = '__all__'
-
-# -----------------------
 # Conge
 # -----------------------
 class CongeSerializer(serializers.ModelSerializer):
@@ -194,9 +180,6 @@ class StatistiquesEmployeSerializer(serializers.ModelSerializer):
             'moyenne_heures_quotidiennes', 'moyenne_heures_quotidiennes_str',
             'pointages_reguliers', 'pointages_irreguliers',
             
-            # Absence
-            'taux_absence', 'jours_absence', 'absences_justifiees', 'absences_non_justifiees',
-            
             # Congé
             'conges_valides', 'conges_refuses', 'conges_en_attente', 'total_jours_conges',
             'taux_approbation_conges',
@@ -231,9 +214,6 @@ class StatistiquesGlobalesSerializer(serializers.ModelSerializer):
             # Pointage
             'total_pointages', 'heures_travail_total', 'heures_travail_total_str', 'taux_presence',
             
-            # Absence
-            'total_absences', 'taux_absence_global', 'absences_justifiees',
-            
             # Congé
             'total_conges', 'conges_valides', 'conges_refuses', 'taux_validation_conges',
             
@@ -265,12 +245,6 @@ class EmployeeStatsCalculatedSerializer(serializers.Serializer):
     pointages_reguliers = serializers.IntegerField()
     pointages_irreguliers = serializers.IntegerField()
     
-    # Absence
-    taux_absence = serializers.FloatField()
-    jours_absence = serializers.IntegerField()
-    absences_justifiees = serializers.IntegerField()
-    absences_non_justifiees = serializers.IntegerField()
-    
     # Congé
     conges_valides = serializers.IntegerField()
     conges_refuses = serializers.IntegerField()
@@ -301,11 +275,6 @@ class GlobalStatsCalculatedSerializer(serializers.Serializer):
     heures_travail_total = serializers.DurationField()
     heures_travail_total_str = serializers.SerializerMethodField()
     taux_presence = serializers.FloatField()
-    
-    # Absence
-    total_absences = serializers.IntegerField()
-    taux_absence_global = serializers.FloatField()
-    absences_justifiees = serializers.IntegerField()
     
     # Congé
     total_conges = serializers.IntegerField()

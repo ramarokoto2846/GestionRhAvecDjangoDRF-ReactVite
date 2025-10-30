@@ -13,7 +13,13 @@ import {
   ListItemIcon,
   ListItemText,
   alpha,
-  useTheme
+  useTheme,
+  Drawer,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText as ListItemTextDrawer,
+  Divider
 } from "@mui/material";
 import {
   Notifications as NotificationsIcon,
@@ -24,13 +30,17 @@ import {
   Warning as WarningIcon,
   BeachAccess as BeachAccessIcon,
   AccessTime as AccessTimeIcon,
-  ReportProblem as ReportProblemIcon,
   Person as PersonIcon,
-  Email as EmailIcon
+  Email as EmailIcon,
+  BarChart as BarChartIcon,
+  TrendingUp as TrendingUpIcon,
+  People as PeopleIcon,
+  Home as HomeIcon,
+  Apartment as ApartmentIcon
 } from "@mui/icons-material";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import Swal from "sweetalert2";
-import { getConges, getEmployes, getEvenements, getPointages, getAbsences } from "../services/api";
+import { getConges, getEmployes, getEvenements, getPointages } from "../services/api";
 
 // Global refresh trigger
 let refreshNotificationsCallback = null;
@@ -41,11 +51,14 @@ export const triggerNotificationsRefresh = () => {
   }
 };
 
-const Header = ({ user, onMenuToggle, onLogoutCheck }) => { // ← Ajouter onLogoutCheck en prop
+const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState(null);
   const [settingsAnchorEl, setSettingsAnchorEl] = useState(null);
+  const [statsAnchorEl, setStatsAnchorEl] = useState(null);
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [notificationsCount, setNotificationsCount] = useState(0);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -63,7 +76,6 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => { // ← Ajouter onLog
   const handleLogout = async () => {
     // ✅ VÉRIFICATION DES POINTAGES EN COURS AVANT DÉCONNEXION
     try {
-      // Vérifier s'il y a des pointages en cours
       const pointagesData = await getPointages();
       const pointagesEnCours = pointagesData.filter(p => !p.heure_sortie);
       
@@ -92,13 +104,11 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => { // ← Ajouter onLog
         });
 
         if (!result.isConfirmed) {
-          // Rediriger vers la page des pointages pour vérifier
           navigate("/pointages");
           return;
         }
       }
 
-      // Si pas de pointages en cours ou confirmation, procéder à la déconnexion normale
       Swal.fire({
         title: "Déconnexion",
         text: "Voulez-vous vraiment vous déconnecter ?",
@@ -119,7 +129,6 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => { // ← Ajouter onLog
 
     } catch (error) {
       console.error("Erreur lors de la vérification des pointages:", error);
-      // En cas d'erreur, procéder à la déconnexion normale
       Swal.fire({
         title: "Déconnexion",
         text: "Voulez-vous vraiment vous déconnecter ?",
@@ -156,13 +165,30 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => { // ← Ajouter onLog
     setSettingsAnchorEl(null);
   };
 
+  const handleStatsClick = (event) => {
+    setStatsAnchorEl(event.currentTarget);
+  };
+
+  const handleStatsClose = () => {
+    setStatsAnchorEl(null);
+  };
+
+  const handleMobileDrawerToggle = () => {
+    setMobileDrawerOpen(!mobileDrawerOpen);
+  };
+
+  const handleNavigation = (path) => {
+    navigate(path);
+    setMobileDrawerOpen(false);
+    handleStatsClose();
+  };
+
   const handleNotificationClick = (type) => {
     handleNotificationsClose();
     if (type === "employes_inactifs") navigate("/employes");
     else if (type === "conges") navigate("/conges");
     else if (type === "evenements") navigate("/evenements");
     else if (type === "pointages") navigate("/pointages");
-    else if (type === "absences") navigate("/absences");
   };
 
   // Fetch notifications in parallel
@@ -175,22 +201,18 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => { // ← Ajouter onLog
       }
 
       try {
-        const [employesData, congesData, pointagesData, evenementsData, absencesData] = await Promise.all([
+        const [employesData, congesData, pointagesData, evenementsData] = await Promise.all([
           getEmployes().catch(() => []),
           getConges().catch(() => []),
           getPointages().catch(() => []),
           getEvenements().catch(() => []),
-          getAbsences().catch(() => [])
         ]);
-
-        // Debug absences data
-        console.log("Données des absences:", absencesData);
 
         // Employés inactifs
         const employesInactifs = employesData.filter(emp => emp.statut === 'inactif');
         const employesNotification = employesInactifs.length > 0 ? [{
           type: "employes_inactifs",
-          message: `${employesInactifs.length} Employé${employesInactifs.length > 1 ? "s" : ""} inactif${employesInactifs.length > 1 ? "s" : ""}`,
+          message: `${employesInactifs.length} employé${employesInactifs.length > 1 ? "s" : ""} inactif${employesInactifs.length > 1 ? "s" : ""}`,
           count: employesInactifs.length
         }] : [];
 
@@ -198,7 +220,7 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => { // ← Ajouter onLog
         const congesEnAttente = congesData.filter(c => c.statut === 'en_attente');
         const congesNotification = congesEnAttente.length > 0 ? [{
           type: "conges",
-          message: `${congesEnAttente.length} Congé${congesEnAttente.length > 1 ? "s" : ""} en attente`,
+          message: `${congesEnAttente.length} congé${congesEnAttente.length > 1 ? "s" : ""} en attente`,
           count: congesEnAttente.length
         }] : [];
 
@@ -206,7 +228,7 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => { // ← Ajouter onLog
         const pointagesEnCours = pointagesData.filter(p => !p.heure_sortie);
         const pointagesNotification = pointagesEnCours.length > 0 ? [{
           type: "pointages",
-          message: `${pointagesEnCours.length} Pointage${pointagesEnCours.length > 1 ? "s" : ""} en cours`,
+          message: `${pointagesEnCours.length} pointage${pointagesEnCours.length > 1 ? "s" : ""} en cours`,
           count: pointagesEnCours.length
         }] : [];
 
@@ -215,17 +237,8 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => { // ← Ajouter onLog
         const evenementsNonExpires = evenementsData.filter(e => new Date(e.date_fin) >= currentDate);
         const evenementsNotification = evenementsNonExpires.length > 0 ? [{
           type: "evenements",
-          message: `${evenementsNonExpires.length} Événement${evenementsNonExpires.length > 1 ? "s" : ""} à venir/en cours`,
+          message: `${evenementsNonExpires.length} événement${evenementsNonExpires.length > 1 ? "s" : ""} à venir/en cours`,
           count: evenementsNonExpires.length
-        }] : [];
-
-        // Absences non justifiées
-        const absencesNonJustifiees = absencesData.filter(a => !a.justifiee);
-        console.log("Absences non justifiées:", absencesNonJustifiees); // Debug
-        const absencesNotification = absencesNonJustifiees.length > 0 ? [{
-          type: "absences",
-          message: `${absencesNonJustifiees.length} Absence${absencesNonJustifiees.length > 1 ? "s" : ""} non justifiée${absencesNonJustifiees.length > 1 ? "s" : ""}`,
-          count: absencesNonJustifiees.length
         }] : [];
 
         const allNotifications = [
@@ -233,7 +246,6 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => { // ← Ajouter onLog
           ...congesNotification,
           ...pointagesNotification,
           ...evenementsNotification,
-          ...absencesNotification
         ];
 
         setNotifications(allNotifications);
@@ -254,10 +266,70 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => { // ← Ajouter onLog
       case "employes_inactifs": return <WarningIcon color="warning" />;
       case "evenements": return <EventIcon color="info" />;
       case "pointages": return <AccessTimeIcon color="secondary" />;
-      case "absences": return <ReportProblemIcon color="error" />;
       default: return <NotificationsIcon />;
     }
   };
+
+  // Navigation items
+  const navItems = [
+    { label: "Accueil", path: "/home", icon: <HomeIcon sx={{ mr: 1 }} /> },
+    { label: "Employés", path: "/employes", icon: <PeopleIcon sx={{ mr: 1 }} /> },
+    { label: "Départements", path: "/departements", icon: <ApartmentIcon sx={{ mr: 1 }} /> },
+    { label: "Pointages", path: "/pointages", icon: <AccessTimeIcon sx={{ mr: 1 }} /> },
+    { label: "Congés", path: "/conges", icon: <BeachAccessIcon sx={{ mr: 1 }} /> },
+    { label: "Événements", path: "/evenements", icon: <EventIcon sx={{ mr: 1 }} /> },
+  ];
+
+  // Drawer content for mobile
+  const drawerContent = (
+    <Box sx={{ width: 280 }} onClick={handleMobileDrawerToggle}>
+      <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}` }}>
+        <Typography variant="h6" sx={{ fontWeight: "bold", color: theme.palette.primary.main }}>
+          RHManager Pro
+        </Typography>
+      </Box>
+      <List>
+        {navItems.map((item) => (
+          <ListItem key={item.path} disablePadding>
+            <ListItemButton 
+              onClick={() => handleNavigation(item.path)}
+              selected={location.pathname === item.path}
+              sx={{
+                '&.Mui-selected': {
+                  backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                  color: theme.palette.primary.main,
+                }
+              }}
+            >
+              <ListItemIcon sx={{ color: 'inherit' }}>
+                {React.cloneElement(item.icon, { sx: { mr: 0 } })}
+              </ListItemIcon>
+              <ListItemTextDrawer primary={item.label} />
+            </ListItemButton>
+          </ListItem>
+        ))}
+        
+        {/* Statistiques submenu in drawer */}
+        <ListItem disablePadding>
+          <ListItemButton 
+            onClick={handleStatsClick}
+            selected={location.pathname.includes('/statistiques')}
+            sx={{
+              '&.Mui-selected': {
+                backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                color: theme.palette.primary.main,
+              }
+            }}
+          >
+            <ListItemIcon sx={{ color: 'inherit' }}>
+              <BarChartIcon />
+            </ListItemIcon>
+            <ListItemTextDrawer primary="Statistiques" />
+          </ListItemButton>
+        </ListItem>
+      </List>
+    </Box>
+  );
 
   return (
     <AppBar
@@ -271,11 +343,21 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => { // ← Ajouter onLog
       }}
     >
       <Toolbar>
-        <IconButton color="inherit" onClick={onMenuToggle} sx={{ mr: 2, display: { md: "none" } }}>
+        {/* Menu burger for mobile */}
+        <IconButton 
+          color="inherit" 
+          onClick={handleMobileDrawerToggle}
+          sx={{ 
+            mr: 2, 
+            display: { md: "none" },
+            color: theme.palette.text.primary
+          }}
+        >
           <MenuIcon />
         </IconButton>
 
-        <Box sx={{ display: "flex", alignItems: "center" }}>
+        {/* Logo à gauche */}
+        <Box sx={{ display: "flex", alignItems: "center", cursor: 'pointer' }} onClick={() => navigate('/home')}>
           <Box sx={{
             width: 40, height: 40, bgcolor: "primary.main", color: "white",
             fontWeight: "bold", display: "flex", justifyContent: "center",
@@ -286,162 +368,275 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => { // ← Ajouter onLog
           </Typography>
         </Box>
 
-        <Box sx={{ flexGrow: 1 }} />
+        {/* Navigation au centre - Visible sur desktop */}
+        <Box sx={{ 
+          flexGrow: 1, 
+          display: { xs: 'none', md: 'flex' }, 
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: 1
+        }}>
+          {navItems.map((item) => (
+            <Button
+              key={item.path}
+              onClick={() => navigate(item.path)}
+              startIcon={item.icon}
+              sx={{
+                color: location.pathname === item.path ? 'primary.main' : 'text.primary',
+                fontWeight: location.pathname === item.path ? 'bold' : 'normal',
+                textTransform: 'none',
+                borderRadius: 2,
+                px: 2,
+                '&:hover': {
+                  bgcolor: alpha(theme.palette.primary.main, 0.1),
+                }
+              }}
+            >
+              {item.label}
+            </Button>
+          ))}
+          
+          {/* Menu Statistiques avec sous-menu */}
+          <Button
+            onClick={handleStatsClick}
+            startIcon={<BarChartIcon />}
+            sx={{
+              color: location.pathname.includes('/statistiques') ? 'primary.main' : 'text.primary',
+              fontWeight: location.pathname.includes('/statistiques') ? 'bold' : 'normal',
+              textTransform: 'none',
+              borderRadius: 2,
+              px: 2,
+              '&:hover': {
+                bgcolor: alpha(theme.palette.primary.main, 0.1),
+              }
+            }}
+          >
+            Statistiques
+          </Button>
 
-        <IconButton
-          color="inherit"
-          onClick={handleNotificationsClick}
-          sx={{
-            mr: 1,
-            bgcolor: alpha(theme.palette.primary.main, 0.1),
-            "&:hover": { bgcolor: alpha(theme.palette.primary.main, 0.2) }
-          }}
-        >
-          <Badge badgeContent={notificationsCount} color="error">
-            <NotificationsIcon />
-          </Badge>
-        </IconButton>
+          <Menu
+            anchorEl={statsAnchorEl}
+            open={Boolean(statsAnchorEl)}
+            onClose={handleStatsClose}
+            PaperProps={{
+              sx: {
+                width: 280,
+                mt: 1,
+                borderRadius: 2
+              }
+            }}
+          >
+            <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}` }}>
+              <Typography variant="h6" sx={{ fontWeight: "bold" }}>
+                Vues Statistiques
+              </Typography>
+            </Box>
 
-        <Menu
-          anchorEl={anchorEl}
-          open={Boolean(anchorEl)}
-          onClose={handleNotificationsClose}
-          PaperProps={{
-            sx: {
-              maxHeight: 400,
-              width: 350,
-              mt: 1,
-              borderRadius: 2
-            }
-          }}
-        >
-          <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}` }}>
-            <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-              Notifications
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {notificationsCount} notification(s)
-            </Typography>
-          </Box>
-
-          {notifications.length === 0 ? (
-            <MenuItem sx={{ py: 2 }}>
+            <MenuItem 
+              onClick={() => handleNavigation("/statistiques/overview")}
+              sx={{
+                py: 2,
+                borderBottom: `1px solid ${theme.palette.divider}`
+              }}
+            >
               <ListItemIcon>
-                <NotificationsIcon color="disabled" />
+                <TrendingUpIcon color="primary" />
               </ListItemIcon>
               <ListItemText
-                primary="Aucune notification"
-                secondary="Tout est à jour"
+                primary="Vue Globale"
+                secondary="Statistiques générales de l'entreprise"
               />
             </MenuItem>
-          ) : (
-            notifications.map((notification, index) => (
-              <MenuItem
-                key={`${notification.type}-${index}`}
-                onClick={() => handleNotificationClick(notification.type)}
-                sx={{
-                  py: 1.5,
-                  borderBottom: index < notifications.length - 1 ? `1px solid ${theme.palette.divider}` : 'none'
-                }}
-              >
+
+            <MenuItem 
+              onClick={() => handleNavigation("/statistiques/employes")}
+              sx={{ py: 2 }}
+            >
+              <ListItemIcon>
+                <PeopleIcon color="secondary" />
+              </ListItemIcon>
+              <ListItemText
+                primary="Vue par Employé"
+                secondary="Statistiques individuelles des employés"
+              />
+            </MenuItem>
+          </Menu>
+        </Box>
+
+        {/* Notifications et profil à droite */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+
+          <IconButton
+            color="inherit"
+            onClick={handleNotificationsClick}
+            sx={{
+              mr: 1,
+              bgcolor: alpha(theme.palette.primary.main, 0.1),
+              "&:hover": { bgcolor: alpha(theme.palette.primary.main, 0.2) }
+            }}
+          >
+            <Badge badgeContent={notificationsCount} color="error">
+              <NotificationsIcon />
+            </Badge>
+          </IconButton>
+
+          <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={handleNotificationsClose}
+            PaperProps={{
+              sx: {
+                maxHeight: 400,
+                width: 350,
+                mt: 1,
+                borderRadius: 2
+              }
+            }}
+          >
+            <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}` }}>
+              <Typography variant="h6" sx={{ fontWeight: "bold" }}>
+                Notifications
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {notificationsCount} notification(s)
+              </Typography>
+            </Box>
+
+            {notifications.length === 0 ? (
+              <MenuItem sx={{ py: 2 }}>
                 <ListItemIcon>
-                  {getNotificationIcon(notification.type)}
+                  <NotificationsIcon color="disabled" />
                 </ListItemIcon>
                 <ListItemText
-                  primary={notification.message}
-                  secondary="Cliquez pour voir les détails"
-                />
-                <Badge
-                  badgeContent={notification.count}
-                  color="primary"
-                  sx={{ ml: 1 }}
+                  primary="Aucune notification"
+                  secondary="Tout est à jour"
                 />
               </MenuItem>
-            ))
-          )}
-        </Menu>
-
-        <IconButton
-          onClick={handleSettingsClick}
-          sx={{
-            mr: 1,
-            bgcolor: alpha(theme.palette.grey[500], 0.1),
-            "&:hover": { bgcolor: alpha(theme.palette.grey[500], 0.2) }
-          }}
-        >
-          <SettingsIcon />
-        </IconButton>
-
-        <Menu
-          anchorEl={settingsAnchorEl}
-          open={Boolean(settingsAnchorEl)}
-          onClose={handleSettingsClose}
-          PaperProps={{
-            sx: {
-              width: 280,
-              mt: 1,
-              borderRadius: 2
-            }
-          }}
-        >
-          <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}` }}>
-            <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-              Informations utilisateur
-            </Typography>
-          </Box>
-
-          {user && (
-            <Box sx={{ p: 2 }}>
-              <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                <Avatar 
-                  sx={{ 
-                    bgcolor: "primary.main", 
-                    width: 48, 
-                    height: 48, 
-                    mr: 2,
-                    fontWeight: "bold",
-                    fontSize: "1.2rem"
+            ) : (
+              notifications.map((notification, index) => (
+                <MenuItem
+                  key={`${notification.type}-${index}`}
+                  onClick={() => handleNotificationClick(notification.type)}
+                  sx={{
+                    py: 1.5,
+                    borderBottom: index < notifications.length - 1 ? `1px solid ${theme.palette.divider}` : 'none'
                   }}
                 >
-                  <PersonIcon />
-                </Avatar>
-                <Box>
-                  <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
-                    {user.nom || user.prenom ? `${user.prenom || ''} ${user.nom || ''}`.trim() : "Utilisateur"}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {user.role === 'admin' ? 'Administrateur' : 'Utilisateur'}
-                  </Typography>
-                </Box>
-              </Box>
+                  <ListItemIcon>
+                    {getNotificationIcon(notification.type)}
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={notification.message}
+                    secondary="Cliquez pour voir les détails"
+                  />
+                  <Badge
+                    badgeContent={notification.count}
+                    color="primary"
+                    sx={{ ml: 1 }}
+                  />
+                </MenuItem>
+              ))
+            )}
+          </Menu>
 
-              {user.email && (
-                <Box sx={{ display: "flex", alignItems: "center", mt: 2 }}>
-                  <EmailIcon color="action" sx={{ mr: 1.5, fontSize: 20 }} />
-                  <Typography variant="body2" color="text.secondary">
-                    {user.email}
-                  </Typography>
-                </Box>
-              )}
+          <IconButton
+            onClick={handleSettingsClick}
+            sx={{
+              mr: 1,
+              bgcolor: alpha(theme.palette.grey[500], 0.1),
+              "&:hover": { bgcolor: alpha(theme.palette.grey[500], 0.2) }
+            }}
+          >
+            <SettingsIcon />
+          </IconButton>
+
+          <Menu
+            anchorEl={settingsAnchorEl}
+            open={Boolean(settingsAnchorEl)}
+            onClose={handleSettingsClose}
+            PaperProps={{
+              sx: {
+                width: 280,
+                mt: 1,
+                borderRadius: 2
+              }
+            }}
+          >
+            <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}` }}>
+              <Typography variant="h6" sx={{ fontWeight: "bold" }}>
+                Informations utilisateur
+              </Typography>
             </Box>
-          )}
-        </Menu>
 
-        <Button
-          color="error"
-          onClick={handleLogout}
-          startIcon={<LogoutIcon />}
-          variant="outlined"
-          size="small"
-          sx={{
-            borderRadius: 2,
-            textTransform: "none",
-            fontWeight: "medium"
-          }}
-        >
-          Déconnexion
-        </Button>
+            {user && (
+              <Box sx={{ p: 2 }}>
+                <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                  <Avatar 
+                    sx={{ 
+                      bgcolor: "primary.main", 
+                      width: 48, 
+                      height: 48, 
+                      mr: 2,
+                      fontWeight: "bold",
+                      fontSize: "1.2rem"
+                    }}
+                  >
+                    <PersonIcon />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
+                      {user.nom || user.prenom ? `${user.prenom || ''} ${user.nom || ''}`.trim() : "Utilisateur"}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {user.role === 'admin' ? 'Administrateur' : 'Utilisateur'}
+                    </Typography>
+                  </Box>
+                </Box>
+
+                {user.email && (
+                  <Box sx={{ display: "flex", alignItems: "center", mt: 2 }}>
+                    <EmailIcon color="action" sx={{ mr: 1.5, fontSize: 20 }} />
+                    <Typography variant="body2" color="text.secondary">
+                      {user.email}
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+            )}
+          </Menu>
+
+          <Button
+            color="error"
+            onClick={handleLogout}
+            startIcon={<LogoutIcon />}
+            variant="outlined"
+            size="small"
+            sx={{
+              borderRadius: 2,
+              textTransform: "none",
+              fontWeight: "medium"
+            }}
+          >
+            Déconnexion
+          </Button>
+        </Box>
       </Toolbar>
+
+      {/* Mobile Drawer */}
+      <Drawer
+        variant="temporary"
+        open={mobileDrawerOpen}
+        onClose={handleMobileDrawerToggle}
+        ModalProps={{
+          keepMounted: true, // Better open performance on mobile.
+        }}
+        sx={{
+          display: { xs: 'block', md: 'none' },
+          '& .MuiDrawer-paper': { boxSizing: 'border-box', width: 280 },
+        }}
+      >
+        {drawerContent}
+      </Drawer>
     </AppBar>
   );
 };

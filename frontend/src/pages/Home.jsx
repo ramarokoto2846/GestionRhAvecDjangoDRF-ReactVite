@@ -60,7 +60,6 @@ const Home = () => {
     { icon: <PeopleIcon />, label: "Employés", path: "/employes", color: "#F59E0B" },
     { icon: <TimeIcon />, label: "Pointages", path: "/pointages", color: "#EF4444" },
     { icon: <EventIcon />, label: "Congés", path: "/conges", color: "#8B5CF6" },
-    { icon: <EventIcon />, label: "Absences", path: "/absences", color: "#EC4899" },
     { icon: <EventIcon />, label: "Événements", path: "/evenements", color: "#06B6D4" }
   ];
 
@@ -266,16 +265,18 @@ const Home = () => {
         </Box>
 
         {/* Quick Actions */}
-        <Typography variant="h5" gutterBottom sx={{ mb: 3, fontWeight: 'bold', color: 'text.primary', ml: -15 }}>
+        <Typography variant="h5" gutterBottom sx={{ mb: 3, fontWeight: 'bold', color: 'text.primary'}}>
           Accès rapide
         </Typography>
         
-        <Grid container spacing={3} sx={{ mb: 4, width: '1730px', ml: -15 }}>
+        <Grid container spacing={3} sx={{ mb: 4, width: '1730px' }}>
           {navItems.map((item, index) => (
             <Grid item xs={12} sm={6} md={4} key={index}>
               <Card 
                 sx={{ 
                   borderRadius: 3,
+                  width: 275,
+                  height: 120,
                   boxShadow: '0 5px 20px rgba(0,0,0,0.08)',
                   border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
                   transition: 'all 0.3s ease',

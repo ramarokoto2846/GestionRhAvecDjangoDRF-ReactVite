@@ -14,7 +14,6 @@ import Swal from "sweetalert2";
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
-import PrintIcon from '@mui/icons-material/Print';
 // SUPPRIMER EmailIcon
 
 import { 
@@ -24,7 +23,6 @@ import {
   isSuperuser,
 } from "../../services/api";
 import Header from "../../components/Header";
-import Sidebar from "../../components/Sidebar";
 import EvenementTable from "./EvenementTable";
 import EvenementModal from "./EvenementModal";
 
@@ -336,8 +334,6 @@ const Evenements = () => {
         notificationsCount={notificationsCount}
         onMenuToggle={() => setOpen(!open)}
       />
-      
-      <Sidebar open={open} setOpen={setOpen} />
 
       {/* CONTENU PRINCIPAL AVEC BON STYLE */}
       <Box 
