@@ -16,6 +16,15 @@ import {
   Badge as BadgeIcon
 } from "@mui/icons-material";
 
+// Définition des couleurs ORTM
+const ORTM_COLORS = {
+  primary: "#1B5E20",      // Vert ORTM
+  secondary: "#F9A825",    // Jaune doré
+  background: "#F5F5F5",   // Gris clair
+  text: "#212121",         // Noir anthracite
+  white: "#FFFFFF"         // Blanc
+};
+
 const PointageModal = ({
   open,
   editingPointage,
@@ -35,17 +44,18 @@ const PointageModal = ({
       PaperProps={{ 
         sx: { 
           borderRadius: 4,
-          background: 'linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%)',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
-          overflow: 'hidden'
+          background: ORTM_COLORS.white,
+          boxShadow: '0 20px 60px rgba(27, 94, 32, 0.15)',
+          overflow: 'hidden',
+          border: `1px solid ${ORTM_COLORS.primary}33`
         } 
       }}
     >
-      {/* En-tête avec dégradé */}
+      {/* En-tête avec dégradé ORTM */}
       <DialogTitle 
         sx={{ 
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          color: 'white',
+          background: `linear-gradient(135deg, ${ORTM_COLORS.primary} 0%, ${ORTM_COLORS.primary}DD 100%)`,
+          color: ORTM_COLORS.white,
           py: 3,
           position: 'relative'
         }}
@@ -64,29 +74,8 @@ const PointageModal = ({
             <Typography variant="h5" fontWeight="600">
               {editingPointage ? "Modifier le pointage" : "Nouveau pointage"}
             </Typography>
-            <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
-              {editingPointage ? "Mettez à jour les horaires de pointage" : "Enregistrez une nouvelle entrée/sortie"}
-            </Typography>
           </Box>
         </Box>
-        
-        {/* Badge statut si édition */}
-        {editingPointage && (
-          <Chip 
-            icon={<AccessTimeIcon />}
-            label="Pointage"
-            color="primary"
-            sx={{ 
-              position: 'absolute',
-              right: 100,
-              top: '50%',
-              transform: 'translateY(-50%)',
-              color: 'white',
-              fontWeight: '600',
-              '& .MuiChip-icon': { color: 'white' }
-            }}
-          />
-        )}
       </DialogTitle>
 
       <form onSubmit={onSubmit}>
@@ -94,66 +83,70 @@ const PointageModal = ({
           <Grid container spacing={3}>
 
             {/* ID Pointage */}
-            <Grid item xs={12} sm={6} width={'380px'}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                margin="dense"
                 label="ID Pointage"
                 name="id_pointage"
                 value={formData.id_pointage}
                 onChange={onInputChange}
                 required
                 disabled={editingPointage !== null}
-                inputProps={{ 
-                  maxLength: 10,
-                  autoComplete: "off" // Désactivation de l'auto-complétion
-                }}
-                helperText="Identifiant unique (max 10 caractères)"
                 InputProps={{
-                  startAdornment: <BadgeIcon color="action" sx={{ mr: 1 }} />
+                  startAdornment: <BadgeIcon sx={{ mr: 1, color: ORTM_COLORS.primary }} />
                 }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
-                    borderRadius: 3,
-                    backgroundColor: 'white',
+                    borderRadius: 2,
+                    backgroundColor: ORTM_COLORS.white,
                     '&:hover fieldset': {
-                      borderColor: '#667eea',
+                      borderColor: ORTM_COLORS.primary,
                     },
+                    '&.Mui-focused fieldset': {
+                      borderColor: ORTM_COLORS.primary,
+                    },
+                  },
+                  '& .MuiInputLabel-root.Mui-focused': {
+                    color: ORTM_COLORS.primary,
                   }
                 }}
               />
             </Grid>
 
             {/* Sélection Employé */}
-            <Grid item xs={12} sm={6} width={'380px'}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 select
                 fullWidth
-                margin="dense"
                 label="Employé"
                 name="employe"
                 value={formData.employe}
                 onChange={onInputChange}
                 required
                 disabled={employes.length === 0}
-                helperText={employes.length === 0 ? "Aucun employé disponible" : ""}
                 InputProps={{
-                  startAdornment: <PersonIcon color="action" sx={{ mr: 1 }} />
+                  startAdornment: <PersonIcon sx={{ mr: 1, color: ORTM_COLORS.primary }} />
                 }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
-                    borderRadius: 3,
-                    backgroundColor: 'white',
+                    borderRadius: 2,
+                    backgroundColor: ORTM_COLORS.white,
                     '&:hover fieldset': {
-                      borderColor: '#667eea',
+                      borderColor: ORTM_COLORS.primary,
                     },
+                    '&.Mui-focused fieldset': {
+                      borderColor: ORTM_COLORS.primary,
+                    },
+                  },
+                  '& .MuiInputLabel-root.Mui-focused': {
+                    color: ORTM_COLORS.primary,
                   }
                 }}
               >
                 {employes.length === 0 ? (
                   <MenuItem disabled>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <PersonIcon color="disabled" />
+                      <PersonIcon sx={{ color: ORTM_COLORS.primary }} />
                       <Typography>Aucun employé disponible</Typography>
                     </Box>
                   </MenuItem>
@@ -165,7 +158,7 @@ const PointageModal = ({
                           sx={{ 
                             width: 32, 
                             height: 32,
-                            bgcolor: 'primary.main',
+                            bgcolor: ORTM_COLORS.primary,
                             fontSize: '0.875rem'
                           }}
                         >
@@ -175,7 +168,7 @@ const PointageModal = ({
                           <Typography variant="body1" fontWeight="500">
                             {`${employe.prenom || ""} ${employe.nom || ""}`}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary">
+                          <Typography variant="caption" sx={{ color: ORTM_COLORS.text }}>
                             {employe.matricule}
                           </Typography>
                         </Box>
@@ -187,10 +180,9 @@ const PointageModal = ({
             </Grid>
 
             {/* Date */}
-            <Grid item xs={12} sm={6} width={'380px'}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                margin="dense"
                 label="Date de pointage"
                 name="date_pointage"
                 type="date"
@@ -199,25 +191,30 @@ const PointageModal = ({
                 required
                 InputLabelProps={{ shrink: true }}
                 InputProps={{
-                  startAdornment: <TodayIcon color="action" sx={{ mr: 1 }} />
+                  startAdornment: <TodayIcon sx={{ mr: 1, color: ORTM_COLORS.primary }} />
                 }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
-                    borderRadius: 3,
-                    backgroundColor: 'white',
+                    borderRadius: 2,
+                    backgroundColor: ORTM_COLORS.white,
                     '&:hover fieldset': {
-                      borderColor: '#667eea',
+                      borderColor: ORTM_COLORS.primary,
                     },
+                    '&.Mui-focused fieldset': {
+                      borderColor: ORTM_COLORS.primary,
+                    },
+                  },
+                  '& .MuiInputLabel-root.Mui-focused': {
+                    color: ORTM_COLORS.primary,
                   }
                 }}
               />
             </Grid>
 
             {/* Heure d'Entrée */}
-            <Grid item xs={12} sm={6} width={'180px'}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                margin="dense"
                 label="Heure d'Entrée"
                 name="heure_entree"
                 type="time"
@@ -225,136 +222,105 @@ const PointageModal = ({
                 onChange={onInputChange}
                 required
                 InputLabelProps={{ shrink: true }}
-                inputProps={{ step: 60 }}
                 InputProps={{
-                  startAdornment: <LoginIcon color="action" sx={{ mr: 1 }} />
+                  startAdornment: <LoginIcon sx={{ mr: 1, color: ORTM_COLORS.primary }} />
                 }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
-                    borderRadius: 3,
-                    backgroundColor: 'white',
+                    borderRadius: 2,
+                    backgroundColor: ORTM_COLORS.white,
                     '&:hover fieldset': {
-                      borderColor: '#667eea',
+                      borderColor: ORTM_COLORS.primary,
                     },
+                    '&.Mui-focused fieldset': {
+                      borderColor: ORTM_COLORS.primary,
+                    },
+                  },
+                  '& .MuiInputLabel-root.Mui-focused': {
+                    color: ORTM_COLORS.primary,
                   }
                 }}
               />
             </Grid>
 
             {/* Heure de Sortie */}
-            <Grid item xs={12} sm={6} width={'180px'}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                margin="dense"
                 label="Heure de Sortie"
                 name="heure_sortie"
                 type="time"
                 value={formData.heure_sortie}
                 onChange={onInputChange}
                 InputLabelProps={{ shrink: true }}
-                inputProps={{ step: 60 }}
                 InputProps={{
-                  startAdornment: <LogoutIcon color="action" sx={{ mr: 1 }} />
+                  startAdornment: <LogoutIcon sx={{ mr: 1, color: ORTM_COLORS.primary }} />
                 }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
-                    borderRadius: 3,
-                    backgroundColor: formData.heure_sortie ? '#f0fff4' : 'white',
+                    borderRadius: 2,
+                    backgroundColor: ORTM_COLORS.white,
                     '&:hover fieldset': {
-                      borderColor: formData.heure_sortie ? '#10b981' : '#667eea',
+                      borderColor: ORTM_COLORS.primary,
                     },
+                    '&.Mui-focused fieldset': {
+                      borderColor: ORTM_COLORS.primary,
+                    },
+                  },
+                  '& .MuiInputLabel-root.Mui-focused': {
+                    color: ORTM_COLORS.primary,
                   }
                 }}
               />
             </Grid>
 
             {/* Remarque */}
-            <Grid item xs={12} width={'380px'}>
+            <Grid item xs={12}>
               <TextField
                 fullWidth
-                margin="dense"
                 label="Remarques"
                 name="remarque"
                 value={formData.remarque}
                 onChange={onInputChange}
                 multiline
                 rows={3}
-                placeholder="Ajoutez des observations sur ce pointage..."
                 sx={{
                   '& .MuiOutlinedInput-root': {
-                    borderRadius: 3,
-                    backgroundColor: 'white',
+                    borderRadius: 2,
+                    backgroundColor: ORTM_COLORS.white,
                     '&:hover fieldset': {
-                      borderColor: '#667eea',
+                      borderColor: ORTM_COLORS.primary,
                     },
+                    '&.Mui-focused fieldset': {
+                      borderColor: ORTM_COLORS.primary,
+                    },
+                  },
+                  '& .MuiInputLabel-root.Mui-focused': {
+                    color: ORTM_COLORS.primary,
                   }
                 }}
               />
             </Grid>
 
-            {/* Résumé visuel */}
-            {(formData.date_pointage && formData.heure_entree) && (
-              <Grid item xs={12} width={'380px'}>
-                <Box 
-                  sx={{ 
-                    p: 3, 
-                    backgroundColor: 'rgba(255,255,255,0.8)', 
-                    borderRadius: 3,
-                    border: '2px dashed',
-                    borderColor: 'primary.light'
-                  }}
-                >
-                  <Typography variant="h6" gutterBottom color="primary" fontWeight="600">
-                    📋 Résumé du pointage
-                  </Typography>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} sm={6}>
-                      <Typography variant="body2" color="text.secondary">
-                        Date
-                      </Typography>
-                      <Typography variant="body1" fontWeight="500">
-                        {new Date(formData.date_pointage).toLocaleDateString('fr-FR')}
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <Typography variant="body2" color="text.secondary">
-                        Heure d'entrée
-                      </Typography>
-                      <Typography variant="body1" fontWeight="500" color="success.main">
-                        {formData.heure_entree}
-                      </Typography>
-                    </Grid>
-                    {formData.heure_sortie && (
-                      <Grid item xs={12} sm={6}>
-                        <Typography variant="body2" color="text.secondary">
-                          Heure de sortie
-                        </Typography>
-                        <Typography variant="body1" fontWeight="500" color="info.main">
-                          {formData.heure_sortie}
-                        </Typography>
-                      </Grid>
-                    )}
-                  </Grid>
-                </Box>
-              </Grid>
-            )}
           </Grid>
         </DialogContent>
 
         {/* Actions */}
-        <DialogActions sx={{ p: 3, gap: 2, background: 'rgba(255,255,255,0.6)' }}>
+        <DialogActions sx={{ p: 3, gap: 2, borderTop: `1px solid ${ORTM_COLORS.primary}33` }}>
           <Button 
             onClick={onClose} 
             disabled={actionLoading} 
             color="inherit"
             startIcon={<CloseIcon />}
             sx={{ 
-              borderRadius: 3, 
+              borderRadius: 2,
               px: 3,
-              py: 1,
-              border: '1px solid #ddd',
+              textTransform: 'none',
+              fontWeight: 600,
+              color: ORTM_COLORS.text,
+              border: `1px solid ${ORTM_COLORS.primary}33`,
               '&:hover': {
-                backgroundColor: 'rgba(0,0,0,0.04)'
+                backgroundColor: `${ORTM_COLORS.primary}11`
               }
             }}
           >
@@ -364,21 +330,21 @@ const PointageModal = ({
             type="submit"
             variant="contained"
             disabled={actionLoading || !formData.id_pointage || !formData.employe || !formData.date_pointage || !formData.heure_entree || employes.length === 0}
-            startIcon={actionLoading ? <CircularProgress size={16} /> : (editingPointage ? <EditIcon /> : <AddIcon />)}
+            startIcon={actionLoading ? <CircularProgress size={16} sx={{ color: ORTM_COLORS.white }} /> : (editingPointage ? <EditIcon /> : <AddIcon />)}
             sx={{ 
-              borderRadius: 3, 
-              px: 4, 
-              py: 1,
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
+              borderRadius: 2,
+              px: 4,
+              textTransform: 'none',
+              fontWeight: 600,
+              background: `linear-gradient(135deg, ${ORTM_COLORS.primary}, ${ORTM_COLORS.secondary})`,
+              color: ORTM_COLORS.white,
               '&:hover': {
-                boxShadow: '0 6px 20px rgba(102, 126, 234, 0.4)',
-                transform: 'translateY(-1px)'
+                background: `linear-gradient(135deg, ${ORTM_COLORS.primary}DD, ${ORTM_COLORS.secondary}DD)`,
               },
               '&:disabled': {
-                background: 'grey.300'
-              },
-              transition: 'all 0.3s ease'
+                background: `${ORTM_COLORS.primary}66`,
+                color: ORTM_COLORS.white
+              }
             }}
           >
             {actionLoading ? "Traitement..." : (editingPointage ? "Modifier" : "Créer")}

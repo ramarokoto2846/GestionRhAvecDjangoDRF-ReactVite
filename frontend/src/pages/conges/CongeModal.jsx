@@ -25,6 +25,15 @@ import {
   Close as CloseIcon
 } from "@mui/icons-material";
 
+// Définition des couleurs ORTM
+const ORTM_COLORS = {
+  primary: "#1B5E20",      // Vert ORTM
+  secondary: "#F9A825",    // Jaune doré
+  background: "#F5F5F5",   // Gris clair
+  text: "#212121",         // Noir anthracite
+  white: "#FFFFFF"         // Blanc
+};
+
 const CongeModal = ({
   open,
   onClose,
@@ -44,17 +53,18 @@ const CongeModal = ({
       PaperProps={{ 
         sx: { 
           borderRadius: 4,
-          background: 'linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%)',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
-          overflow: 'hidden'
+          background: ORTM_COLORS.white,
+          boxShadow: '0 20px 60px rgba(27, 94, 32, 0.15)',
+          overflow: 'hidden',
+          border: `1px solid ${ORTM_COLORS.primary}33`
         } 
       }}
     >
-      {/* En-tête avec dégradé */}
+      {/* En-tête avec dégradé ORTM */}
       <DialogTitle 
         sx={{ 
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          color: 'white',
+          background: `linear-gradient(135deg, ${ORTM_COLORS.primary} 0%, ${ORTM_COLORS.primary}DD 100%)`,
+          color: ORTM_COLORS.white,
           py: 3,
           position: 'relative'
         }}
@@ -73,30 +83,8 @@ const CongeModal = ({
             <Typography variant="h5" fontWeight="600">
               {editingConge ? "Modifier le congé" : "Nouveau congé"}
             </Typography>
-            <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
-              {editingConge ? "Mettez à jour les informations du congé" : "Ajoutez une nouvelle demande de congé"}
-            </Typography>
           </Box>
         </Box>
-        
-        {/* Badge statut si édition */}
-        {editingConge && (
-          <Chip 
-            label={editingConge.statut}
-            color={
-              editingConge.statut === 'approuve' ? 'success' : 
-              editingConge.statut === 'refuse' ? 'error' : 'warning'
-            }
-            sx={{ 
-              position: 'absolute',
-              right: 100,
-              top: '50%',
-              transform: 'translateY(-50%)',
-              color: 'white',
-              fontWeight: '600'
-            }}
-          />
-        )}
       </DialogTitle>
 
       <form onSubmit={onSubmit}>
@@ -104,44 +92,51 @@ const CongeModal = ({
           <Grid container spacing={3}>
 
             {/* ID Congé */}
-            <Grid item xs={12} sm={6} width={'380px'}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                margin="dense"
                 label="ID Congé"
                 name="id_conge"
                 value={formData.id_conge}
                 onChange={onInputChange}
                 required
                 disabled={editingConge !== null}
-                inputProps={{ maxLength: 10 }}
-                helperText="Identifiant unique (max 10 caractères)"
                 sx={{
                   '& .MuiOutlinedInput-root': {
-                    borderRadius: 3,
-                    backgroundColor: 'white',
+                    borderRadius: 2,
+                    backgroundColor: ORTM_COLORS.white,
                     '&:hover fieldset': {
-                      borderColor: '#667eea',
+                      borderColor: ORTM_COLORS.primary,
                     },
+                    '&.Mui-focused fieldset': {
+                      borderColor: ORTM_COLORS.primary,
+                    },
+                  },
+                  '& .MuiInputLabel-root.Mui-focused': {
+                    color: ORTM_COLORS.primary,
                   }
                 }}
               />
             </Grid>
 
-            {/* Sélection Employé - CORRIGÉ */}
-            <Grid item xs={12} sm={6} width={'380px'}>
+            {/* Sélection Employé */}
+            <Grid item xs={12} sm={6}>
               <FormControl 
                 fullWidth 
-                margin="dense" 
                 required
-                error={false}
                 sx={{
                   '& .MuiOutlinedInput-root': {
-                    borderRadius: 3,
-                    backgroundColor: 'white',
+                    borderRadius: 2,
+                    backgroundColor: ORTM_COLORS.white,
                     '&:hover fieldset': {
-                      borderColor: '#667eea',
+                      borderColor: ORTM_COLORS.primary,
                     },
+                    '&.Mui-focused fieldset': {
+                      borderColor: ORTM_COLORS.primary,
+                    },
+                  },
+                  '& .MuiInputLabel-root.Mui-focused': {
+                    color: ORTM_COLORS.primary,
                   }
                 }}
               >
@@ -157,7 +152,7 @@ const CongeModal = ({
                   {employes.length === 0 ? (
                     <MenuItem disabled>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <PersonIcon color="disabled" />
+                        <PersonIcon sx={{ color: ORTM_COLORS.primary }} />
                         <Typography>Aucun employé disponible</Typography>
                       </Box>
                     </MenuItem>
@@ -169,7 +164,7 @@ const CongeModal = ({
                             sx={{ 
                               width: 32, 
                               height: 32,
-                              bgcolor: 'primary.main',
+                              bgcolor: ORTM_COLORS.primary,
                               fontSize: '0.875rem'
                             }}
                           >
@@ -179,7 +174,7 @@ const CongeModal = ({
                             <Typography variant="body1" fontWeight="500">
                               {`${employe.prenom || ""} ${employe.nom || ""}`}
                             </Typography>
-                            <Typography variant="caption" color="text.secondary">
+                            <Typography variant="caption" sx={{ color: ORTM_COLORS.text }}>
                               {employe.matricule}
                             </Typography>
                           </Box>
@@ -188,19 +183,13 @@ const CongeModal = ({
                     ))
                   )}
                 </Select>
-                {employes.length === 0 && (
-                  <Typography variant="caption" color="error" sx={{ ml: 1, mt: 0.5, display: 'block' }}>
-                    Aucun employé disponible
-                  </Typography>
-                )}
               </FormControl>
             </Grid>
 
             {/* Dates */}
-            <Grid item xs={12} sm={6} width={'380px'}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                margin="dense"
                 label="Date Début"
                 name="date_debut"
                 type="date"
@@ -209,24 +198,29 @@ const CongeModal = ({
                 required
                 InputLabelProps={{ shrink: true }}
                 InputProps={{
-                  startAdornment: <EventIcon color="action" sx={{ mr: 1 }} />
+                  startAdornment: <EventIcon sx={{ mr: 1, color: ORTM_COLORS.primary }} />
                 }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
-                    borderRadius: 3,
-                    backgroundColor: 'white',
+                    borderRadius: 2,
+                    backgroundColor: ORTM_COLORS.white,
                     '&:hover fieldset': {
-                      borderColor: '#667eea',
+                      borderColor: ORTM_COLORS.primary,
                     },
+                    '&.Mui-focused fieldset': {
+                      borderColor: ORTM_COLORS.primary,
+                    },
+                  },
+                  '& .MuiInputLabel-root.Mui-focused': {
+                    color: ORTM_COLORS.primary,
                   }
                 }}
               />
             </Grid>
 
-            <Grid item xs={12} sm={6} width={'380px'}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                margin="dense"
                 label="Date Fin"
                 name="date_fin"
                 type="date"
@@ -235,39 +229,49 @@ const CongeModal = ({
                 required
                 InputLabelProps={{ shrink: true }}
                 InputProps={{
-                  startAdornment: <EventIcon color="action" sx={{ mr: 1 }} />
+                  startAdornment: <EventIcon sx={{ mr: 1, color: ORTM_COLORS.primary }} />
                 }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
-                    borderRadius: 3,
-                    backgroundColor: 'white',
+                    borderRadius: 2,
+                    backgroundColor: ORTM_COLORS.white,
                     '&:hover fieldset': {
-                      borderColor: '#667eea',
+                      borderColor: ORTM_COLORS.primary,
                     },
+                    '&.Mui-focused fieldset': {
+                      borderColor: ORTM_COLORS.primary,
+                    },
+                  },
+                  '& .MuiInputLabel-root.Mui-focused': {
+                    color: ORTM_COLORS.primary,
                   }
                 }}
               />
             </Grid>
 
             {/* Motif */}
-            <Grid item xs={12} width={'780px'}>
+            <Grid item xs={12}>
               <TextField
                 fullWidth
-                margin="dense"
                 label="Motif du congé"
                 name="motif"
                 value={formData.motif}
                 onChange={onInputChange}
                 multiline
                 rows={3}
-                placeholder="Décrivez la raison de votre demande de congé..."
                 sx={{
                   '& .MuiOutlinedInput-root': {
-                    borderRadius: 3,
-                    backgroundColor: 'white',
+                    borderRadius: 2,
+                    backgroundColor: ORTM_COLORS.white,
                     '&:hover fieldset': {
-                      borderColor: '#667eea',
+                      borderColor: ORTM_COLORS.primary,
                     },
+                    '&.Mui-focused fieldset': {
+                      borderColor: ORTM_COLORS.primary,
+                    },
+                  },
+                  '& .MuiInputLabel-root.Mui-focused': {
+                    color: ORTM_COLORS.primary,
                   }
                 }}
               />
@@ -275,10 +279,9 @@ const CongeModal = ({
 
             {/* Raison du refus (conditionnel) */}
             {editingConge && (
-              <Grid item xs={12} width={'380px'}>
+              <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  margin="dense"
                   label="Raison du Refus"
                   name="motif_refus"
                   value={formData.motif_refus}
@@ -286,18 +289,19 @@ const CongeModal = ({
                   multiline
                   rows={3}
                   disabled={editingConge?.statut !== "refuse"}
-                  helperText={
-                    editingConge?.statut !== "refuse" 
-                      ? "Raison du refus modifiable uniquement pour les congés refusés" 
-                      : "Entrez la raison du refus de ce congé"
-                  }
                   sx={{
                     '& .MuiOutlinedInput-root': {
-                      borderRadius: 3,
-                      backgroundColor: editingConge?.statut === "refuse" ? '#fff9f9' : 'white',
+                      borderRadius: 2,
+                      backgroundColor: ORTM_COLORS.white,
                       '&:hover fieldset': {
-                        borderColor: '#ff6b6b',
+                        borderColor: ORTM_COLORS.primary,
                       },
+                      '&.Mui-focused fieldset': {
+                        borderColor: ORTM_COLORS.primary,
+                      },
+                    },
+                    '& .MuiInputLabel-root.Mui-focused': {
+                      color: ORTM_COLORS.primary,
                     }
                   }}
                 />
@@ -307,19 +311,21 @@ const CongeModal = ({
         </DialogContent>
 
         {/* Actions */}
-        <DialogActions sx={{ p: 3, gap: 2, background: 'rgba(255,255,255,0.6)' }}>
+        <DialogActions sx={{ p: 3, gap: 2, borderTop: `1px solid ${ORTM_COLORS.primary}33` }}>
           <Button 
             onClick={onClose} 
             disabled={actionLoading} 
             color="inherit"
             startIcon={<CloseIcon />}
             sx={{ 
-              borderRadius: 3, 
+              borderRadius: 2,
               px: 3,
-              py: 1,
-              border: '1px solid #ddd',
+              textTransform: 'none',
+              fontWeight: 600,
+              color: ORTM_COLORS.text,
+              border: `1px solid ${ORTM_COLORS.primary}33`,
               '&:hover': {
-                backgroundColor: 'rgba(0,0,0,0.04)'
+                backgroundColor: `${ORTM_COLORS.primary}11`
               }
             }}
           >
@@ -329,21 +335,21 @@ const CongeModal = ({
             type="submit"
             variant="contained"
             disabled={actionLoading || !formData.id_conge || !formData.employe || !formData.date_debut || !formData.date_fin || employes.length === 0}
-            startIcon={actionLoading ? <CircularProgress size={16} /> : (editingConge ? <EditIcon /> : <AddIcon />)}
+            startIcon={actionLoading ? <CircularProgress size={16} sx={{ color: ORTM_COLORS.white }} /> : (editingConge ? <EditIcon /> : <AddIcon />)}
             sx={{ 
-              borderRadius: 3, 
-              px: 4, 
-              py: 1,
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
+              borderRadius: 2,
+              px: 4,
+              textTransform: 'none',
+              fontWeight: 600,
+              background: `linear-gradient(135deg, ${ORTM_COLORS.primary}, ${ORTM_COLORS.secondary})`,
+              color: ORTM_COLORS.white,
               '&:hover': {
-                boxShadow: '0 6px 20px rgba(102, 126, 234, 0.4)',
-                transform: 'translateY(-1px)'
+                background: `linear-gradient(135deg, ${ORTM_COLORS.primary}DD, ${ORTM_COLORS.secondary}DD)`,
               },
               '&:disabled': {
-                background: 'grey.300'
-              },
-              transition: 'all 0.3s ease'
+                background: `${ORTM_COLORS.primary}66`,
+                color: ORTM_COLORS.white
+              }
             }}
           >
             {actionLoading ? "Traitement..." : (editingConge ? "Modifier" : "Créer")}

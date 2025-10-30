@@ -29,6 +29,15 @@ import {
   Cancel as CancelIcon
 } from "@mui/icons-material";
 
+// Définition des couleurs ORTM
+const ORTM_COLORS = {
+  primary: "#1B5E20",      // Vert ORTM
+  secondary: "#F9A825",    // Jaune doré
+  background: "#F5F5F5",   // Gris clair
+  text: "#212121",         // Noir anthracite
+  white: "#FFFFFF"         // Blanc
+};
+
 const EmployModal = ({
   openDialog,
   handleCloseDialog,
@@ -50,16 +59,17 @@ const EmployModal = ({
       PaperProps={{
         sx: {
           borderRadius: 4,
-          background: 'linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%)',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
-          overflow: 'hidden'
+          background: `linear-gradient(135deg, ${ORTM_COLORS.background} 0%, ${ORTM_COLORS.white} 100%)`,
+          boxShadow: '0 20px 60px rgba(27, 94, 32, 0.15)',
+          overflow: 'hidden',
+          border: `1px solid ${ORTM_COLORS.primary}33`
         }
       }}
     >
-      {/* En-tête avec dégradé */}
+      {/* En-tête avec dégradé ORTM */}
       <DialogTitle sx={{
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        color: 'white',
+        background: `linear-gradient(135deg, ${ORTM_COLORS.primary} 0%, ${ORTM_COLORS.primary}DD 100%)`,
+        color: ORTM_COLORS.white,
         py: 3,
         position: 'relative'
       }}>
@@ -94,9 +104,10 @@ const EmployModal = ({
               right: 100,
               top: '50%',
               transform: 'translateY(-50%)',
-              color: 'white',
+              color: ORTM_COLORS.white,
               fontWeight: '600',
-              '& .MuiChip-icon': { color: 'white' }
+              backgroundColor: formData.statut === 'actif' ? ORTM_COLORS.primary : ORTM_COLORS.secondary,
+              '& .MuiChip-icon': { color: ORTM_COLORS.white }
             }}
           />
         )}
@@ -118,15 +129,21 @@ const EmployModal = ({
                 disabled={!!editingEmploye}
                 required
                 InputProps={{
-                  startAdornment: <BadgeIcon color="action" sx={{ mr: 1 }} />
+                  startAdornment: <BadgeIcon sx={{ mr: 1, color: ORTM_COLORS.primary }} />
                 }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     borderRadius: 3,
-                    backgroundColor: 'white',
+                    backgroundColor: ORTM_COLORS.white,
                     '&:hover fieldset': {
-                      borderColor: '#667eea',
+                      borderColor: ORTM_COLORS.primary,
                     },
+                    '&.Mui-focused fieldset': {
+                      borderColor: ORTM_COLORS.primary,
+                    },
+                  },
+                  '& .MuiInputLabel-root.Mui-focused': {
+                    color: ORTM_COLORS.primary,
                   }
                 }}
               />
@@ -145,22 +162,28 @@ const EmployModal = ({
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     borderRadius: 3,
-                    backgroundColor: 'white',
+                    backgroundColor: ORTM_COLORS.white,
                     '&:hover fieldset': {
-                      borderColor: '#667eea',
+                      borderColor: ORTM_COLORS.primary,
                     },
+                    '&.Mui-focused fieldset': {
+                      borderColor: ORTM_COLORS.primary,
+                    },
+                  },
+                  '& .MuiInputLabel-root.Mui-focused': {
+                    color: ORTM_COLORS.primary,
                   }
                 }}
               >
                 <MenuItem value="stagiaire">
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <PersonIcon fontSize="small" />
+                    <PersonIcon fontSize="small" sx={{ color: ORTM_COLORS.primary }} />
                     <Typography>Stagiaire</Typography>
                   </Box>
                 </MenuItem>
                 <MenuItem value="employe">
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <WorkIcon fontSize="small" />
+                    <WorkIcon fontSize="small" sx={{ color: ORTM_COLORS.primary }} />
                     <Typography>Employé Fixe</Typography>
                   </Box>
                 </MenuItem>
@@ -181,10 +204,16 @@ const EmployModal = ({
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     borderRadius: 3,
-                    backgroundColor: 'white',
+                    backgroundColor: ORTM_COLORS.white,
                     '&:hover fieldset': {
-                      borderColor: '#667eea',
+                      borderColor: ORTM_COLORS.primary,
                     },
+                    '&.Mui-focused fieldset': {
+                      borderColor: ORTM_COLORS.primary,
+                    },
+                  },
+                  '& .MuiInputLabel-root.Mui-focused': {
+                    color: ORTM_COLORS.primary,
                   }
                 }}
               />
@@ -204,10 +233,16 @@ const EmployModal = ({
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     borderRadius: 3,
-                    backgroundColor: 'white',
+                    backgroundColor: ORTM_COLORS.white,
                     '&:hover fieldset': {
-                      borderColor: '#667eea',
+                      borderColor: ORTM_COLORS.primary,
                     },
+                    '&.Mui-focused fieldset': {
+                      borderColor: ORTM_COLORS.primary,
+                    },
+                  },
+                  '& .MuiInputLabel-root.Mui-focused': {
+                    color: ORTM_COLORS.primary,
                   }
                 }}
               />
@@ -226,15 +261,21 @@ const EmployModal = ({
                 helperText={errors.email}
                 required
                 InputProps={{
-                  startAdornment: <EmailIcon color="action" sx={{ mr: 1 }} />
+                  startAdornment: <EmailIcon sx={{ mr: 1, color: ORTM_COLORS.primary }} />
                 }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     borderRadius: 3,
-                    backgroundColor: 'white',
+                    backgroundColor: ORTM_COLORS.white,
                     '&:hover fieldset': {
-                      borderColor: '#667eea',
+                      borderColor: ORTM_COLORS.primary,
                     },
+                    '&.Mui-focused fieldset': {
+                      borderColor: ORTM_COLORS.primary,
+                    },
+                  },
+                  '& .MuiInputLabel-root.Mui-focused': {
+                    color: ORTM_COLORS.primary,
                   }
                 }}
               />
@@ -251,15 +292,21 @@ const EmployModal = ({
                 error={!!errors.telephone}
                 helperText={errors.telephone}
                 InputProps={{
-                  startAdornment: <PhoneIcon color="action" sx={{ mr: 1 }} />
+                  startAdornment: <PhoneIcon sx={{ mr: 1, color: ORTM_COLORS.primary }} />
                 }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     borderRadius: 3,
-                    backgroundColor: 'white',
+                    backgroundColor: ORTM_COLORS.white,
                     '&:hover fieldset': {
-                      borderColor: '#667eea',
+                      borderColor: ORTM_COLORS.primary,
                     },
+                    '&.Mui-focused fieldset': {
+                      borderColor: ORTM_COLORS.primary,
+                    },
+                  },
+                  '& .MuiInputLabel-root.Mui-focused': {
+                    color: ORTM_COLORS.primary,
                   }
                 }}
               />
@@ -277,15 +324,21 @@ const EmployModal = ({
                 helperText={errors.poste}
                 required
                 InputProps={{
-                  startAdornment: <WorkIcon color="action" sx={{ mr: 1 }} />
+                  startAdornment: <WorkIcon sx={{ mr: 1, color: ORTM_COLORS.primary }} />
                 }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     borderRadius: 3,
-                    backgroundColor: 'white',
+                    backgroundColor: ORTM_COLORS.white,
                     '&:hover fieldset': {
-                      borderColor: '#667eea',
+                      borderColor: ORTM_COLORS.primary,
                     },
+                    '&.Mui-focused fieldset': {
+                      borderColor: ORTM_COLORS.primary,
+                    },
+                  },
+                  '& .MuiInputLabel-root.Mui-focused': {
+                    color: ORTM_COLORS.primary,
                   }
                 }}
               />
@@ -304,22 +357,28 @@ const EmployModal = ({
                 error={!!errors.departement_pk}
                 helperText={errors.departement_pk}
                 InputProps={{
-                  startAdornment: <BusinessIcon color="action" sx={{ mr: 1 }} />
+                  startAdornment: <BusinessIcon sx={{ mr: 1, color: ORTM_COLORS.primary }} />
                 }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     borderRadius: 3,
-                    backgroundColor: 'white',
+                    backgroundColor: ORTM_COLORS.white,
                     '&:hover fieldset': {
-                      borderColor: '#667eea',
+                      borderColor: ORTM_COLORS.primary,
                     },
+                    '&.Mui-focused fieldset': {
+                      borderColor: ORTM_COLORS.primary,
+                    },
+                  },
+                  '& .MuiInputLabel-root.Mui-focused': {
+                    color: ORTM_COLORS.primary,
                   }
                 }}
               >
                 {departements.map((dept) => (
                   <MenuItem key={dept.id_departement} value={dept.id_departement}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <BusinessIcon fontSize="small" />
+                      <BusinessIcon fontSize="small" sx={{ color: ORTM_COLORS.primary }} />
                       <Typography>{dept.nom}</Typography>
                     </Box>
                   </MenuItem>
@@ -340,21 +399,27 @@ const EmployModal = ({
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     borderRadius: 3,
-                    backgroundColor: formData.statut === 'actif' ? '#f0f9ff' : '#fff5f5',
+                    backgroundColor: formData.statut === 'actif' ? `${ORTM_COLORS.primary}11` : `${ORTM_COLORS.secondary}11`,
                     '&:hover fieldset': {
-                      borderColor: formData.statut === 'actif' ? '#10b981' : '#ef4444',
+                      borderColor: formData.statut === 'actif' ? ORTM_COLORS.primary : ORTM_COLORS.secondary,
                     },
+                    '&.Mui-focused fieldset': {
+                      borderColor: formData.statut === 'actif' ? ORTM_COLORS.primary : ORTM_COLORS.secondary,
+                    },
+                  },
+                  '& .MuiInputLabel-root.Mui-focused': {
+                    color: ORTM_COLORS.primary,
                   }
                 }}
               >
                 <MenuItem value="actif">
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'success.main'}}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: ORTM_COLORS.primary }}>
                     <CheckCircleIcon fontSize="small" />
                     <Typography>Actif</Typography>
                   </Box>
                 </MenuItem>
                 <MenuItem value="inactif">
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'error.main' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: ORTM_COLORS.secondary }}>
                     <CancelIcon fontSize="small" />
                     <Typography>Inactif</Typography>
                   </Box>
@@ -365,12 +430,20 @@ const EmployModal = ({
             {/* Avatar preview si nom et prénom sont remplis */}
             {(formData.nom || formData.prenom) && (
               <Grid item xs={12}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2, backgroundColor: 'rgba(255,255,255,0.7)', borderRadius: 3 }}>
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 2, 
+                  p: 2, 
+                  backgroundColor: `${ORTM_COLORS.primary}08`, 
+                  borderRadius: 3,
+                  border: `1px solid ${ORTM_COLORS.primary}33`
+                }}>
                   <Avatar 
                     sx={{ 
                       width: 64, 
                       height: 64,
-                      bgcolor: 'primary.main',
+                      bgcolor: ORTM_COLORS.primary,
                       fontSize: '1.5rem',
                       fontWeight: 'bold'
                     }}
@@ -378,13 +451,13 @@ const EmployModal = ({
                     {formData.prenom?.[0]}{formData.nom?.[0]}
                   </Avatar>
                   <Box>
-                    <Typography variant="h6" fontWeight="600">
+                    <Typography variant="h6" fontWeight="600" sx={{ color: ORTM_COLORS.text }}>
                       {`${formData.prenom || ''} ${formData.nom || ''}`.trim()}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body2" sx={{ color: ORTM_COLORS.text }}>
                       {formData.poste || 'Poste non défini'}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" sx={{ color: ORTM_COLORS.text }}>
                       {formData.matricule || 'Matricule non défini'}
                     </Typography>
                   </Box>
@@ -395,7 +468,7 @@ const EmployModal = ({
         </DialogContent>
 
         {/* Actions */}
-        <DialogActions sx={{ p: 3, gap: 2, background: 'rgba(255,255,255,0.6)' }}>
+        <DialogActions sx={{ p: 3, gap: 2, background: `${ORTM_COLORS.primary}08` }}>
           <Button 
             onClick={handleCloseDialog} 
             color="inherit"
@@ -405,9 +478,10 @@ const EmployModal = ({
               borderRadius: 3, 
               px: 3,
               py: 1,
-              border: '1px solid #ddd',
+              border: `1px solid ${ORTM_COLORS.primary}33`,
+              color: ORTM_COLORS.text,
               '&:hover': {
-                backgroundColor: 'rgba(0,0,0,0.04)'
+                backgroundColor: `${ORTM_COLORS.primary}11`
               }
             }}
           >
@@ -417,19 +491,23 @@ const EmployModal = ({
             type="submit"
             variant="contained"
             disabled={loading}
-            startIcon={loading ? <CircularProgress size={16} /> : (editingEmploye ? <EditIcon /> : <AddIcon />)}
+            startIcon={loading ? <CircularProgress size={16} sx={{ color: ORTM_COLORS.white }} /> : (editingEmploye ? <EditIcon /> : <AddIcon />)}
             sx={{ 
               borderRadius: 3, 
               px: 4, 
               py: 1,
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
+              background: `linear-gradient(135deg, ${ORTM_COLORS.primary}, ${ORTM_COLORS.secondary})`,
+              boxShadow: `0 4px 15px ${ORTM_COLORS.primary}66`,
+              color: ORTM_COLORS.white,
+              fontWeight: '600',
               '&:hover': {
-                boxShadow: '0 6px 20px rgba(102, 126, 234, 0.4)',
-                transform: 'translateY(-1px)'
+                boxShadow: `0 6px 20px ${ORTM_COLORS.primary}99`,
+                transform: 'translateY(-1px)',
+                background: `linear-gradient(135deg, ${ORTM_COLORS.primary}DD, ${ORTM_COLORS.secondary}DD)`,
               },
               '&:disabled': {
-                background: 'grey.300'
+                background: `${ORTM_COLORS.primary}66`,
+                color: ORTM_COLORS.white
               },
               transition: 'all 0.3s ease'
             }}

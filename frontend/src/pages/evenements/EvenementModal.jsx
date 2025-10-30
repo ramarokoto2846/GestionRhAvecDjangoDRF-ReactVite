@@ -19,6 +19,15 @@ import { format, parseISO } from "date-fns";
 
 import { createEvenement, updateEvenement } from "../../services/api";
 
+// Définition des couleurs ORTM
+const ORTM_COLORS = {
+  primary: "#1B5E20",      // Vert ORTM
+  secondary: "#F9A825",    // Jaune doré
+  background: "#F5F5F5",   // Gris clair
+  text: "#212121",         // Noir anthracite
+  white: "#FFFFFF"         // Blanc
+};
+
 const EvenementModal = ({ open, onClose, evenement, onSave, showSnackbar }) => {
   const [formData, setFormData] = useState({
     id_evenement: "",
@@ -58,12 +67,6 @@ const EvenementModal = ({ open, onClose, evenement, onSave, showSnackbar }) => {
     if (!dateString) return "";
     const date = parseISO(dateString);
     return format(date, "yyyy-MM-dd'T'HH:mm");
-  };
-
-  const formatDateForDisplay = (dateString) => {
-    if (!dateString) return "";
-    const date = parseISO(dateString);
-    return format(date, "dd/MM/yyyy à HH:mm");
   };
 
   const handleInputChange = (e) => {
@@ -111,10 +114,7 @@ const EvenementModal = ({ open, onClose, evenement, onSave, showSnackbar }) => {
         showSnackbar("Événement créé avec succès", "success");
       }
       
-      // AJOUTEZ CETTE LIGNE POUR FERMER LE MODAL
-      onClose(); // Fermer le modal après l'enregistrement réussi
-      
-      // Puis rafraîchir les données
+      onClose();
       onSave();
       
     } catch (error) {
@@ -154,17 +154,18 @@ const EvenementModal = ({ open, onClose, evenement, onSave, showSnackbar }) => {
       PaperProps={{ 
         sx: { 
           borderRadius: 4,
-          background: 'linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%)',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
-          overflow: 'hidden'
+          background: ORTM_COLORS.white,
+          boxShadow: '0 20px 60px rgba(27, 94, 32, 0.15)',
+          overflow: 'hidden',
+          border: `1px solid ${ORTM_COLORS.primary}33`
         } 
       }}
     >
-      {/* En-tête avec dégradé */}
+      {/* En-tête avec dégradé ORTM */}
       <DialogTitle 
         sx={{ 
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          color: 'white',
+          background: `linear-gradient(135deg, ${ORTM_COLORS.primary} 0%, ${ORTM_COLORS.primary}DD 100%)`,
+          color: ORTM_COLORS.white,
           py: 3,
           position: 'relative'
         }}
@@ -183,9 +184,6 @@ const EvenementModal = ({ open, onClose, evenement, onSave, showSnackbar }) => {
             <Typography variant="h5" fontWeight="600">
               {evenement ? "Modifier l'événement" : "Nouvel événement"}
             </Typography>
-            <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
-              {evenement ? "Mettez à jour les détails de l'événement" : "Planifiez un nouvel événement"}
-            </Typography>
           </Box>
         </Box>
         
@@ -194,15 +192,15 @@ const EvenementModal = ({ open, onClose, evenement, onSave, showSnackbar }) => {
           <Chip 
             icon={<ScheduleIcon />}
             label={`${dureeEvenement}h`}
-            color="primary"
             sx={{ 
               position: 'absolute',
               right: 100,
               top: '50%',
               transform: 'translateY(-50%)',
-              color: 'white',
+              color: ORTM_COLORS.white,
               fontWeight: '600',
-              '& .MuiChip-icon': { color: 'white' }
+              backgroundColor: ORTM_COLORS.secondary,
+              '& .MuiChip-icon': { color: ORTM_COLORS.white }
             }}
           />
         )}
@@ -215,28 +213,29 @@ const EvenementModal = ({ open, onClose, evenement, onSave, showSnackbar }) => {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                margin="dense"
                 label="ID Événement"
                 name="id_evenement"
                 value={formData.id_evenement}
                 onChange={handleInputChange}
                 error={!!errors.id_evenement}
-                helperText={errors.id_evenement || "Identifiant unique de l'événement"}
+                helperText={errors.id_evenement}
                 disabled={!!evenement}
-                inputProps={{ 
-                  maxLength: 10,
-                  autoComplete: "off"
-                }}
                 InputProps={{
-                  startAdornment: <EventIcon color="action" sx={{ mr: 1 }} />
+                  startAdornment: <EventIcon sx={{ mr: 1, color: ORTM_COLORS.primary }} />
                 }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
-                    borderRadius: 3,
-                    backgroundColor: 'white',
+                    borderRadius: 2,
+                    backgroundColor: ORTM_COLORS.white,
                     '&:hover fieldset': {
-                      borderColor: '#667eea',
+                      borderColor: ORTM_COLORS.primary,
                     },
+                    '&.Mui-focused fieldset': {
+                      borderColor: ORTM_COLORS.primary,
+                    },
+                  },
+                  '& .MuiInputLabel-root.Mui-focused': {
+                    color: ORTM_COLORS.primary,
                   }
                 }}
               />
@@ -246,24 +245,29 @@ const EvenementModal = ({ open, onClose, evenement, onSave, showSnackbar }) => {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                margin="dense"
                 label="Titre de l'événement"
                 name="titre"
                 value={formData.titre}
                 onChange={handleInputChange}
                 error={!!errors.titre}
-                helperText={errors.titre || "Titre descriptif de l'événement"}
+                helperText={errors.titre}
                 required
                 InputProps={{
-                  startAdornment: <TitleIcon color="action" sx={{ mr: 1 }} />
+                  startAdornment: <TitleIcon sx={{ mr: 1, color: ORTM_COLORS.primary }} />
                 }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
-                    borderRadius: 3,
-                    backgroundColor: 'white',
+                    borderRadius: 2,
+                    backgroundColor: ORTM_COLORS.white,
                     '&:hover fieldset': {
-                      borderColor: '#667eea',
+                      borderColor: ORTM_COLORS.primary,
                     },
+                    '&.Mui-focused fieldset': {
+                      borderColor: ORTM_COLORS.primary,
+                    },
+                  },
+                  '& .MuiInputLabel-root.Mui-focused': {
+                    color: ORTM_COLORS.primary,
                   }
                 }}
               />
@@ -273,24 +277,28 @@ const EvenementModal = ({ open, onClose, evenement, onSave, showSnackbar }) => {
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                margin="dense"
                 label="Description"
                 name="description"
                 value={formData.description}
                 onChange={handleInputChange}
                 multiline
                 rows={3}
-                placeholder="Décrivez l'événement, son objectif, son programme..."
                 InputProps={{
-                  startAdornment: <DescriptionIcon color="action" sx={{ mr: 1, mt: 1.5, alignSelf: 'flex-start' }} />
+                  startAdornment: <DescriptionIcon sx={{ mr: 1, mt: 1.5, alignSelf: 'flex-start', color: ORTM_COLORS.primary }} />
                 }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
-                    borderRadius: 3,
-                    backgroundColor: 'white',
+                    borderRadius: 2,
+                    backgroundColor: ORTM_COLORS.white,
                     '&:hover fieldset': {
-                      borderColor: '#667eea',
+                      borderColor: ORTM_COLORS.primary,
                     },
+                    '&.Mui-focused fieldset': {
+                      borderColor: ORTM_COLORS.primary,
+                    },
+                  },
+                  '& .MuiInputLabel-root.Mui-focused': {
+                    color: ORTM_COLORS.primary,
                   }
                 }}
               />
@@ -300,26 +308,31 @@ const EvenementModal = ({ open, onClose, evenement, onSave, showSnackbar }) => {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                margin="dense"
                 label="Date et heure de début"
                 name="date_debut"
                 type="datetime-local"
                 value={formData.date_debut}
                 onChange={handleInputChange}
                 error={!!errors.date_debut}
-                helperText={errors.date_debut || "Date et heure de commencement"}
+                helperText={errors.date_debut}
                 InputLabelProps={{ shrink: true }}
                 required
                 InputProps={{
-                  startAdornment: <ScheduleIcon color="action" sx={{ mr: 1 }} />
+                  startAdornment: <ScheduleIcon sx={{ mr: 1, color: ORTM_COLORS.primary }} />
                 }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
-                    borderRadius: 3,
-                    backgroundColor: 'white',
+                    borderRadius: 2,
+                    backgroundColor: ORTM_COLORS.white,
                     '&:hover fieldset': {
-                      borderColor: '#667eea',
+                      borderColor: ORTM_COLORS.primary,
                     },
+                    '&.Mui-focused fieldset': {
+                      borderColor: ORTM_COLORS.primary,
+                    },
+                  },
+                  '& .MuiInputLabel-root.Mui-focused': {
+                    color: ORTM_COLORS.primary,
                   }
                 }}
               />
@@ -328,26 +341,31 @@ const EvenementModal = ({ open, onClose, evenement, onSave, showSnackbar }) => {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                margin="dense"
                 label="Date et heure de fin"
                 name="date_fin"
                 type="datetime-local"
                 value={formData.date_fin}
                 onChange={handleInputChange}
                 error={!!errors.date_fin}
-                helperText={errors.date_fin || "Date et heure de clôture"}
+                helperText={errors.date_fin}
                 InputLabelProps={{ shrink: true }}
                 required
                 InputProps={{
-                  startAdornment: <ScheduleIcon color="action" sx={{ mr: 1 }} />
+                  startAdornment: <ScheduleIcon sx={{ mr: 1, color: ORTM_COLORS.primary }} />
                 }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
-                    borderRadius: 3,
-                    backgroundColor: formData.date_fin ? '#f0fff4' : 'white',
+                    borderRadius: 2,
+                    backgroundColor: ORTM_COLORS.white,
                     '&:hover fieldset': {
-                      borderColor: formData.date_fin ? '#10b981' : '#667eea',
+                      borderColor: ORTM_COLORS.primary,
                     },
+                    '&.Mui-focused fieldset': {
+                      borderColor: ORTM_COLORS.primary,
+                    },
+                  },
+                  '& .MuiInputLabel-root.Mui-focused': {
+                    color: ORTM_COLORS.primary,
                   }
                 }}
               />
@@ -357,22 +375,26 @@ const EvenementModal = ({ open, onClose, evenement, onSave, showSnackbar }) => {
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                margin="dense"
                 label="Lieu de l'événement"
                 name="lieu"
                 value={formData.lieu}
                 onChange={handleInputChange}
-                placeholder="Ex: Salle de conférence, Adresse précise..."
                 InputProps={{
-                  startAdornment: <LocationIcon color="action" sx={{ mr: 1 }} />
+                  startAdornment: <LocationIcon sx={{ mr: 1, color: ORTM_COLORS.primary }} />
                 }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
-                    borderRadius: 3,
-                    backgroundColor: 'white',
+                    borderRadius: 2,
+                    backgroundColor: ORTM_COLORS.white,
                     '&:hover fieldset': {
-                      borderColor: '#667eea',
+                      borderColor: ORTM_COLORS.primary,
                     },
+                    '&.Mui-focused fieldset': {
+                      borderColor: ORTM_COLORS.primary,
+                    },
+                  },
+                  '& .MuiInputLabel-root.Mui-focused': {
+                    color: ORTM_COLORS.primary,
                   }
                 }}
               />
@@ -383,19 +405,18 @@ const EvenementModal = ({ open, onClose, evenement, onSave, showSnackbar }) => {
               <Grid item xs={12}>
                 <Card 
                   sx={{ 
-                    backgroundColor: 'rgba(255,255,255,0.8)', 
-                    borderRadius: 3,
-                    border: '2px dashed',
-                    borderColor: 'primary.light'
+                    backgroundColor: `${ORTM_COLORS.primary}11`,
+                    borderRadius: 2,
+                    border: `1px solid ${ORTM_COLORS.primary}33`
                   }}
                 >
                   <CardContent>
-                    <Typography variant="h6" gutterBottom color="primary" fontWeight="600">
-                      📅 Résumé de l'événement
+                    <Typography variant="h6" gutterBottom sx={{ color: ORTM_COLORS.primary }} fontWeight="600">
+                      Résumé de l'événement
                     </Typography>
                     <Grid container spacing={2}>
                       <Grid item xs={12} sm={6}>
-                        <Typography variant="body2" color="text.secondary">
+                        <Typography variant="body2" sx={{ color: ORTM_COLORS.text }}>
                           Début
                         </Typography>
                         <Typography variant="body1" fontWeight="500">
@@ -403,7 +424,7 @@ const EvenementModal = ({ open, onClose, evenement, onSave, showSnackbar }) => {
                         </Typography>
                       </Grid>
                       <Grid item xs={12} sm={6}>
-                        <Typography variant="body2" color="text.secondary">
+                        <Typography variant="body2" sx={{ color: ORTM_COLORS.text }}>
                           Fin
                         </Typography>
                         <Typography variant="body1" fontWeight="500">
@@ -412,10 +433,10 @@ const EvenementModal = ({ open, onClose, evenement, onSave, showSnackbar }) => {
                       </Grid>
                       {dureeEvenement > 0 && (
                         <Grid item xs={12}>
-                          <Typography variant="body2" color="text.secondary">
+                          <Typography variant="body2" sx={{ color: ORTM_COLORS.text }}>
                             Durée totale
                           </Typography>
-                          <Typography variant="body1" fontWeight="500" color="success.main">
+                          <Typography variant="body1" fontWeight="500" sx={{ color: ORTM_COLORS.primary }}>
                             {dureeEvenement} heure(s)
                           </Typography>
                         </Grid>
@@ -425,44 +446,25 @@ const EvenementModal = ({ open, onClose, evenement, onSave, showSnackbar }) => {
                 </Card>
               </Grid>
             )}
-
-            {/* Badges d'information */}
-            <Grid item xs={12}>
-              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                <Chip 
-                  icon={<EventIcon />}
-                  label={evenement ? "Événement existant" : "Nouvel événement"}
-                  color={evenement ? "primary" : "success"}
-                  variant="outlined"
-                />
-                {formData.lieu && (
-                  <Chip 
-                    icon={<LocationIcon />}
-                    label={`Lieu: ${formData.lieu}`}
-                    color="info"
-                    variant="outlined"
-                    size="small"
-                  />
-                )}
-              </Box>
-            </Grid>
           </Grid>
         </DialogContent>
 
         {/* Actions */}
-        <DialogActions sx={{ p: 3, gap: 2, background: 'rgba(255,255,255,0.6)' }}>
+        <DialogActions sx={{ p: 3, gap: 2, borderTop: `1px solid ${ORTM_COLORS.primary}33` }}>
           <Button 
             onClick={onClose} 
             color="inherit"
             disabled={loading}
             startIcon={<CloseIcon />}
             sx={{ 
-              borderRadius: 3, 
+              borderRadius: 2,
               px: 3,
-              py: 1,
-              border: '1px solid #ddd',
+              textTransform: 'none',
+              fontWeight: 600,
+              color: ORTM_COLORS.text,
+              border: `1px solid ${ORTM_COLORS.primary}33`,
               '&:hover': {
-                backgroundColor: 'rgba(0,0,0,0.04)'
+                backgroundColor: `${ORTM_COLORS.primary}11`
               }
             }}
           >
@@ -472,53 +474,27 @@ const EvenementModal = ({ open, onClose, evenement, onSave, showSnackbar }) => {
             type="submit"
             variant="contained"
             disabled={!formData.id_evenement || !formData.titre || !formData.date_debut || !formData.date_fin || loading}
-            startIcon={loading ? <CircularProgress size={16} /> : (evenement ? <EditIcon /> : <AddIcon />)}
+            startIcon={loading ? <CircularProgress size={16} sx={{ color: ORTM_COLORS.white }} /> : (evenement ? <EditIcon /> : <AddIcon />)}
             sx={{ 
-              borderRadius: 3, 
-              px: 4, 
-              py: 1,
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
+              borderRadius: 2,
+              px: 4,
+              textTransform: 'none',
+              fontWeight: 600,
+              background: `linear-gradient(135deg, ${ORTM_COLORS.primary}, ${ORTM_COLORS.secondary})`,
+              color: ORTM_COLORS.white,
               '&:hover': {
-                boxShadow: '0 6px 20px rgba(102, 126, 234, 0.4)',
-                transform: 'translateY(-1px)'
+                background: `linear-gradient(135deg, ${ORTM_COLORS.primary}DD, ${ORTM_COLORS.secondary}DD)`,
               },
               '&:disabled': {
-                background: 'grey.300'
-              },
-              transition: 'all 0.3s ease'
+                background: `${ORTM_COLORS.primary}66`,
+                color: ORTM_COLORS.white
+              }
             }}
           >
-            {loading ? "Traitement..." : (evenement ? "Modifier" : "Créer l'événement")}
+            {loading ? "Traitement..." : (evenement ? "Modifier" : "Créer")}
           </Button>
         </DialogActions>
       </form>
-
-      {/* Overlay de chargement */}
-      {loading && (
-        <Box
-          sx={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(255, 255, 255, 0.8)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1,
-            borderRadius: '16px',
-          }}
-        >
-          <Box sx={{ textAlign: 'center' }}>
-            <CircularProgress size={60} thickness={4} />
-            <Typography variant="h6" sx={{ mt: 2, color: 'text.primary' }}>
-              {evenement ? "Mise à jour..." : "Création..."}
-            </Typography>
-          </Box>
-        </Box>
-      )}
     </Dialog>
   );
 };

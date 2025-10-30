@@ -11,10 +11,7 @@ import {
   Fade,
   InputAdornment,
   IconButton,
-  Divider,
-  useTheme,
-  useMediaQuery,
-  Grid
+  Divider
 } from "@mui/material";
 import { 
   Visibility, 
@@ -22,12 +19,23 @@ import {
   Person, 
   Email, 
   Lock,
-  Business,
   AppRegistration,
   Login
 } from "@mui/icons-material";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
+
+// Définition des couleurs ORTM
+const ORTM_COLORS = {
+  primary: "#1B5E20",      // Vert ORTM
+  secondary: "#F9A825",    // Jaune doré
+  background: "#F5F5F5",   // Gris clair
+  text: "#212121",         // Noir anthracite
+  white: "#FFFFFF"         // Blanc
+};
+
+// Import du logo ORTM
+import ortmLogo from "../components/ortm.webp";
 
 const Auth = ({ setIsAuthenticated }) => {
   const [tab, setTab] = useState(0);
@@ -40,8 +48,6 @@ const Auth = ({ setIsAuthenticated }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const handleTabChange = (event, newValue) => {
     setTab(newValue);
@@ -91,9 +97,9 @@ const Auth = ({ setIsAuthenticated }) => {
           title: "Succès",
           text: "Compte créé avec succès !",
           icon: "success",
-          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+          background: `linear-gradient(135deg, ${ORTM_COLORS.primary} 0%, ${ORTM_COLORS.primary}99 100%)`,
           color: "#fff",
-          confirmButtonColor: "#667eea",
+          confirmButtonColor: ORTM_COLORS.secondary,
           confirmButtonText: "Continuer",
           customClass: {
             popup: 'swal-popup-custom'
@@ -159,9 +165,9 @@ const Auth = ({ setIsAuthenticated }) => {
           title: "Succès",
           text: "Connexion réussie !",
           icon: "success",
-          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+          background: `linear-gradient(135deg, ${ORTM_COLORS.primary} 0%, ${ORTM_COLORS.primary}99 100%)`,
           color: "#fff",
-          confirmButtonColor: "#667eea",
+          confirmButtonColor: ORTM_COLORS.secondary,
           confirmButtonText: "Accéder au tableau de bord",
           customClass: {
             popup: 'swal-popup-custom'
@@ -185,24 +191,16 @@ const Auth = ({ setIsAuthenticated }) => {
     <Box 
       sx={{ 
         display: 'flex', 
+        border: '1px solid gray',
         justifyContent: 'center', 
         alignItems: 'center', 
-        height: '95vh',
-        background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
-        p: isMobile ? 1 : 2,
+        height: '840px',
+        background: ORTM_COLORS.background,
         position: 'relative',
-        overflow: 'hidden',
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          width: '100%',
-          height: '100%',
-          backgroundImage: 'radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.8) 0%, transparent 40%)',
-          pointerEvents: 'none'
-        }
+        overflow: 'hidden'
       }}
     >
-      {/* Formes décoratives avec les couleurs violet/bleu */}
+      {/* Formes décoratives avec les couleurs ORTM */}
       <Box
         sx={{
           position: 'absolute',
@@ -211,7 +209,7 @@ const Auth = ({ setIsAuthenticated }) => {
           width: 400,
           height: 400,
           borderRadius: '50%',
-          background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%)',
+          background: `linear-gradient(135deg, ${ORTM_COLORS.primary}33 0%, ${ORTM_COLORS.secondary}33 100%)`,
           filter: 'blur(40px)',
           animation: 'float 8s ease-in-out infinite'
         }}
@@ -224,34 +222,29 @@ const Auth = ({ setIsAuthenticated }) => {
           width: 400,
           height: 400,
           borderRadius: '50%',
-          background: 'linear-gradient(135deg, rgba(118, 75, 162, 0.2) 0%, rgba(102, 126, 234, 0.2) 100%)',
+          background: `linear-gradient(135deg, ${ORTM_COLORS.secondary}33 0%, ${ORTM_COLORS.primary}33 100%)`,
           filter: 'blur(40px)',
           animation: 'float 10s ease-in-out infinite'
         }}
       />
       
       <Fade in timeout={800}>
-        <Grid 
-          container 
+        <Box 
           sx={{ 
-            width: 1010,
-            
+            display: 'flex',
+            width: 1000,
+            height: 800,
             borderRadius: 3,
-            boxShadow: '0 25px 50px rgba(102, 126, 234, 0.15)',
+            boxShadow: '0 25px 50px rgba(27, 94, 32, 0.15)',
+            overflow: 'hidden'
           }}
         >
-          {/* Section de description (à gauche) - COULEURS VIOLET/BLEU */}
-          <Grid 
-            item
+          {/* Section de description (à gauche) - COULEURS ORTM */}
+          <Box
             sx={{
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              background: `linear-gradient(135deg, ${ORTM_COLORS.primary} 0%, ${ORTM_COLORS.primary}DD 100%)`,
               display: 'flex',
               width: '500px',
-              height: '765px',
-              marginTop: '-59px',
-              borderLeft: '2px solid white',
-              borderBottom: '2px solid white',
-              borderTop: '2px solid white',
               flexDirection: 'column',
               justifyContent: 'center',
               position: 'relative',
@@ -270,37 +263,46 @@ const Auth = ({ setIsAuthenticated }) => {
           >
             <Box sx={{ position: 'relative', zIndex: 1, p: 4}}>
               <Box sx={{ textAlign: 'center'}}>
+                {/* Logo ORTM */}
                 <Box sx={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  width: 80,
-                  height: 80,
+                  width: 350,
+                  height: 100,
                   borderRadius: '12px',
                   background: 'rgba(255, 255, 255, 0.2)',
                   boxShadow: '0 8px 20px rgba(0, 0, 0, 0.2)',
-                  mb: 2,
-                  backdropFilter: 'blur(5px)'
+                  mb: 3,
+                  mt: 8,
+                  backdropFilter: 'blur(5px)',
+                  p: 2
                 }}>
-                  <Business 
-                    sx={{ 
-                      fontSize: 40, 
-                      color: 'white'
+                  <img 
+                    src={ortmLogo} 
+                    alt="ORTM Logo" 
+                    style={{ 
+                      width: '100%', 
+                      height: '100%', 
+                      objectFit: 'contain'
                     }} 
                   />
                 </Box>
+                
                 <Typography 
-                  variant="h3" 
+                  variant="h4" 
                   component="h1" 
                   gutterBottom 
                   sx={{ 
                     fontWeight: '700',
                     color: 'white',
-                    textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                    textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                    mb: 1
                   }}
                 >
-                  HR System
+                  Office de la Radio et de la Télévision de Madagascar
                 </Typography>
+                
                 <Typography 
                   variant="h6" 
                   sx={{ 
@@ -309,26 +311,34 @@ const Auth = ({ setIsAuthenticated }) => {
                     fontWeight: 400
                   }}
                 >
-                  Système de Gestion des Ressources Humaines
+                  Plateforme de gestion des ressources humaines
                 </Typography>
               </Box>
 
               <Box sx={{ mt: 4, p: 3, background: 'rgba(255, 255, 255, 0.15)', borderRadius: 2, backdropFilter: 'blur(5px)' }}>
                 <Typography variant="body2" sx={{ color: 'white', fontStyle: 'italic', textAlign: 'center' }}>
-                  "Une solution moderne pour gérer efficacement vos ressources humaines"
+                  "Une solution moderne pour gérer efficacement vos ressources humaines."
                 </Typography>
               </Box>
 
               {/* Points forts */}
               <Box sx={{ mt: 4 }}>
                 {[
-                  "Gestion centralisée des employés",
+                  "Gestion centralisée des employés ORTM",
                   "Suivi des pointages en temps réel",
-                  "Gestion des congés et absences",
-                  "Tableaux de bord personnalisés"
+                  "Gestion des congés",
+                  "Gestion des evenements",
+                  "Tableaux de bord personnalisés",
+                  "Sécurité et confidentialité des données"
                 ].map((feature, index) => (
                   <Box key={index} sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: 'white', mr: 2 }} />
+                    <Box sx={{ 
+                      width: 8, 
+                      height: 8, 
+                      borderRadius: '50%', 
+                      backgroundColor: ORTM_COLORS.secondary, 
+                      mr: 2 
+                    }} />
                     <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.9)' }}>
                       {feature}
                     </Typography>
@@ -336,25 +346,21 @@ const Auth = ({ setIsAuthenticated }) => {
                 ))}
               </Box>
             </Box>
-          </Grid>
+          </Box>
           
           {/* Formulaire de connexion/inscription (à droite) */}
-          <Grid 
-            item 
-            xs={12} 
-            width={500}
-            height={700}
+          <Box 
             sx={{ 
-              marginTop: '-60px',
+              width: 500
             }}
           >
             <Paper 
               sx={{ 
                 height: '100%', 
-                p: isMobile ? 3 : 4, 
+                p: 4, 
                 borderRadius: 0,
-                background: 'white',
-                border: '1px solid rgba(226, 232, 240, 0.8)',
+                background: ORTM_COLORS.white,
+                border: `1px solid ${ORTM_COLORS.background}`,
                 position: 'relative',
                 overflow: 'hidden',
                 display: 'flex',
@@ -367,63 +373,15 @@ const Auth = ({ setIsAuthenticated }) => {
                   left: 0,
                   right: 0,
                   height: 6,
-                  background: 'linear-gradient(90deg, #667eea, #764ba2)'
+                  background: `linear-gradient(90deg, ${ORTM_COLORS.primary}, ${ORTM_COLORS.secondary})`
                 }
               }}
             >
-              {isMobile && (
-                <Box sx={{ textAlign: 'center', mb: 3 }}>
-                  <Box sx={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: 70,
-                    height: 70,
-                    borderRadius: '12px',
-                    background: 'linear-gradient(135deg, #667eea, #764ba2)',
-                    boxShadow: '0 8px 20px rgba(102, 126, 234, 0.4)',
-                    mb: 2
-                  }}>
-                    <Business 
-                      sx={{ 
-                        fontSize: 35, 
-                        color: 'white'
-                      }} 
-                    />
-                  </Box>
-                  <Typography 
-                    variant="h4" 
-                    component="h1" 
-                    gutterBottom 
-                    sx={{ 
-                      fontWeight: '700',
-                      background: 'linear-gradient(135deg, #667eea, #764ba2)',
-                      backgroundClip: 'text',
-                      textFillColor: 'transparent',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                    }}
-                  >
-                    HR System
-                  </Typography>
-                  <Typography 
-                    variant="body2" 
-                    color="text.secondary"
-                    sx={{ 
-                      mb: 2,
-                      fontWeight: 500,
-                    }}
-                  >
-                    Gestion des Ressources Humaines
-                  </Typography>
-                </Box>
-              )}
-              
               <Box sx={{ textAlign: 'center', mb: 3 }}>
-                <Typography variant="h4" component="h2" sx={{ fontWeight: 600, color: '#1e293b', mb: 1 }}>
+                <Typography variant="h4" component="h2" sx={{ fontWeight: 600, color: ORTM_COLORS.text, mb: 1 }}>
                   Bienvenue
                 </Typography>
-                <Typography variant="body1" color="text.secondary">
+                <Typography variant="body1" sx={{ color: ORTM_COLORS.text }}>
                   Connectez-vous pour accéder à votre espace
                 </Typography>
               </Box>
@@ -439,17 +397,17 @@ const Auth = ({ setIsAuthenticated }) => {
                     fontSize: '1rem',
                     textTransform: 'none',
                     minWidth: 120,
-                    color: 'text.secondary',
+                    color: ORTM_COLORS.text,
                     borderRadius: 2,
                     mx: 0.5,
                     '&.Mui-selected': {
-                      color: '#667eea',
+                      color: ORTM_COLORS.primary,
                     }
                   },
                   '& .MuiTabs-indicator': {
                     height: 3,
                     borderRadius: 2,
-                    background: 'linear-gradient(90deg, #667eea, #764ba2)'
+                    background: `linear-gradient(90deg, ${ORTM_COLORS.primary}, ${ORTM_COLORS.secondary})`
                   }
                 }}
               >
@@ -464,9 +422,9 @@ const Auth = ({ setIsAuthenticated }) => {
                     mb: 3, 
                     borderRadius: 2,
                     alignItems: 'center',
-                    background: 'rgba(102, 126, 234, 0.1)',
-                    color: '#667eea',
-                    border: '1px solid rgba(102, 126, 234, 0.2)',
+                    background: `${ORTM_COLORS.primary}11`,
+                    color: ORTM_COLORS.primary,
+                    border: `1px solid ${ORTM_COLORS.primary}33`,
                     '& .MuiAlert-message': {
                       padding: '4px 0'
                     }
@@ -491,7 +449,7 @@ const Auth = ({ setIsAuthenticated }) => {
                         InputProps={{
                           startAdornment: (
                             <InputAdornment position="start">
-                              <Person sx={{ color: '#667eea' }} />
+                              <Person sx={{ color: ORTM_COLORS.primary }} />
                             </InputAdornment>
                           ),
                         }}
@@ -500,12 +458,12 @@ const Auth = ({ setIsAuthenticated }) => {
                             borderRadius: 2,
                             transition: 'all 0.3s ease',
                             '&:hover fieldset': {
-                              borderColor: '#667eea',
+                              borderColor: ORTM_COLORS.primary,
                             },
                             '&.Mui-focused fieldset': {
                               borderWidth: 2,
-                              borderColor: '#667eea',
-                              boxShadow: '0 0 0 4px rgba(102, 126, 234, 0.1)'
+                              borderColor: ORTM_COLORS.primary,
+                              boxShadow: `0 0 0 4px ${ORTM_COLORS.primary}11`
                             }
                           }
                         }}
@@ -522,7 +480,7 @@ const Auth = ({ setIsAuthenticated }) => {
                         InputProps={{
                           startAdornment: (
                             <InputAdornment position="start">
-                              <Email sx={{ color: '#667eea' }} />
+                              <Email sx={{ color: ORTM_COLORS.primary }} />
                             </InputAdornment>
                           ),
                         }}
@@ -531,12 +489,12 @@ const Auth = ({ setIsAuthenticated }) => {
                             borderRadius: 2,
                             transition: 'all 0.3s ease',
                             '&:hover fieldset': {
-                              borderColor: '#667eea',
+                              borderColor: ORTM_COLORS.primary,
                             },
                             '&.Mui-focused fieldset': {
                               borderWidth: 2,
-                              borderColor: '#667eea',
-                              boxShadow: '0 0 0 4px rgba(102, 126, 234, 0.1)'
+                              borderColor: ORTM_COLORS.primary,
+                              boxShadow: `0 0 0 4px ${ORTM_COLORS.primary}11`
                             }
                           }
                         }}
@@ -553,7 +511,7 @@ const Auth = ({ setIsAuthenticated }) => {
                         InputProps={{
                           startAdornment: (
                             <InputAdornment position="start">
-                              <Lock sx={{ color: '#667eea' }} />
+                              <Lock sx={{ color: ORTM_COLORS.primary }} />
                             </InputAdornment>
                           ),
                           endAdornment: (
@@ -574,12 +532,12 @@ const Auth = ({ setIsAuthenticated }) => {
                             borderRadius: 2,
                             transition: 'all 0.3s ease',
                             '&:hover fieldset': {
-                              borderColor: '#667eea',
+                              borderColor: ORTM_COLORS.primary,
                             },
                             '&.Mui-focused fieldset': {
                               borderWidth: 2,
-                              borderColor: '#667eea',
-                              boxShadow: '0 0 0 4px rgba(102, 126, 234, 0.1)'
+                              borderColor: ORTM_COLORS.primary,
+                              boxShadow: `0 0 0 4px ${ORTM_COLORS.primary}11`
                             }
                           }
                         }}
@@ -596,7 +554,7 @@ const Auth = ({ setIsAuthenticated }) => {
                         InputProps={{
                           startAdornment: (
                             <InputAdornment position="start">
-                              <Lock sx={{ color: '#667eea' }} />
+                              <Lock sx={{ color: ORTM_COLORS.primary }} />
                             </InputAdornment>
                           ),
                           endAdornment: (
@@ -617,12 +575,12 @@ const Auth = ({ setIsAuthenticated }) => {
                             borderRadius: 2,
                             transition: 'all 0.3s ease',
                             '&:hover fieldset': {
-                              borderColor: '#667eea',
+                              borderColor: ORTM_COLORS.primary,
                             },
                             '&.Mui-focused fieldset': {
                               borderWidth: 2,
-                              borderColor: '#667eea',
-                              boxShadow: '0 0 0 4px rgba(102, 126, 234, 0.1)'
+                              borderColor: ORTM_COLORS.primary,
+                              boxShadow: `0 0 0 4px ${ORTM_COLORS.primary}11`
                             }
                           }
                         }}
@@ -638,13 +596,13 @@ const Auth = ({ setIsAuthenticated }) => {
                           fontSize: '1rem',
                           fontWeight: 600,
                           textTransform: 'none',
-                          background: 'linear-gradient(135deg, #667eea, #764ba2)',
-                          boxShadow: '0 6px 15px rgba(102, 126, 234, 0.4)',
+                          background: `linear-gradient(135deg, ${ORTM_COLORS.primary}, ${ORTM_COLORS.secondary})`,
+                          boxShadow: `0 6px 15px ${ORTM_COLORS.primary}66`,
                           transition: 'all 0.3s ease',
                           '&:hover': {
                             transform: 'translateY(-2px)',
-                            boxShadow: '0 10px 20px rgba(102, 126, 234, 0.5)',
-                            background: 'linear-gradient(135deg, #5a67d8, #6b46c1)',
+                            boxShadow: `0 10px 20px ${ORTM_COLORS.primary}99`,
+                            background: `linear-gradient(135deg, ${ORTM_COLORS.primary}DD, ${ORTM_COLORS.secondary}DD)`,
                           },
                           '&:active': {
                             transform: 'translateY(0)',
@@ -656,7 +614,7 @@ const Auth = ({ setIsAuthenticated }) => {
                       </Button>
                     </form>
                     <Divider sx={{ my: 3 }}>
-                      <Typography variant="body2" color="text.secondary" sx={{ px: 2, background: 'white' }}>
+                      <Typography variant="body2" sx={{ px: 2, background: ORTM_COLORS.white, color: ORTM_COLORS.text }}>
                         Vous avez déjà un compte ?
                       </Typography>
                     </Divider>
@@ -668,11 +626,11 @@ const Auth = ({ setIsAuthenticated }) => {
                         textTransform: 'none',
                         fontWeight: 600,
                         py: 1.5,
-                        color: '#667eea',
-                        borderColor: '#667eea',
+                        color: ORTM_COLORS.primary,
+                        borderColor: ORTM_COLORS.primary,
                         '&:hover': {
-                          borderColor: '#5a67d8',
-                          backgroundColor: 'rgba(102, 126, 234, 0.04)'
+                          borderColor: ORTM_COLORS.secondary,
+                          backgroundColor: `${ORTM_COLORS.primary}11`
                         }
                       }}
                       onClick={() => setTab(1)}
@@ -699,7 +657,7 @@ const Auth = ({ setIsAuthenticated }) => {
                         InputProps={{
                           startAdornment: (
                             <InputAdornment position="start">
-                              <Email sx={{ color: '#667eea' }} />
+                              <Email sx={{ color: ORTM_COLORS.primary }} />
                             </InputAdornment>
                           ),
                         }}
@@ -708,12 +666,12 @@ const Auth = ({ setIsAuthenticated }) => {
                             borderRadius: 2,
                             transition: 'all 0.3s ease',
                             '&:hover fieldset': {
-                              borderColor: '#667eea',
+                              borderColor: ORTM_COLORS.primary,
                             },
                             '&.Mui-focused fieldset': {
                               borderWidth: 2,
-                              borderColor: '#667eea',
-                              boxShadow: '0 0 0 4px rgba(102, 126, 234, 0.1)'
+                              borderColor: ORTM_COLORS.primary,
+                              boxShadow: `0 0 0 4px ${ORTM_COLORS.primary}11`
                             }
                           }
                         }}
@@ -730,7 +688,7 @@ const Auth = ({ setIsAuthenticated }) => {
                         InputProps={{
                           startAdornment: (
                             <InputAdornment position="start">
-                              <Lock sx={{ color: '#667eea' }} />
+                              <Lock sx={{ color: ORTM_COLORS.primary }} />
                             </InputAdornment>
                           ),
                           endAdornment: (
@@ -751,12 +709,12 @@ const Auth = ({ setIsAuthenticated }) => {
                             borderRadius: 2,
                             transition: 'all 0.3s ease',
                             '&:hover fieldset': {
-                              borderColor: '#667eea',
+                              borderColor: ORTM_COLORS.primary,
                             },
                             '&.Mui-focused fieldset': {
                               borderWidth: 2,
-                              borderColor: '#667eea',
-                              boxShadow: '0 0 0 4px rgba(102, 126, 234, 0.1)'
+                              borderColor: ORTM_COLORS.primary,
+                              boxShadow: `0 0 0 4px ${ORTM_COLORS.primary}11`
                             }
                           }
                         }}
@@ -773,13 +731,13 @@ const Auth = ({ setIsAuthenticated }) => {
                           fontSize: '1rem',
                           fontWeight: 600,
                           textTransform: 'none',
-                          background: 'linear-gradient(135deg, #667eea, #764ba2)',
-                          boxShadow: '0 6px 15px rgba(102, 126, 234, 0.4)',
+                          background: `linear-gradient(135deg, ${ORTM_COLORS.primary}, ${ORTM_COLORS.secondary})`,
+                          boxShadow: `0 6px 15px ${ORTM_COLORS.primary}66`,
                           transition: 'all 0.3s ease',
                           '&:hover': {
                             transform: 'translateY(-2px)',
-                            boxShadow: '0 10px 20px rgba(102, 126, 234, 0.5)',
-                            background: 'linear-gradient(135deg, #5a67d8, #6b46c1)',
+                            boxShadow: `0 10px 20px ${ORTM_COLORS.primary}99`,
+                            background: `linear-gradient(135deg, ${ORTM_COLORS.primary}DD, ${ORTM_COLORS.secondary}DD)`,
                           },
                           '&:active': {
                             transform: 'translateY(0)',
@@ -791,7 +749,7 @@ const Auth = ({ setIsAuthenticated }) => {
                       </Button>
                     </form>
                     <Divider sx={{ my: 3 }}>
-                      <Typography variant="body2" color="text.secondary" sx={{ px: 2, background: 'white' }}>
+                      <Typography variant="body2" sx={{ px: 2, background: ORTM_COLORS.white, color: ORTM_COLORS.text }}>
                         Pas encore de compte ?
                       </Typography>
                     </Divider>
@@ -803,11 +761,11 @@ const Auth = ({ setIsAuthenticated }) => {
                         textTransform: 'none',
                         fontWeight: 600,
                         py: 1.5,
-                        color: '#667eea',
-                        borderColor: '#667eea',
+                        color: ORTM_COLORS.primary,
+                        borderColor: ORTM_COLORS.primary,
                         '&:hover': {
-                          borderColor: '#5a67d8',
-                          backgroundColor: 'rgba(102, 126, 234, 0.04)'
+                          borderColor: ORTM_COLORS.secondary,
+                          backgroundColor: `${ORTM_COLORS.primary}11`
                         }
                       }}
                       onClick={() => setTab(0)}
@@ -818,8 +776,8 @@ const Auth = ({ setIsAuthenticated }) => {
                 </Fade>
               )}
             </Paper>
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
       </Fade>
 
       {/* Ajout de styles d'animation */}

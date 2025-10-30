@@ -29,7 +29,16 @@ import {
   TrendingUp as TrendingUpIcon
 } from "@mui/icons-material";
 import { getCurrentUser } from "../services/api";
-import Header from "../components/Header"; // Import du composant Header
+import Header from "../components/Header";
+
+// Définition des couleurs ORTM
+const ORTM_COLORS = {
+  primary: "#1B5E20",      // Vert ORTM
+  secondary: "#F9A825",    // Jaune doré
+  background: "#F5F5F5",   // Gris clair
+  text: "#212121",         // Noir anthracite
+  white: "#FFFFFF"         // Blanc
+};
 
 const Home = () => {
   const navigate = useNavigate();
@@ -56,11 +65,11 @@ const Home = () => {
   }, [navigate]);
 
   const navItems = [
-    { icon: <PeopleIcon />, label: "Départements", path: "/departements", color: "#10B981" },
-    { icon: <PeopleIcon />, label: "Employés", path: "/employes", color: "#F59E0B" },
-    { icon: <TimeIcon />, label: "Pointages", path: "/pointages", color: "#EF4444" },
-    { icon: <EventIcon />, label: "Congés", path: "/conges", color: "#8B5CF6" },
-    { icon: <EventIcon />, label: "Événements", path: "/evenements", color: "#06B6D4" }
+    { icon: <PeopleIcon />, label: "Départements", path: "/departements", color: ORTM_COLORS.primary },
+    { icon: <PeopleIcon />, label: "Employés", path: "/employes", color: ORTM_COLORS.secondary },
+    { icon: <TimeIcon />, label: "Pointages", path: "/pointages", color: "#1B5E20" },
+    { icon: <EventIcon />, label: "Congés", path: "/conges", color: "#F9A825" },
+    { icon: <EventIcon />, label: "Événements", path: "/evenements", color: "#1B5E20" }
   ];
 
   const stats = [
@@ -73,13 +82,13 @@ const Home = () => {
   const drawer = (
     <Box sx={{ 
       width: 280, 
-      background: 'linear-gradient(180deg, #667eea 0%, #764ba2 100%)',
+      background: `linear-gradient(180deg, ${ORTM_COLORS.primary} 0%, ${alpha(ORTM_COLORS.primary, 0.9)} 100%)`,
       height: '100%',
       color: 'white'
     }}>
       <Box sx={{ p: 3, textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
         <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'white' }}>
-          HR System
+          ORTM - RH System
         </Typography>
         <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)', mt: 1 }}>
           {user ? user.nom || user.email : 'Administrateur'}
@@ -101,7 +110,7 @@ const Home = () => {
             }
           }}
         >
-          <ListItemIcon sx={{ color: 'white', minWidth: 40 }}>
+          <ListItemIcon sx={{ color: ORTM_COLORS.secondary, minWidth: 40 }}>
             <TrendingUpIcon />
           </ListItemIcon>
           <ListItemText primary="Statistiques" />
@@ -123,7 +132,7 @@ const Home = () => {
               }
             }}
           >
-            <ListItemIcon sx={{ color: 'white', minWidth: 40 }}>
+            <ListItemIcon sx={{ color: ORTM_COLORS.secondary, minWidth: 40 }}>
               {item.icon}
             </ListItemIcon>
             <ListItemText primary={item.label} />
@@ -134,7 +143,7 @@ const Home = () => {
   );
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: '#f8fafc' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: ORTM_COLORS.background }}>
       {/* Utilisation du composant Header pour les notifications */}
       <Header user={user} onMenuToggle={handleDrawerToggle} />
 
@@ -160,19 +169,19 @@ const Home = () => {
         {/* Welcome Section */}
         <Box 
           sx={{ 
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            background: `linear-gradient(135deg, ${ORTM_COLORS.primary} 0%, ${alpha(ORTM_COLORS.primary, 0.9)} 100%)`,
             borderRadius: 4,
             mb: 4,
             p: 4,
             position: 'relative',
             overflow: 'hidden',
             color: 'white',
-            boxShadow: '0 20px 40px rgba(102, 126, 234, 0.3)'
+            boxShadow: '0 20px 40px rgba(27, 94, 32, 0.3)'
           }}
         >
           <Box sx={{ position: 'relative', zIndex: 2 }}>
             <Chip 
-              label="Espace administrateur" 
+              label="Espace administrateur ORTM" 
               size="small" 
               sx={{ 
                 mb: 2, 
@@ -188,7 +197,7 @@ const Home = () => {
             </Typography>
             
             <Typography variant="h6" sx={{ color: 'rgba(255,255,255,0.9)', mb: 4, maxWidth: 600 }}>
-              Gérez efficacement vos ressources humaines avec notre plateforme moderne et intuitive
+              Gérez efficacement vos ressources humaines avec notre plateforme moderne et institutionnelle
             </Typography>
             
             <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -201,10 +210,10 @@ const Home = () => {
                   py: 1.5,
                   textTransform: 'none',
                   fontWeight: 'bold',
-                  bgcolor: 'white',
-                  color: '#667eea',
+                  bgcolor: ORTM_COLORS.secondary,
+                  color: ORTM_COLORS.text,
                   '&:hover': {
-                    bgcolor: 'rgba(255,255,255,0.9)',
+                    bgcolor: alpha(ORTM_COLORS.secondary, 0.9),
                     transform: 'translateY(-2px)',
                     boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
                   },
@@ -227,8 +236,8 @@ const Home = () => {
                   borderColor: 'rgba(255,255,255,0.5)',
                   color: 'white',
                   '&:hover': {
-                    borderColor: 'white',
-                    bgcolor: 'rgba(255,255,255,0.1)'
+                    borderColor: ORTM_COLORS.secondary,
+                    bgcolor: 'rgba(249, 168, 37, 0.1)'
                   }
                 }}
                 onClick={() => navigate("/employes")}
@@ -265,11 +274,11 @@ const Home = () => {
         </Box>
 
         {/* Quick Actions */}
-        <Typography variant="h5" gutterBottom sx={{ mb: 3, fontWeight: 'bold', color: 'text.primary'}}>
+        <Typography variant="h5" gutterBottom sx={{ mb: 3, fontWeight: 'bold', color: ORTM_COLORS.text }}>
           Accès rapide
         </Typography>
         
-        <Grid container spacing={3} sx={{ mb: 4, width: '1730px' }}>
+        <Grid container spacing={3} sx={{ mb: 4 }}>
           {navItems.map((item, index) => (
             <Grid item xs={12} sm={6} md={4} key={index}>
               <Card 
@@ -281,6 +290,7 @@ const Home = () => {
                   border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
                   transition: 'all 0.3s ease',
                   cursor: 'pointer',
+                  bgcolor: ORTM_COLORS.white,
                   '&:hover': {
                     transform: 'translateY(-5px)',
                     boxShadow: `0 15px 30px ${alpha(item.color, 0.3)}`,
@@ -307,7 +317,7 @@ const Home = () => {
                       {item.icon}
                     </Box>
                     <Box sx={{ flex: 1 }}>
-                      <Typography variant="h6" component="div" sx={{ fontWeight: 'bold' }}>
+                      <Typography variant="h6" component="div" sx={{ fontWeight: 'bold', color: ORTM_COLORS.text }}>
                         {item.label}
                       </Typography>
                       <Typography variant="body2" sx={{ color: 'text.secondary' }}>
@@ -322,7 +332,7 @@ const Home = () => {
           ))}
         </Grid>
 
-        {/* About Application Section - Deux cartes côte à côte */}
+        {/* About Application Section */}
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
             <Card 
@@ -330,7 +340,8 @@ const Home = () => {
                 borderRadius: 3,
                 boxShadow: '0 5px 20px rgba(0,0,0,0.08)',
                 border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                height: '100%'
+                height: '100%',
+                bgcolor: ORTM_COLORS.white
               }}
             >
               <CardContent sx={{ p: 4 }}>
@@ -344,27 +355,27 @@ const Home = () => {
                       alignItems: 'center',
                       justifyContent: 'center',
                       mr: 3,
-                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      background: `linear-gradient(135deg, ${ORTM_COLORS.primary} 0%, ${alpha(ORTM_COLORS.primary, 0.9)} 100%)`,
                       color: 'white'
                     }}
                   >
                     <BusinessIcon sx={{ fontSize: 28 }} />
                   </Box>
                   <Box>
-                    <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', mb: 1 }}>
-                      Gestion RH - TVM
+                    <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', mb: 1, color: ORTM_COLORS.text }}>
+                      Gestion RH - ORTM
                     </Typography>
                     <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-                      Système moderne de gestion
+                      Système institutionnel de gestion
                     </Typography>
                   </Box>
                 </Box>
                 
                 <Typography variant="body1" sx={{ color: 'text.secondary', mb: 2 }}>
-                  Bienvenue dans le <strong>Système de Gestion des Ressources Humaines</strong> conçu spécifiquement pour <strong>Televiziona Malagasy (TVM)</strong>, la première chaîne de télévision nationale de Madagascar.
+                  Bienvenue dans le <strong style={{ color: ORTM_COLORS.primary }}>Système de Gestion des Ressources Humaines</strong> conçu spécifiquement pour l'<strong>Office de Radiodiffusion et Télévision de Madagascar (ORTM)</strong>.
                 </Typography>
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                  Cette plateforme intuitive permet une gestion centralisée des ressources humaines avec des outils avancés pour suivre les employés, gérer les départements, et optimiser les processus administratifs.
+                  Cette plateforme institutionnelle permet une gestion centralisée des ressources humaines avec des outils adaptés pour suivre les employés, gérer les départements, et optimiser les processus administratifs dans le respect de l'identité visuelle de l'ORTM.
                 </Typography>
               </CardContent>
             </Card>
@@ -381,7 +392,7 @@ const Home = () => {
           py: 3,
           px: 2,
           mt: 4,
-          backgroundColor: 'white',
+          backgroundColor: ORTM_COLORS.white,
           borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}`
         }}
       >
@@ -391,7 +402,7 @@ const Home = () => {
               © {new Date().getFullYear()} HR Management System. Tous droits réservés.
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Développé pour TVM - ORTM Madagascar
+              Développé pour ORTM Madagascar
             </Typography>
           </Box>
         </Container>

@@ -9,12 +9,8 @@ import {
   Grid,
   Typography,
   CircularProgress,
-  MenuItem,
   Avatar,
   Box,
-  Chip,
-  Card,
-  CardContent,
   IconButton
 } from "@mui/material";
 import {
@@ -22,12 +18,18 @@ import {
   Person as PersonIcon,
   LocationOn as LocationIcon,
   Description as DescriptionIcon,
-  Groups as GroupsIcon,
   Close as CloseIcon,
-  Save as SaveIcon,
-  CheckCircle as CheckCircleIcon,
-  Cancel as CancelIcon
+  Save as SaveIcon
 } from "@mui/icons-material";
+
+// Définition des couleurs ORTM
+const ORTM_COLORS = {
+  primary: "#1B5E20",      // Vert ORTM
+  secondary: "#F9A825",    // Jaune doré
+  background: "#F5F5F5",   // Gris clair
+  text: "#212121",         // Noir anthracite
+  white: "#FFFFFF"         // Blanc
+};
 
 const DepartementModal = ({
   open,
@@ -41,7 +43,6 @@ const DepartementModal = ({
 }) => {
   const handleFormSubmit = (e) => {
     e.preventDefault();
-    console.log("📝 Formulaire soumis:", formData);
     if (!processing) {
       onSubmit(e);
     }
@@ -69,22 +70,20 @@ const DepartementModal = ({
       PaperProps={{ 
         sx: { 
           borderRadius: 4,
-          background: 'linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%)',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
-          overflow: 'hidden'
+          background: ORTM_COLORS.white,
+          boxShadow: '0 20px 60px rgba(27, 94, 32, 0.15)',
+          overflow: 'hidden',
+          border: `1px solid ${ORTM_COLORS.primary}33`
         } 
       }}
     >
-      {/* En-tête avec dégradé */}
+      {/* En-tête avec dégradé ORTM */}
       <DialogTitle 
         sx={{ 
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          color: 'white',
+          background: `linear-gradient(135deg, ${ORTM_COLORS.primary} 0%, ${ORTM_COLORS.primary}DD 100%)`,
+          color: ORTM_COLORS.white,
           py: 3,
-          position: 'relative',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
+          position: 'relative'
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -101,259 +100,196 @@ const DepartementModal = ({
             <Typography variant="h5" fontWeight="600">
               {editingDepartement ? "Modifier le département" : "Nouveau département"}
             </Typography>
-            <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
-              {editingDepartement ? "Mettez à jour les informations du département" : "Créez un nouveau département dans l'organisation"}
-            </Typography>
           </Box>
         </Box>
-
-        <IconButton 
-          onClick={handleClose} 
-          disabled={processing}
-          sx={{ 
-            color: 'white',
-            bgcolor: 'rgba(255,255,255,0.2)',
-            '&:hover': {
-              bgcolor: 'rgba(255,255,255,0.3)',
-            }
-          }}
-        >
-          <CloseIcon />
-        </IconButton>
       </DialogTitle>
 
       <form onSubmit={handleFormSubmit}>
         <DialogContent sx={{ pt: 4, pb: 2 }}>
           <Grid container spacing={3}>
 
-            {/* Carte statistique */}
-            {editingDepartement && (
-              <Grid item xs={12}>
-                <Card 
-                  sx={{ 
-                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                    border: '2px solid rgba(102, 126, 234, 0.2)',
-                    borderRadius: 3
-                  }}
-                >
-                  <CardContent>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <GroupsIcon color="primary" />
-                      <Box>
-                        <Typography variant="h6" fontWeight="600" color="primary.main">
-                          Effectif du département
-                        </Typography>
-                        <Typography variant="body1" color="text.secondary">
-                          {formData.nbr_employe || 0} employé(s) dans ce département
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-            )}
-
             {/* ID Département */}
-            <Grid item xs={12} sm={6} width={'380px'}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                margin="dense"
                 label="ID Département"
                 name="id_departement"
                 value={formData.id_departement || ""}
                 onChange={(e) => handleInputChange("id_departement", e.target.value)}
                 error={!!formErrors.id_departement}
-                helperText={formErrors.id_departement || "Identifiant unique du département"}
+                helperText={formErrors.id_departement}
                 required
                 disabled={editingDepartement != null || processing}
                 placeholder="Ex: DEPT-001"
                 InputProps={{
-                  startAdornment: <BusinessIcon color="action" sx={{ mr: 1 }} />
+                  startAdornment: <BusinessIcon sx={{ mr: 1, color: ORTM_COLORS.primary }} />
                 }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
-                    borderRadius: 3,
-                    backgroundColor: 'white',
+                    borderRadius: 2,
+                    backgroundColor: ORTM_COLORS.white,
                     '&:hover fieldset': {
-                      borderColor: '#667eea',
+                      borderColor: ORTM_COLORS.primary,
                     },
+                    '&.Mui-focused fieldset': {
+                      borderColor: ORTM_COLORS.primary,
+                    },
+                  },
+                  '& .MuiInputLabel-root.Mui-focused': {
+                    color: ORTM_COLORS.primary,
                   }
                 }}
               />
             </Grid>
 
             {/* Nom du Département */}
-            <Grid item xs={12} sm={6} width={'380px'}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                margin="dense"
                 label="Nom du Département"
                 name="nom"
                 value={formData.nom || ""}
                 onChange={(e) => handleInputChange("nom", e.target.value)}
                 error={!!formErrors.nom}
-                helperText={formErrors.nom || "Nom complet du département"}
+                helperText={formErrors.nom}
                 required
                 disabled={processing}
                 placeholder="Ex: Ressources Humaines"
                 sx={{
                   '& .MuiOutlinedInput-root': {
-                    borderRadius: 3,
-                    backgroundColor: 'white',
+                    borderRadius: 2,
+                    backgroundColor: ORTM_COLORS.white,
                     '&:hover fieldset': {
-                      borderColor: '#667eea',
+                      borderColor: ORTM_COLORS.primary,
                     },
+                    '&.Mui-focused fieldset': {
+                      borderColor: ORTM_COLORS.primary,
+                    },
+                  },
+                  '& .MuiInputLabel-root.Mui-focused': {
+                    color: ORTM_COLORS.primary,
                   }
                 }}
               />
             </Grid>
 
             {/* Responsable */}
-            <Grid item xs={12} sm={6} width={'380px'}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                margin="dense"
                 label="Responsable"
                 name="responsable"
                 value={formData.responsable || ""}
                 onChange={(e) => handleInputChange("responsable", e.target.value)}
                 error={!!formErrors.responsable}
-                helperText={formErrors.responsable || "Nom du responsable du département"}
+                helperText={formErrors.responsable}
                 required
                 disabled={processing}
                 placeholder="Ex: Jean Dupont"
                 InputProps={{
-                  startAdornment: <PersonIcon color="action" sx={{ mr: 1 }} />
+                  startAdornment: <PersonIcon sx={{ mr: 1, color: ORTM_COLORS.primary }} />
                 }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
-                    borderRadius: 3,
-                    backgroundColor: 'white',
+                    borderRadius: 2,
+                    backgroundColor: ORTM_COLORS.white,
                     '&:hover fieldset': {
-                      borderColor: '#667eea',
+                      borderColor: ORTM_COLORS.primary,
                     },
-                  }
-                }}
-              />
-            </Grid>
-
-            {/* Nombre d'employés */}
-            <Grid item xs={12} sm={6} width={'380px'}>
-              <TextField
-                fullWidth
-                margin="dense"
-                label="Nombre d'employés"
-                value={formData.nbr_employe || 0}
-                InputProps={{
-                  readOnly: true,
-                  startAdornment: <GroupsIcon color="action" sx={{ mr: 1 }} />
-                }}
-                disabled
-                helperText="Calculé automatiquement"
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 3,
-                    backgroundColor: 'white',
-                    '&:hover fieldset': {
-                      borderColor: '#667eea',
+                    '&.Mui-focused fieldset': {
+                      borderColor: ORTM_COLORS.primary,
                     },
-                  }
-                }}
-              />
-            </Grid>
-
-            {/* Description */}
-            <Grid item xs={12} width={'380px'}>
-              <TextField
-                fullWidth
-                margin="dense"
-                label="Description du département"
-                name="description"
-                value={formData.description || ""}
-                onChange={(e) => handleInputChange("description", e.target.value)}
-                multiline
-                rows={3}
-                disabled={processing}
-                placeholder="Décrivez les missions, objectifs et responsabilités de ce département..."
-                helperText="Définissez le rôle et les objectifs de ce département"
-                InputProps={{
-                  startAdornment: <DescriptionIcon color="action" sx={{ mr: 1, mt: 1.5, alignSelf: 'flex-start' }} />
-                }}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 3,
-                    backgroundColor: 'white',
-                    '&:hover fieldset': {
-                      borderColor: '#667eea',
-                    },
+                  },
+                  '& .MuiInputLabel-root.Mui-focused': {
+                    color: ORTM_COLORS.primary,
                   }
                 }}
               />
             </Grid>
 
             {/* Localisation */}
-            <Grid item xs={12} width={'380px'}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                margin="dense"
                 label="Localisation"
                 name="localisation"
                 value={formData.localisation || ""}
                 onChange={(e) => handleInputChange("localisation", e.target.value)}
                 disabled={processing}
-                placeholder="Ex: Bâtiment A, Étage 2, Bureau 205"
-                helperText="Localisation physique du département dans l'entreprise"
+                placeholder="Ex: Bâtiment A, Étage 2"
                 InputProps={{
-                  startAdornment: <LocationIcon color="action" sx={{ mr: 1 }} />
+                  startAdornment: <LocationIcon sx={{ mr: 1, color: ORTM_COLORS.primary }} />
                 }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
-                    borderRadius: 3,
-                    backgroundColor: 'white',
+                    borderRadius: 2,
+                    backgroundColor: ORTM_COLORS.white,
                     '&:hover fieldset': {
-                      borderColor: '#667eea',
+                      borderColor: ORTM_COLORS.primary,
                     },
+                    '&.Mui-focused fieldset': {
+                      borderColor: ORTM_COLORS.primary,
+                    },
+                  },
+                  '& .MuiInputLabel-root.Mui-focused': {
+                    color: ORTM_COLORS.primary,
                   }
                 }}
               />
             </Grid>
 
-            {/* Badge d'état */}
+            {/* Description */}
             <Grid item xs={12}>
-              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                <Chip 
-                  icon={<BusinessIcon />}
-                  label={editingDepartement ? "Département existant" : "Nouveau département"}
-                  color={editingDepartement ? "primary" : "success"}
-                  variant="outlined"
-                />
-                {formData.nbr_employe > 0 && (
-                  <Chip 
-                    icon={<GroupsIcon />}
-                    label={`${formData.nbr_employe} employé(s)`}
-                    color="info"
-                    variant="outlined"
-                  />
-                )}
-              </Box>
+              <TextField
+                fullWidth
+                label="Description"
+                name="description"
+                value={formData.description || ""}
+                onChange={(e) => handleInputChange("description", e.target.value)}
+                multiline
+                rows={3}
+                disabled={processing}
+                placeholder="Description du département..."
+                InputProps={{
+                  startAdornment: <DescriptionIcon sx={{ mr: 1, mt: 1.5, alignSelf: 'flex-start', color: ORTM_COLORS.primary }} />
+                }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                    backgroundColor: ORTM_COLORS.white,
+                    '&:hover fieldset': {
+                      borderColor: ORTM_COLORS.primary,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: ORTM_COLORS.primary,
+                    },
+                  },
+                  '& .MuiInputLabel-root.Mui-focused': {
+                    color: ORTM_COLORS.primary,
+                  }
+                }}
+              />
             </Grid>
+
           </Grid>
         </DialogContent>
 
         {/* Actions */}
-        <DialogActions sx={{ p: 3, gap: 2, background: 'rgba(255,255,255,0.6)' }}>
+        <DialogActions sx={{ p: 3, gap: 2, borderTop: `1px solid ${ORTM_COLORS.primary}33` }}>
           <Button 
             onClick={handleClose} 
             disabled={processing} 
             color="inherit"
             startIcon={<CloseIcon />}
             sx={{ 
-              borderRadius: 3, 
+              borderRadius: 2,
               px: 3,
-              py: 1,
-              border: '1px solid #ddd',
+              textTransform: 'none',
+              fontWeight: 600,
+              color: ORTM_COLORS.text,
+              border: `1px solid ${ORTM_COLORS.primary}33`,
               '&:hover': {
-                backgroundColor: 'rgba(0,0,0,0.04)'
+                backgroundColor: `${ORTM_COLORS.primary}11`
               }
             }}
           >
@@ -363,63 +299,27 @@ const DepartementModal = ({
             type="submit"
             variant="contained"
             disabled={processing || !formData.id_departement || !formData.nom || !formData.responsable}
-            startIcon={processing ? <CircularProgress size={16} /> : <SaveIcon />}
+            startIcon={processing ? <CircularProgress size={16} sx={{ color: ORTM_COLORS.white }} /> : <SaveIcon />}
             sx={{ 
-              borderRadius: 3, 
-              px: 4, 
-              py: 1,
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
+              borderRadius: 2,
+              px: 4,
+              textTransform: 'none',
+              fontWeight: 600,
+              background: `linear-gradient(135deg, ${ORTM_COLORS.primary}, ${ORTM_COLORS.secondary})`,
+              color: ORTM_COLORS.white,
               '&:hover': {
-                boxShadow: '0 6px 20px rgba(102, 126, 234, 0.4)',
-                transform: 'translateY(-1px)'
+                background: `linear-gradient(135deg, ${ORTM_COLORS.primary}DD, ${ORTM_COLORS.secondary}DD)`,
               },
               '&:disabled': {
-                background: 'grey.300'
-              },
-              transition: 'all 0.3s ease'
+                background: `${ORTM_COLORS.primary}66`,
+                color: ORTM_COLORS.white
+              }
             }}
           >
             {processing ? "Traitement..." : (editingDepartement ? "Modifier" : "Créer")}
           </Button>
         </DialogActions>
       </form>
-
-      {/* Overlay de chargement */}
-      {processing && (
-        <Box
-          sx={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(255, 255, 255, 0.8)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1,
-            borderRadius: '16px',
-            backdropFilter: 'blur(4px)',
-          }}
-        >
-          <Box sx={{ textAlign: 'center' }}>
-            <CircularProgress 
-              size={60}
-              sx={{ 
-                color: '#667eea',
-                mb: 2
-              }} 
-            />
-            <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 600 }}>
-              Traitement en cours...
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1 }}>
-              {editingDepartement ? "Mise à jour du département" : "Création du nouveau département"}
-            </Typography>
-          </Box>
-        </Box>
-      )}
     </Dialog>
   );
 };

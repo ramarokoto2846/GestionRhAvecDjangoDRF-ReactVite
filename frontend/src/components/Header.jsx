@@ -42,6 +42,18 @@ import { useNavigate, useLocation } from "react-router-dom";
 import Swal from "sweetalert2";
 import { getConges, getEmployes, getEvenements, getPointages } from "../services/api";
 
+// Définition des couleurs ORTM
+const ORTM_COLORS = {
+  primary: "#1B5E20",      // Vert ORTM
+  secondary: "#F9A825",    // Jaune doré
+  background: "#F5F5F5",   // Gris clair
+  text: "#212121",         // Noir anthracite
+  white: "#FFFFFF"         // Blanc
+};
+
+// Import du logo ORTM
+import ortmLogo from "./ortm.webp";
+
 // Global refresh trigger
 let refreshNotificationsCallback = null;
 
@@ -84,7 +96,7 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
           title: 'Pointages en cours détectés',
           html: `
             <div style="text-align: center;">
-              <div style="font-size: 48px; color: #ff9800; margin-bottom: 20px;">⚠️</div>
+              <div style="font-size: 48px; color: ${ORTM_COLORS.secondary}; margin-bottom: 20px;">⚠️</div>
               <p style="font-size: 18px; margin-bottom: 10px;">
                 <strong>${pointagesEnCours.length} pointage(s) en cours</strong>
               </p>
@@ -96,8 +108,8 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
           `,
           icon: 'warning',
           showCancelButton: true,
-          confirmButtonColor: '#d33',
-          cancelButtonColor: '#3085d6',
+          confirmButtonColor: ORTM_COLORS.primary,
+          cancelButtonColor: ORTM_COLORS.secondary,
           confirmButtonText: 'Oui, se déconnecter',
           cancelButtonText: 'Annuler et vérifier',
           width: 500
@@ -114,8 +126,8 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
         text: "Voulez-vous vraiment vous déconnecter ?",
         icon: "question",
         showCancelButton: true,
-        confirmButtonColor: "#1976d2",
-        cancelButtonColor: "#d33",
+        confirmButtonColor: ORTM_COLORS.primary,
+        cancelButtonColor: ORTM_COLORS.secondary,
         confirmButtonText: "Oui, déconnexion",
         cancelButtonText: "Annuler",
         reverseButtons: true
@@ -134,8 +146,8 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
         text: "Voulez-vous vraiment vous déconnecter ?",
         icon: "question",
         showCancelButton: true,
-        confirmButtonColor: "#1976d2",
-        cancelButtonColor: "#d33",
+        confirmButtonColor: ORTM_COLORS.primary,
+        cancelButtonColor: ORTM_COLORS.secondary,
         confirmButtonText: "Oui, déconnexion",
         cancelButtonText: "Annuler",
         reverseButtons: true
@@ -262,10 +274,10 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
 
   const getNotificationIcon = (type) => {
     switch (type) {
-      case "conges": return <BeachAccessIcon color="primary" />;
-      case "employes_inactifs": return <WarningIcon color="warning" />;
-      case "evenements": return <EventIcon color="info" />;
-      case "pointages": return <AccessTimeIcon color="secondary" />;
+      case "conges": return <BeachAccessIcon sx={{ color: ORTM_COLORS.primary }} />;
+      case "employes_inactifs": return <WarningIcon sx={{ color: ORTM_COLORS.secondary }} />;
+      case "evenements": return <EventIcon sx={{ color: ORTM_COLORS.primary }} />;
+      case "pointages": return <AccessTimeIcon sx={{ color: ORTM_COLORS.secondary }} />;
       default: return <NotificationsIcon />;
     }
   };
@@ -282,11 +294,28 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
 
   // Drawer content for mobile
   const drawerContent = (
-    <Box sx={{ width: 280 }} onClick={handleMobileDrawerToggle}>
-      <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}` }}>
-        <Typography variant="h6" sx={{ fontWeight: "bold", color: theme.palette.primary.main }}>
-          RHManager Pro
-        </Typography>
+    <Box sx={{ width: 280, bgcolor: ORTM_COLORS.background }} onClick={handleMobileDrawerToggle}>
+      <Box sx={{ p: 2, borderBottom: `1px solid ${alpha(ORTM_COLORS.primary, 0.2)}`, bgcolor: ORTM_COLORS.white }}>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <img 
+            src={ortmLogo} 
+            alt="ORTM Logo" 
+            style={{ 
+              width: 80, 
+              height: 80, 
+              marginRight: 12,
+              objectFit: 'contain'
+            }} 
+          />
+          <Box>
+            <Typography variant="h6" sx={{ fontWeight: "bold", color: ORTM_COLORS.primary, fontSize: '1rem' }}>
+              ORTM
+            </Typography>
+            <Typography variant="body2" sx={{ color: ORTM_COLORS.text, fontSize: '0.75rem' }}>
+              Système RH
+            </Typography>
+          </Box>
+        </Box>
       </Box>
       <List>
         {navItems.map((item) => (
@@ -296,8 +325,9 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
               selected={location.pathname === item.path}
               sx={{
                 '&.Mui-selected': {
-                  backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                  color: theme.palette.primary.main,
+                  backgroundColor: alpha(ORTM_COLORS.primary, 0.1),
+                  color: ORTM_COLORS.primary,
+                  borderRight: `3px solid ${ORTM_COLORS.primary}`
                 }
               }}
             >
@@ -316,8 +346,9 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
             selected={location.pathname.includes('/statistiques')}
             sx={{
               '&.Mui-selected': {
-                backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                color: theme.palette.primary.main,
+                backgroundColor: alpha(ORTM_COLORS.primary, 0.1),
+                color: ORTM_COLORS.primary,
+                borderRight: `3px solid ${ORTM_COLORS.primary}`
               }
             }}
           >
@@ -336,9 +367,9 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
       position="fixed"
       elevation={0}
       sx={{
-        bgcolor: "white",
-        color: "text.primary",
-        borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+        bgcolor: ORTM_COLORS.white,
+        color: ORTM_COLORS.text,
+        borderBottom: `1px solid ${alpha(ORTM_COLORS.primary, 0.2)}`,
         zIndex: theme.zIndex.drawer + 1
       }}
     >
@@ -350,22 +381,32 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
           sx={{ 
             mr: 2, 
             display: { md: "none" },
-            color: theme.palette.text.primary
+            color: ORTM_COLORS.primary
           }}
         >
           <MenuIcon />
         </IconButton>
 
-        {/* Logo à gauche */}
+        {/* Logo ORTM à gauche */}
         <Box sx={{ display: "flex", alignItems: "center", cursor: 'pointer' }} onClick={() => navigate('/home')}>
-          <Box sx={{
-            width: 40, height: 40, bgcolor: "primary.main", color: "white",
-            fontWeight: "bold", display: "flex", justifyContent: "center",
-            alignItems: "center", borderRadius: 2, mr: 2
-          }}>RH</Box>
-          <Typography variant="h6" sx={{ fontWeight: "bold", color: "#1976d2" }}>
-            RHManager Pro
-          </Typography>
+          <img 
+            src={ortmLogo} 
+            alt="ORTM Logo" 
+            style={{ 
+              width: 45, 
+              height: 45, 
+              marginRight: 12,
+              objectFit: 'contain'
+            }} 
+          />
+          <Box>
+            <Typography variant="h6" sx={{ fontWeight: "bold", color: ORTM_COLORS.primary, lineHeight: 1.2 }}>
+              ORTM
+            </Typography>
+            <Typography variant="body2" sx={{ color: ORTM_COLORS.text, fontSize: '0.75rem' }}>
+              Système de Gestion RH
+            </Typography>
+          </Box>
         </Box>
 
         {/* Navigation au centre - Visible sur desktop */}
@@ -382,13 +423,16 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
               onClick={() => navigate(item.path)}
               startIcon={item.icon}
               sx={{
-                color: location.pathname === item.path ? 'primary.main' : 'text.primary',
+                color: location.pathname === item.path ? ORTM_COLORS.primary : ORTM_COLORS.text,
                 fontWeight: location.pathname === item.path ? 'bold' : 'normal',
                 textTransform: 'none',
                 borderRadius: 2,
                 px: 2,
                 '&:hover': {
-                  bgcolor: alpha(theme.palette.primary.main, 0.1),
+                  bgcolor: alpha(ORTM_COLORS.primary, 0.1),
+                },
+                '& .MuiButton-startIcon': {
+                  color: location.pathname === item.path ? ORTM_COLORS.primary : ORTM_COLORS.text,
                 }
               }}
             >
@@ -401,13 +445,13 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
             onClick={handleStatsClick}
             startIcon={<BarChartIcon />}
             sx={{
-              color: location.pathname.includes('/statistiques') ? 'primary.main' : 'text.primary',
+              color: location.pathname.includes('/statistiques') ? ORTM_COLORS.primary : ORTM_COLORS.text,
               fontWeight: location.pathname.includes('/statistiques') ? 'bold' : 'normal',
               textTransform: 'none',
               borderRadius: 2,
               px: 2,
               '&:hover': {
-                bgcolor: alpha(theme.palette.primary.main, 0.1),
+                bgcolor: alpha(ORTM_COLORS.primary, 0.1),
               }
             }}
           >
@@ -422,12 +466,13 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
               sx: {
                 width: 280,
                 mt: 1,
-                borderRadius: 2
+                borderRadius: 2,
+                border: `1px solid ${alpha(ORTM_COLORS.primary, 0.2)}`
               }
             }}
           >
-            <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}` }}>
-              <Typography variant="h6" sx={{ fontWeight: "bold" }}>
+            <Box sx={{ p: 2, borderBottom: `1px solid ${alpha(ORTM_COLORS.primary, 0.2)}` }}>
+              <Typography variant="h6" sx={{ fontWeight: "bold", color: ORTM_COLORS.primary }}>
                 Vues Statistiques
               </Typography>
             </Box>
@@ -436,15 +481,17 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
               onClick={() => handleNavigation("/statistiques/overview")}
               sx={{
                 py: 2,
-                borderBottom: `1px solid ${theme.palette.divider}`
+                borderBottom: `1px solid ${alpha(ORTM_COLORS.primary, 0.1)}`
               }}
             >
               <ListItemIcon>
-                <TrendingUpIcon color="primary" />
+                <TrendingUpIcon sx={{ color: ORTM_COLORS.primary }} />
               </ListItemIcon>
               <ListItemText
                 primary="Vue Globale"
                 secondary="Statistiques générales de l'entreprise"
+                primaryTypographyProps={{ color: ORTM_COLORS.text }}
+                secondaryTypographyProps={{ color: ORTM_COLORS.text }}
               />
             </MenuItem>
 
@@ -453,11 +500,13 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
               sx={{ py: 2 }}
             >
               <ListItemIcon>
-                <PeopleIcon color="secondary" />
+                <PeopleIcon sx={{ color: ORTM_COLORS.secondary }} />
               </ListItemIcon>
               <ListItemText
                 primary="Vue par Employé"
                 secondary="Statistiques individuelles des employés"
+                primaryTypographyProps={{ color: ORTM_COLORS.text }}
+                secondaryTypographyProps={{ color: ORTM_COLORS.text }}
               />
             </MenuItem>
           </Menu>
@@ -471,8 +520,9 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
             onClick={handleNotificationsClick}
             sx={{
               mr: 1,
-              bgcolor: alpha(theme.palette.primary.main, 0.1),
-              "&:hover": { bgcolor: alpha(theme.palette.primary.main, 0.2) }
+              bgcolor: alpha(ORTM_COLORS.primary, 0.1),
+              color: ORTM_COLORS.primary,
+              "&:hover": { bgcolor: alpha(ORTM_COLORS.primary, 0.2) }
             }}
           >
             <Badge badgeContent={notificationsCount} color="error">
@@ -489,15 +539,16 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
                 maxHeight: 400,
                 width: 350,
                 mt: 1,
-                borderRadius: 2
+                borderRadius: 2,
+                border: `1px solid ${alpha(ORTM_COLORS.primary, 0.2)}`
               }
             }}
           >
-            <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}` }}>
-              <Typography variant="h6" sx={{ fontWeight: "bold" }}>
+            <Box sx={{ p: 2, borderBottom: `1px solid ${alpha(ORTM_COLORS.primary, 0.2)}` }}>
+              <Typography variant="h6" sx={{ fontWeight: "bold", color: ORTM_COLORS.primary }}>
                 Notifications
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={{ color: ORTM_COLORS.text }}>
                 {notificationsCount} notification(s)
               </Typography>
             </Box>
@@ -505,11 +556,13 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
             {notifications.length === 0 ? (
               <MenuItem sx={{ py: 2 }}>
                 <ListItemIcon>
-                  <NotificationsIcon color="disabled" />
+                  <NotificationsIcon sx={{ color: ORTM_COLORS.text }} />
                 </ListItemIcon>
                 <ListItemText
                   primary="Aucune notification"
                   secondary="Tout est à jour"
+                  primaryTypographyProps={{ color: ORTM_COLORS.text }}
+                  secondaryTypographyProps={{ color: ORTM_COLORS.text }}
                 />
               </MenuItem>
             ) : (
@@ -519,7 +572,7 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
                   onClick={() => handleNotificationClick(notification.type)}
                   sx={{
                     py: 1.5,
-                    borderBottom: index < notifications.length - 1 ? `1px solid ${theme.palette.divider}` : 'none'
+                    borderBottom: index < notifications.length - 1 ? `1px solid ${alpha(ORTM_COLORS.primary, 0.1)}` : 'none'
                   }}
                 >
                   <ListItemIcon>
@@ -528,11 +581,18 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
                   <ListItemText
                     primary={notification.message}
                     secondary="Cliquez pour voir les détails"
+                    primaryTypographyProps={{ color: ORTM_COLORS.text }}
+                    secondaryTypographyProps={{ color: ORTM_COLORS.text }}
                   />
                   <Badge
                     badgeContent={notification.count}
-                    color="primary"
-                    sx={{ ml: 1 }}
+                    sx={{ 
+                      ml: 1,
+                      '& .MuiBadge-badge': {
+                        backgroundColor: ORTM_COLORS.primary,
+                        color: ORTM_COLORS.white
+                      }
+                    }}
                   />
                 </MenuItem>
               ))
@@ -543,8 +603,9 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
             onClick={handleSettingsClick}
             sx={{
               mr: 1,
-              bgcolor: alpha(theme.palette.grey[500], 0.1),
-              "&:hover": { bgcolor: alpha(theme.palette.grey[500], 0.2) }
+              bgcolor: alpha(ORTM_COLORS.primary, 0.1),
+              color: 'rgrayed',
+              "&:hover": { bgcolor: 'gray' }
             }}
           >
             <SettingsIcon />
@@ -558,12 +619,13 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
               sx: {
                 width: 280,
                 mt: 1,
-                borderRadius: 2
+                borderRadius: 2,
+                border: `1px solid ${alpha(ORTM_COLORS.primary, 0.2)}`
               }
             }}
           >
-            <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}` }}>
-              <Typography variant="h6" sx={{ fontWeight: "bold" }}>
+            <Box sx={{ p: 2, borderBottom: `1px solid ${alpha(ORTM_COLORS.primary, 0.2)}` }}>
+              <Typography variant="h6" sx={{ fontWeight: "bold", color: ORTM_COLORS.primary }}>
                 Informations utilisateur
               </Typography>
             </Box>
@@ -573,7 +635,7 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
                 <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
                   <Avatar 
                     sx={{ 
-                      bgcolor: "primary.main", 
+                      bgcolor: ORTM_COLORS.primary, 
                       width: 48, 
                       height: 48, 
                       mr: 2,
@@ -584,10 +646,10 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
                     <PersonIcon />
                   </Avatar>
                   <Box>
-                    <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: "bold", color: ORTM_COLORS.text }}>
                       {user.nom || user.prenom ? `${user.prenom || ''} ${user.nom || ''}`.trim() : "Utilisateur"}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body2" sx={{ color: ORTM_COLORS.text }}>
                       {user.role === 'admin' ? 'Administrateur' : 'Utilisateur'}
                     </Typography>
                   </Box>
@@ -595,8 +657,8 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
 
                 {user.email && (
                   <Box sx={{ display: "flex", alignItems: "center", mt: 2 }}>
-                    <EmailIcon color="action" sx={{ mr: 1.5, fontSize: 20 }} />
-                    <Typography variant="body2" color="text.secondary">
+                    <EmailIcon sx={{ mr: 1.5, fontSize: 20, color: ORTM_COLORS.primary }} />
+                    <Typography variant="body2" sx={{ color: ORTM_COLORS.text }}>
                       {user.email}
                     </Typography>
                   </Box>
@@ -606,7 +668,7 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
           </Menu>
 
           <Button
-            color="error"
+            color="inherit"
             onClick={handleLogout}
             startIcon={<LogoutIcon />}
             variant="outlined"
@@ -614,7 +676,14 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
             sx={{
               borderRadius: 2,
               textTransform: "none",
-              fontWeight: "medium"
+              fontWeight: "medium",
+              borderColor: ORTM_COLORS.primary,
+              color: ORTM_COLORS.primary,
+              '&:hover': {
+                borderColor: ORTM_COLORS.secondary,
+                backgroundColor: alpha(ORTM_COLORS.secondary, 0.1),
+                color: ORTM_COLORS.secondary
+              }
             }}
           >
             Déconnexion
@@ -628,7 +697,7 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
         open={mobileDrawerOpen}
         onClose={handleMobileDrawerToggle}
         ModalProps={{
-          keepMounted: true, // Better open performance on mobile.
+          keepMounted: true,
         }}
         sx={{
           display: { xs: 'block', md: 'none' },
