@@ -322,7 +322,7 @@ const StatisticsOverview = () => {
           >
             <CardContent sx={{ p: 3 }}>
               <Grid container spacing={3} alignItems="center">
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid item xs={12} sm={6} md={3} width={500}>
                   <FormControl fullWidth>
                     <InputLabel>Mois</InputLabel>
                     <Select
@@ -340,7 +340,7 @@ const StatisticsOverview = () => {
                   </FormControl>
                 </Grid>
 
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid item xs={12} sm={6} md={3} width={500}>
                   <FormControl fullWidth>
                     <InputLabel>Année</InputLabel>
                     <Select

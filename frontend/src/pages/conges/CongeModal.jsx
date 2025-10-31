@@ -92,7 +92,7 @@ const CongeModal = ({
           <Grid container spacing={3}>
 
             {/* ID Congé */}
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} sm={6}  width={380}>
               <TextField
                 fullWidth
                 label="ID Congé"
@@ -120,7 +120,7 @@ const CongeModal = ({
             </Grid>
 
             {/* Sélection Employé */}
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} sm={6}  width={380}>
               <FormControl 
                 fullWidth 
                 required
@@ -187,7 +187,7 @@ const CongeModal = ({
             </Grid>
 
             {/* Dates */}
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} sm={6}  width={380}>
               <TextField
                 fullWidth
                 label="Date Début"
@@ -218,7 +218,7 @@ const CongeModal = ({
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} sm={6}  width={380}>
               <TextField
                 fullWidth
                 label="Date Fin"
@@ -250,7 +250,7 @@ const CongeModal = ({
             </Grid>
 
             {/* Motif */}
-            <Grid item xs={12}>
+            <Grid item xs={12}  width={380}>
               <TextField
                 fullWidth
                 label="Motif du congé"
@@ -279,7 +279,7 @@ const CongeModal = ({
 
             {/* Raison du refus (conditionnel) */}
             {editingConge && (
-              <Grid item xs={12}>
+              <Grid item xs={12}  width={380}>
                 <TextField
                   fullWidth
                   label="Raison du Refus"

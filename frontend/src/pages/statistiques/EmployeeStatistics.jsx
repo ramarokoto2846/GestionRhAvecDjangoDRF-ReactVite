@@ -306,33 +306,8 @@ const EmployeeStatistics = () => {
             }}
           >
             <CardContent sx={{ p: 3 }}>
-              <Grid container spacing={3} alignItems="center">
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    placeholder="Rechercher un employé..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <SearchIcon sx={{ color: 'text.secondary' }} />
-                        </InputAdornment>
-                      ),
-                      endAdornment: searchTerm && (
-                        <InputAdornment position="end">
-                          <IconButton onClick={() => setSearchTerm("")} size="small">
-                            <CloseIcon />
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                      sx: { borderRadius: 2 }
-                    }}
-                    sx={{ mb: { xs: 2, md: 0 } }}
-                  />
-                </Grid>
-                
-                <Grid item xs={12} sm={6} md={2}>
+              <Grid container spacing={3} alignItems="center">                
+                <Grid item xs={12} sm={6} md={2} width={380}>
                   <FormControl fullWidth>
                     <InputLabel>Employé</InputLabel>
                     <Select
@@ -350,7 +325,7 @@ const EmployeeStatistics = () => {
                   </FormControl>
                 </Grid>
                 
-                <Grid item xs={12} sm={6} md={2}>
+                <Grid item xs={12} sm={6} md={2} width={380}>
                   <FormControl fullWidth>
                     <InputLabel>Mois</InputLabel>
                     <Select
@@ -368,7 +343,7 @@ const EmployeeStatistics = () => {
                   </FormControl>
                 </Grid>
 
-                <Grid item xs={12} sm={6} md={2}>
+                <Grid item xs={12} sm={6} md={2} width={380}>
                   <FormControl fullWidth>
                     <InputLabel>Année</InputLabel>
                     <Select

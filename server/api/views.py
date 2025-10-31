@@ -345,11 +345,29 @@ class CongeViewSet(viewsets.ModelViewSet):
         if employe_id:
             try:
                 employe = Employe.objects.get(pk=employe_id)
+                
+                # Vérifier si l'employé est inactif
                 if employe.statut != 'actif':
                     return Response(
                         {"error": "Les employés inactifs ne peuvent pas faire de demande de congé."},
                         status=status.HTTP_400_BAD_REQUEST
                     )
+                
+                # ✅ VÉRIFICATION SI L'EMPLOYÉ EST STAGIAIRE
+                if employe.titre and employe.titre.lower() == 'stagiaire':
+                    return Response(
+                        {"error": "Les stagiaires ne peuvent pas faire de demande de congé."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                # Vérification supplémentaire pour d'autres titres indiquant un statut de stagiaire
+                titres_stagiaires = ['stagiaire', 'intern', 'trainee', 'apprenti']
+                if employe.titre and any(titre in employe.titre.lower() for titre in titres_stagiaires):
+                    return Response(
+                        {"error": "Les stagiaires ne peuvent pas faire de demande de congé."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                    
             except Employe.DoesNotExist:
                 return Response(
                     {"error": "Employé non trouvé."},
@@ -366,6 +384,14 @@ class CongeViewSet(viewsets.ModelViewSet):
         logger.info(f"Requête reçue pour valider le congé {pk} par l'utilisateur {request.user.email}")
         try:
             conge = self.get_object()
+            
+            # Vérification supplémentaire lors de la validation
+            if conge.employe.titre and conge.employe.titre.lower() == 'stagiaire':
+                return Response(
+                    {"error": "Impossible de valider un congé pour un stagiaire."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+                
             conge.statut = 'valide'
             conge.date_decision = timezone.now()
             conge.save()
@@ -386,6 +412,14 @@ class CongeViewSet(viewsets.ModelViewSet):
         logger.info(f"Requête reçue pour refuser le congé {pk} par l'utilisateur {request.user.email}")
         try:
             conge = self.get_object()
+            
+            # Vérification supplémentaire lors du refus
+            if conge.employe.titre and conge.employe.titre.lower() == 'stagiaire':
+                return Response(
+                    {"error": "Impossible de traiter un congé pour un stagiaire."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+                
             motif_refus = request.data.get('motif_refus')
             if not motif_refus:
                 logger.error("Motif de refus non fourni")

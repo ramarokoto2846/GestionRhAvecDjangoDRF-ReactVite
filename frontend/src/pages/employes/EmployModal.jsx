@@ -117,7 +117,7 @@ const EmployModal = ({
         <DialogContent sx={{ pt: 4, pb: 2 }}>
           <Grid container spacing={3}>
             {/* Matricule */}
-            <Grid item xs={12} sm={6} width={'380px'}>
+            <Grid item xs={12} sm={6}  width={380}>
               <TextField
                 fullWidth
                 label="Matricule"
@@ -150,7 +150,7 @@ const EmployModal = ({
             </Grid>
 
             {/* Titre */}
-            <Grid item xs={12} sm={6} width={'380px'}>
+            <Grid item xs={12} sm={6}  width={380}>
               <TextField
                 fullWidth
                 label="Titre"
@@ -191,7 +191,7 @@ const EmployModal = ({
             </Grid>
 
             {/* Nom */}
-            <Grid item xs={12} sm={6} width={'380px'}>
+            <Grid item xs={12} sm={6} width={380}>
               <TextField
                 fullWidth
                 label="Nom"
@@ -220,7 +220,7 @@ const EmployModal = ({
             </Grid>
 
             {/* Prénom */}
-            <Grid item xs={12} sm={6} width={'380px'}>
+            <Grid item xs={12} sm={6} width={380}>
               <TextField
                 fullWidth
                 label="Prénom"
@@ -249,7 +249,7 @@ const EmployModal = ({
             </Grid>
 
             {/* Email */}
-            <Grid item xs={12} sm={6} width={'380px'}>
+            <Grid item xs={12} sm={6}  width={380}>
               <TextField
                 fullWidth
                 label="Email"
@@ -282,7 +282,7 @@ const EmployModal = ({
             </Grid>
 
             {/* Téléphone */}
-            <Grid item xs={12} sm={6} width={'380px'}>
+            <Grid item xs={12} sm={6}  width={380}>
               <TextField
                 fullWidth
                 label="Téléphone"
@@ -313,7 +313,7 @@ const EmployModal = ({
             </Grid>
 
             {/* Poste */}
-            <Grid item xs={12} sm={6} width={'380px'}>
+            <Grid item xs={12} sm={6}  width={380}>
               <TextField
                 fullWidth
                 label="Poste"

@@ -109,7 +109,7 @@ const DepartementModal = ({
           <Grid container spacing={3}>
 
             {/* ID Département */}
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} sm={6}  width={380}>
               <TextField
                 fullWidth
                 label="ID Département"
@@ -143,7 +143,7 @@ const DepartementModal = ({
             </Grid>
 
             {/* Nom du Département */}
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} sm={6}  width={380}>
               <TextField
                 fullWidth
                 label="Nom du Département"
@@ -174,7 +174,7 @@ const DepartementModal = ({
             </Grid>
 
             {/* Responsable */}
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} sm={6}  width={380}>
               <TextField
                 fullWidth
                 label="Responsable"
@@ -208,7 +208,7 @@ const DepartementModal = ({
             </Grid>
 
             {/* Localisation */}
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} sm={6}  width={380}>
               <TextField
                 fullWidth
                 label="Localisation"
@@ -239,7 +239,7 @@ const DepartementModal = ({
             </Grid>
 
             {/* Description */}
-            <Grid item xs={12}>
+            <Grid item xs={12}  width={790}>
               <TextField
                 fullWidth
                 label="Description"

@@ -11,7 +11,8 @@ import {
   Fade,
   InputAdornment,
   IconButton,
-  Divider
+  Divider,
+  alpha
 } from "@mui/material";
 import { 
   Visibility, 
@@ -25,13 +26,18 @@ import {
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 
-// Définition des couleurs ORTM
+// Palette de couleurs ORTM améliorée
 const ORTM_COLORS = {
-  primary: "#1B5E20",      // Vert ORTM
-  secondary: "#F9A825",    // Jaune doré
-  background: "#F5F5F5",   // Gris clair
-  text: "#212121",         // Noir anthracite
-  white: "#FFFFFF"         // Blanc
+  primary: "#1B5E20",           // Vert ORTM principal
+  secondary: "#F9A825",         // Jaune doré
+  accent: "#1565C0",            // Bleu pour les actions
+  background: "#F8F9FA",        // Gris très clair
+  surface: "#FFFFFF",           // Blanc
+  text: {
+    primary: "#1A237E",         // Bleu foncé
+    secondary: "#546E7A",       // Gris bleu
+    light: "#78909C"           // Gris clair
+  }
 };
 
 // Import du logo ORTM
@@ -97,7 +103,7 @@ const Auth = ({ setIsAuthenticated }) => {
           title: "Succès",
           text: "Compte créé avec succès !",
           icon: "success",
-          background: `linear-gradient(135deg, ${ORTM_COLORS.primary} 0%, ${ORTM_COLORS.primary}99 100%)`,
+          background: `linear-gradient(135deg, ${ORTM_COLORS.primary} 0%, ${ORTM_COLORS.accent} 100%)`,
           color: "#fff",
           confirmButtonColor: ORTM_COLORS.secondary,
           confirmButtonText: "Continuer",
@@ -165,7 +171,7 @@ const Auth = ({ setIsAuthenticated }) => {
           title: "Succès",
           text: "Connexion réussie !",
           icon: "success",
-          background: `linear-gradient(135deg, ${ORTM_COLORS.primary} 0%, ${ORTM_COLORS.primary}99 100%)`,
+          background: `linear-gradient(135deg, ${ORTM_COLORS.primary} 0%, ${ORTM_COLORS.accent} 100%)`,
           color: "#fff",
           confirmButtonColor: ORTM_COLORS.secondary,
           confirmButtonText: "Accéder au tableau de bord",
@@ -191,13 +197,14 @@ const Auth = ({ setIsAuthenticated }) => {
     <Box 
       sx={{ 
         display: 'flex', 
-        border: '1px solid gray',
         justifyContent: 'center', 
         alignItems: 'center', 
-        height: '840px',
-        background: ORTM_COLORS.background,
+        border: '0.2px solid gray',
+        margin: 0,
+        background: `linear-gradient(135deg, ${ORTM_COLORS.background} 0%, ${alpha(ORTM_COLORS.primary, 0.1)} 100%)`,
         position: 'relative',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        height: '935px',
       }}
     >
       {/* Formes décoratives avec les couleurs ORTM */}
@@ -209,7 +216,7 @@ const Auth = ({ setIsAuthenticated }) => {
           width: 400,
           height: 400,
           borderRadius: '50%',
-          background: `linear-gradient(135deg, ${ORTM_COLORS.primary}33 0%, ${ORTM_COLORS.secondary}33 100%)`,
+          background: `linear-gradient(135deg, ${alpha(ORTM_COLORS.primary, 0.1)} 0%, ${alpha(ORTM_COLORS.accent, 0.1)} 100%)`,
           filter: 'blur(40px)',
           animation: 'float 8s ease-in-out infinite'
         }}
@@ -222,7 +229,7 @@ const Auth = ({ setIsAuthenticated }) => {
           width: 400,
           height: 400,
           borderRadius: '50%',
-          background: `linear-gradient(135deg, ${ORTM_COLORS.secondary}33 0%, ${ORTM_COLORS.primary}33 100%)`,
+          background: `linear-gradient(135deg, ${alpha(ORTM_COLORS.secondary, 0.1)} 0%, ${alpha(ORTM_COLORS.primary, 0.1)} 100%)`,
           filter: 'blur(40px)',
           animation: 'float 10s ease-in-out infinite'
         }}
@@ -232,19 +239,20 @@ const Auth = ({ setIsAuthenticated }) => {
         <Box 
           sx={{ 
             display: 'flex',
-            width: 1000,
-            height: 800,
-            borderRadius: 3,
+            width: { xs: '100%', md: 1000 },
+            height: '800px',
             boxShadow: '0 25px 50px rgba(27, 94, 32, 0.15)',
-            overflow: 'hidden'
+            overflow: 'hidden',
+            flexDirection: { xs: 'column', md: 'row' }
           }}
         >
           {/* Section de description (à gauche) - COULEURS ORTM */}
           <Box
             sx={{
-              background: `linear-gradient(135deg, ${ORTM_COLORS.primary} 0%, ${ORTM_COLORS.primary}DD 100%)`,
+              background: `linear-gradient(135deg, ${ORTM_COLORS.primary} 0%, ${ORTM_COLORS.accent} 100%)`,
               display: 'flex',
-              width: '500px',
+              width: { xs: '100%', md: '500px' },
+              minHeight: { xs: '300px', md: 'auto' },
               flexDirection: 'column',
               justifyContent: 'center',
               position: 'relative',
@@ -268,13 +276,12 @@ const Auth = ({ setIsAuthenticated }) => {
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  width: 350,
-                  height: 100,
+                  width: { xs: 250, md: 300 },
+                  height: { xs: 80, md: 100 },
                   borderRadius: '12px',
                   background: 'rgba(255, 255, 255, 0.2)',
                   boxShadow: '0 8px 20px rgba(0, 0, 0, 0.2)',
                   mb: 3,
-                  mt: 8,
                   backdropFilter: 'blur(5px)',
                   p: 2
                 }}>
@@ -297,7 +304,8 @@ const Auth = ({ setIsAuthenticated }) => {
                     fontWeight: '700',
                     color: 'white',
                     textShadow: '0 2px 4px rgba(0,0,0,0.3)',
-                    mb: 1
+                    mb: 1,
+                    fontSize: { xs: '1.5rem', md: '2rem' }
                   }}
                 >
                   Office de la Radio et de la Télévision de Madagascar
@@ -308,7 +316,8 @@ const Auth = ({ setIsAuthenticated }) => {
                   sx={{ 
                     color: 'rgba(255, 255, 255, 0.9)',
                     mb: 4,
-                    fontWeight: 400
+                    fontWeight: 400,
+                    fontSize: { xs: '0.9rem', md: '1rem' }
                   }}
                 >
                   Plateforme de gestion des ressources humaines
@@ -317,17 +326,17 @@ const Auth = ({ setIsAuthenticated }) => {
 
               <Box sx={{ mt: 4, p: 3, background: 'rgba(255, 255, 255, 0.15)', borderRadius: 2, backdropFilter: 'blur(5px)' }}>
                 <Typography variant="body2" sx={{ color: 'white', fontStyle: 'italic', textAlign: 'center' }}>
-                  "Une solution moderne pour gérer efficacement vos ressources humaines."
+                  "Une solution moderne pour la gestion efficace des ressources humaines."
                 </Typography>
               </Box>
 
               {/* Points forts */}
-              <Box sx={{ mt: 4 }}>
+              <Box sx={{ mt: 4, display: { xs: 'none', md: 'block' } }}>
                 {[
                   "Gestion centralisée des employés ORTM",
-                  "Suivi des pointages en temps réel",
-                  "Gestion des congés",
-                  "Gestion des evenements",
+                  "Suivi des pointages en temps réel", 
+                  "Gestion des congés et absences",
+                  "Administration des départements",
                   "Tableaux de bord personnalisés",
                   "Sécurité et confidentialité des données"
                 ].map((feature, index) => (
@@ -337,9 +346,10 @@ const Auth = ({ setIsAuthenticated }) => {
                       height: 8, 
                       borderRadius: '50%', 
                       backgroundColor: ORTM_COLORS.secondary, 
-                      mr: 2 
+                      mr: 2,
+                      flexShrink: 0
                     }} />
-                    <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.9)' }}>
+                    <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '0.85rem' }}>
                       {feature}
                     </Typography>
                   </Box>
@@ -351,16 +361,17 @@ const Auth = ({ setIsAuthenticated }) => {
           {/* Formulaire de connexion/inscription (à droite) */}
           <Box 
             sx={{ 
-              width: 500
+              width: { xs: '100%', md: 500 },
+              minHeight: { xs: '500px', md: 'auto' }
             }}
           >
             <Paper 
               sx={{ 
                 height: '100%', 
-                p: 4, 
+                p: { xs: 3, md: 4 }, 
                 borderRadius: 0,
-                background: ORTM_COLORS.white,
-                border: `1px solid ${ORTM_COLORS.background}`,
+                background: ORTM_COLORS.surface,
+                border: `1px solid ${alpha(ORTM_COLORS.primary, 0.1)}`,
                 position: 'relative',
                 overflow: 'hidden',
                 display: 'flex',
@@ -373,16 +384,16 @@ const Auth = ({ setIsAuthenticated }) => {
                   left: 0,
                   right: 0,
                   height: 6,
-                  background: `linear-gradient(90deg, ${ORTM_COLORS.primary}, ${ORTM_COLORS.secondary})`
+                  background: `linear-gradient(90deg, ${ORTM_COLORS.primary}, ${ORTM_COLORS.accent})`
                 }
               }}
             >
               <Box sx={{ textAlign: 'center', mb: 3 }}>
-                <Typography variant="h4" component="h2" sx={{ fontWeight: 600, color: ORTM_COLORS.text, mb: 1 }}>
+                <Typography variant="h4" component="h2" sx={{ fontWeight: 600, color: ORTM_COLORS.text.primary, mb: 1 }}>
                   Bienvenue
                 </Typography>
-                <Typography variant="body1" sx={{ color: ORTM_COLORS.text }}>
-                  Connectez-vous pour accéder à votre espace
+                <Typography variant="body1" sx={{ color: ORTM_COLORS.text.secondary }}>
+                  {tab === 0 ? "Créez votre compte" : "Connectez-vous à votre espace"}
                 </Typography>
               </Box>
               
@@ -397,7 +408,7 @@ const Auth = ({ setIsAuthenticated }) => {
                     fontSize: '1rem',
                     textTransform: 'none',
                     minWidth: 120,
-                    color: ORTM_COLORS.text,
+                    color: ORTM_COLORS.text.secondary,
                     borderRadius: 2,
                     mx: 0.5,
                     '&.Mui-selected': {
@@ -407,7 +418,7 @@ const Auth = ({ setIsAuthenticated }) => {
                   '& .MuiTabs-indicator': {
                     height: 3,
                     borderRadius: 2,
-                    background: `linear-gradient(90deg, ${ORTM_COLORS.primary}, ${ORTM_COLORS.secondary})`
+                    background: `linear-gradient(90deg, ${ORTM_COLORS.primary}, ${ORTM_COLORS.accent})`
                   }
                 }}
               >
@@ -539,7 +550,7 @@ const Auth = ({ setIsAuthenticated }) => {
                               borderColor: ORTM_COLORS.primary,
                               boxShadow: `0 0 0 4px ${ORTM_COLORS.primary}11`
                             }
-                          }
+                          },
                         }}
                       />
                       <TextField 
@@ -583,6 +594,7 @@ const Auth = ({ setIsAuthenticated }) => {
                               boxShadow: `0 0 0 4px ${ORTM_COLORS.primary}11`
                             }
                           }
+                          
                         }}
                       />
                       <Button 
@@ -596,13 +608,13 @@ const Auth = ({ setIsAuthenticated }) => {
                           fontSize: '1rem',
                           fontWeight: 600,
                           textTransform: 'none',
-                          background: `linear-gradient(135deg, ${ORTM_COLORS.primary}, ${ORTM_COLORS.secondary})`,
-                          boxShadow: `0 6px 15px ${ORTM_COLORS.primary}66`,
+                          background: `linear-gradient(135deg, ${ORTM_COLORS.primary}, ${ORTM_COLORS.accent})`,
+                          boxShadow: `0 6px 15px ${alpha(ORTM_COLORS.primary, 0.4)}`,
                           transition: 'all 0.3s ease',
                           '&:hover': {
                             transform: 'translateY(-2px)',
-                            boxShadow: `0 10px 20px ${ORTM_COLORS.primary}99`,
-                            background: `linear-gradient(135deg, ${ORTM_COLORS.primary}DD, ${ORTM_COLORS.secondary}DD)`,
+                            boxShadow: `0 10px 20px ${alpha(ORTM_COLORS.primary, 0.6)}`,
+                            background: `linear-gradient(135deg, ${alpha(ORTM_COLORS.primary, 0.9)}, ${alpha(ORTM_COLORS.accent, 0.9)})`,
                           },
                           '&:active': {
                             transform: 'translateY(0)',
@@ -614,7 +626,7 @@ const Auth = ({ setIsAuthenticated }) => {
                       </Button>
                     </form>
                     <Divider sx={{ my: 3 }}>
-                      <Typography variant="body2" sx={{ px: 2, background: ORTM_COLORS.white, color: ORTM_COLORS.text }}>
+                      <Typography variant="body2" sx={{ px: 2, background: ORTM_COLORS.surface, color: ORTM_COLORS.text.secondary }}>
                         Vous avez déjà un compte ?
                       </Typography>
                     </Divider>
@@ -629,9 +641,11 @@ const Auth = ({ setIsAuthenticated }) => {
                         color: ORTM_COLORS.primary,
                         borderColor: ORTM_COLORS.primary,
                         '&:hover': {
-                          borderColor: ORTM_COLORS.secondary,
-                          backgroundColor: `${ORTM_COLORS.primary}11`
-                        }
+                          borderColor: ORTM_COLORS.accent,
+                          backgroundColor: `${ORTM_COLORS.primary}11`,
+                          transform: 'translateY(-1px)'
+                        },
+                        transition: 'all 0.3s ease'
                       }}
                       onClick={() => setTab(1)}
                     >
@@ -731,13 +745,13 @@ const Auth = ({ setIsAuthenticated }) => {
                           fontSize: '1rem',
                           fontWeight: 600,
                           textTransform: 'none',
-                          background: `linear-gradient(135deg, ${ORTM_COLORS.primary}, ${ORTM_COLORS.secondary})`,
-                          boxShadow: `0 6px 15px ${ORTM_COLORS.primary}66`,
+                          background: `linear-gradient(135deg, ${ORTM_COLORS.primary}, ${ORTM_COLORS.accent})`,
+                          boxShadow: `0 6px 15px ${alpha(ORTM_COLORS.primary, 0.4)}`,
                           transition: 'all 0.3s ease',
                           '&:hover': {
                             transform: 'translateY(-2px)',
-                            boxShadow: `0 10px 20px ${ORTM_COLORS.primary}99`,
-                            background: `linear-gradient(135deg, ${ORTM_COLORS.primary}DD, ${ORTM_COLORS.secondary}DD)`,
+                            boxShadow: `0 10px 20px ${alpha(ORTM_COLORS.primary, 0.6)}`,
+                            background: `linear-gradient(135deg, ${alpha(ORTM_COLORS.primary, 0.9)}, ${alpha(ORTM_COLORS.accent, 0.9)})`,
                           },
                           '&:active': {
                             transform: 'translateY(0)',
@@ -749,7 +763,7 @@ const Auth = ({ setIsAuthenticated }) => {
                       </Button>
                     </form>
                     <Divider sx={{ my: 3 }}>
-                      <Typography variant="body2" sx={{ px: 2, background: ORTM_COLORS.white, color: ORTM_COLORS.text }}>
+                      <Typography variant="body2" sx={{ px: 2, background: ORTM_COLORS.surface, color: ORTM_COLORS.text.secondary }}>
                         Pas encore de compte ?
                       </Typography>
                     </Divider>
@@ -764,9 +778,11 @@ const Auth = ({ setIsAuthenticated }) => {
                         color: ORTM_COLORS.primary,
                         borderColor: ORTM_COLORS.primary,
                         '&:hover': {
-                          borderColor: ORTM_COLORS.secondary,
-                          backgroundColor: `${ORTM_COLORS.primary}11`
-                        }
+                          borderColor: ORTM_COLORS.accent,
+                          backgroundColor: `${ORTM_COLORS.primary}11`,
+                          transform: 'translateY(-1px)'
+                        },
+                        transition: 'all 0.3s ease'
                       }}
                       onClick={() => setTab(0)}
                     >

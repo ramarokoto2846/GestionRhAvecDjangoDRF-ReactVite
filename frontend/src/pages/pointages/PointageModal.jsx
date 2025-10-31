@@ -83,7 +83,7 @@ const PointageModal = ({
           <Grid container spacing={3}>
 
             {/* ID Pointage */}
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} sm={6}  width={380}>
               <TextField
                 fullWidth
                 label="ID Pointage"
@@ -114,7 +114,7 @@ const PointageModal = ({
             </Grid>
 
             {/* Sélection Employé */}
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} sm={6}  width={380}>
               <TextField
                 select
                 fullWidth
@@ -180,7 +180,7 @@ const PointageModal = ({
             </Grid>
 
             {/* Date */}
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} sm={6}  width={380}>
               <TextField
                 fullWidth
                 label="Date de pointage"
@@ -212,7 +212,7 @@ const PointageModal = ({
             </Grid>
 
             {/* Heure d'Entrée */}
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} sm={6}  width={175}>
               <TextField
                 fullWidth
                 label="Heure d'Entrée"
@@ -244,7 +244,7 @@ const PointageModal = ({
             </Grid>
 
             {/* Heure de Sortie */}
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} sm={6}  width={179}>
               <TextField
                 fullWidth
                 label="Heure de Sortie"
@@ -275,7 +275,7 @@ const PointageModal = ({
             </Grid>
 
             {/* Remarque */}
-            <Grid item xs={12}>
+            <Grid item xs={12}  width={780}>
               <TextField
                 fullWidth
                 label="Remarques"

@@ -210,7 +210,7 @@ const EvenementModal = ({ open, onClose, evenement, onSave, showSnackbar }) => {
         <DialogContent sx={{ pt: 4, pb: 2 }}>
           <Grid container spacing={3}>
             {/* ID Événement */}
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} sm={6}  width={380}>
               <TextField
                 fullWidth
                 label="ID Événement"
@@ -242,7 +242,7 @@ const EvenementModal = ({ open, onClose, evenement, onSave, showSnackbar }) => {
             </Grid>
 
             {/* Titre */}
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} sm={6} width={380}>
               <TextField
                 fullWidth
                 label="Titre de l'événement"
@@ -273,39 +273,10 @@ const EvenementModal = ({ open, onClose, evenement, onSave, showSnackbar }) => {
               />
             </Grid>
 
-            {/* Description */}
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Description"
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                multiline
-                rows={3}
-                InputProps={{
-                  startAdornment: <DescriptionIcon sx={{ mr: 1, mt: 1.5, alignSelf: 'flex-start', color: ORTM_COLORS.primary }} />
-                }}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 2,
-                    backgroundColor: ORTM_COLORS.white,
-                    '&:hover fieldset': {
-                      borderColor: ORTM_COLORS.primary,
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: ORTM_COLORS.primary,
-                    },
-                  },
-                  '& .MuiInputLabel-root.Mui-focused': {
-                    color: ORTM_COLORS.primary,
-                  }
-                }}
-              />
-            </Grid>
+            
 
             {/* Dates et heures */}
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} sm={6} width={380}>
               <TextField
                 fullWidth
                 label="Date et heure de début"
@@ -338,7 +309,7 @@ const EvenementModal = ({ open, onClose, evenement, onSave, showSnackbar }) => {
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} sm={6} width={380}>
               <TextField
                 fullWidth
                 label="Date et heure de fin"
@@ -372,7 +343,7 @@ const EvenementModal = ({ open, onClose, evenement, onSave, showSnackbar }) => {
             </Grid>
 
             {/* Lieu */}
-            <Grid item xs={12}>
+            <Grid item xs={12}  width={380}>
               <TextField
                 fullWidth
                 label="Lieu de l'événement"
@@ -381,6 +352,37 @@ const EvenementModal = ({ open, onClose, evenement, onSave, showSnackbar }) => {
                 onChange={handleInputChange}
                 InputProps={{
                   startAdornment: <LocationIcon sx={{ mr: 1, color: ORTM_COLORS.primary }} />
+                }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                    backgroundColor: ORTM_COLORS.white,
+                    '&:hover fieldset': {
+                      borderColor: ORTM_COLORS.primary,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: ORTM_COLORS.primary,
+                    },
+                  },
+                  '& .MuiInputLabel-root.Mui-focused': {
+                    color: ORTM_COLORS.primary,
+                  }
+                }}
+              />
+            </Grid>
+
+            {/* Description */}
+            <Grid item xs={12}  width={380}>
+              <TextField
+                fullWidth
+                label="Description"
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                multiline
+                rows={3}
+                InputProps={{
+                  startAdornment: <DescriptionIcon sx={{ mr: 1, mt: 1.5, alignSelf: 'flex-start', color: ORTM_COLORS.primary }} />
                 }}
                 sx={{
                   '& .MuiOutlinedInput-root': {

@@ -510,8 +510,8 @@ const Pointages = () => {
 
         {/* Barre de recherche et filtres */}
         <Paper sx={{ p: 2, mb: 3, borderRadius: 3 }}>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} sm={6} width={'500px'}>
+          <Grid container spacing={2} alignItems="center" ml={10}>
+            <Grid item xs={12} sm={6} width={800}>
               <TextField
                 fullWidth
                 placeholder="Rechercher un pointage..."
@@ -536,7 +536,7 @@ const Pointages = () => {
                 }}
               />
             </Grid>
-            <Grid item xs={12} sm={6} width={'500px'}>
+            <Grid item xs={12} sm={6} width={800}>
               <FormControl fullWidth>
                 <InputLabel id="exit-filter-label">
                   Filtrer par statut
