@@ -25,10 +25,10 @@ try:
 except ImportError:
     REPORTLAB_AVAILABLE = False
 
-from .models import Departement, Employe, Pointage, Conge, Evenement
+from .models import Departement, Employe, Pointage, Evenement
 from .serializers import (
     CustomUserSerializer, DepartementSerializer, EmployeSerializer,
-    PointageSerializer, CongeSerializer, EvenementSerializer,
+    PointageSerializer, EvenementSerializer,
     EmployeeStatsCalculatedSerializer, GlobalStatsCalculatedSerializer
 )
 from .permissions import IsOwnerOrAdminForWrite
@@ -51,11 +51,6 @@ except ImportError as e:
                 'pointages_reguliers': 4,
                 'pointages_irreguliers': 1,
                 'taux_regularite': 80.0,
-                'conges_valides': 2,
-                'conges_refuses': 0,
-                'conges_en_attente': 1,
-                'total_jours_conges': 10,
-                'taux_approbation_conges': 100.0,
                 'jours_ouvrables': 5
             }
         
@@ -72,11 +67,6 @@ except ImportError as e:
                 'pointages_reguliers': 18,
                 'pointages_irreguliers': 2,
                 'taux_regularite': 90.0,
-                'conges_valides': 3,
-                'conges_refuses': 1,
-                'conges_en_attente': 0,
-                'total_jours_conges': 15,
-                'taux_approbation_conges': 75.0,
                 'jours_ouvrables': 22
             }
         
@@ -96,11 +86,6 @@ except ImportError as e:
                 'moyenne_heures_quotidiennes': timezone.timedelta(hours=8),
                 'taux_presence': 92.0,
                 'taux_regularite_global': 90.0,
-                'total_conges': 45,
-                'conges_valides': 35,
-                'conges_refuses': 5,
-                'conges_en_attente': 5,
-                'taux_validation_conges': 87.5,
                 'total_evenements': 12
             }
         
@@ -328,121 +313,6 @@ class PointageViewSet(viewsets.ModelViewSet):
             'total_heures': total_heures,
             'nombre_pointages': pointages.count()
         })
-
-
-class CongeViewSet(viewsets.ModelViewSet):
-    queryset = Conge.objects.select_related('employe').all()
-    serializer_class = CongeSerializer
-    permission_classes = [IsOwnerOrAdminForWrite]
-    filter_backends = [filters.SearchFilter, DjangoFilterBackend, filters.OrderingFilter]
-    search_fields = ['employe__nom', 'employe__prenom', 'motif']
-    filterset_fields = ['date_debut', 'date_fin', 'statut', 'employe']
-    ordering_fields = ['date_debut', 'date_fin', 'statut']
-    ordering = ['-date_demande']
-
-    def create(self, request, *args, **kwargs):
-        employe_id = request.data.get('employe')
-        if employe_id:
-            try:
-                employe = Employe.objects.get(pk=employe_id)
-                
-                # Vérifier si l'employé est inactif
-                if employe.statut != 'actif':
-                    return Response(
-                        {"error": "Les employés inactifs ne peuvent pas faire de demande de congé."},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-                
-                # ✅ VÉRIFICATION SI L'EMPLOYÉ EST STAGIAIRE
-                if employe.titre and employe.titre.lower() == 'stagiaire':
-                    return Response(
-                        {"error": "Les stagiaires ne peuvent pas faire de demande de congé."},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-                
-                # Vérification supplémentaire pour d'autres titres indiquant un statut de stagiaire
-                titres_stagiaires = ['stagiaire', 'intern', 'trainee', 'apprenti']
-                if employe.titre and any(titre in employe.titre.lower() for titre in titres_stagiaires):
-                    return Response(
-                        {"error": "Les stagiaires ne peuvent pas faire de demande de congé."},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-                    
-            except Employe.DoesNotExist:
-                return Response(
-                    {"error": "Employé non trouvé."},
-                    status=status.HTTP_404_NOT_FOUND
-                )
-        
-        return super().create(request, *args, **kwargs)
-
-    def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
-
-    @action(detail=True, methods=['post'])
-    def valider(self, request, pk=None):
-        logger.info(f"Requête reçue pour valider le congé {pk} par l'utilisateur {request.user.email}")
-        try:
-            conge = self.get_object()
-            
-            # Vérification supplémentaire lors de la validation
-            if conge.employe.titre and conge.employe.titre.lower() == 'stagiaire':
-                return Response(
-                    {"error": "Impossible de valider un congé pour un stagiaire."},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-                
-            conge.statut = 'valide'
-            conge.date_decision = timezone.now()
-            conge.save()
-            logger.info(f"Congé {pk} validé avec succès")
-            return Response({
-                'status': 'congé validé',
-                'message': f"Un email de notification a été envoyé à {conge.employe.email}."
-            })
-        except Exception as e:
-            logger.error(f"Erreur lors de la validation du congé {pk}: {str(e)}")
-            return Response(
-                {'error': f"Erreur lors de la validation du congé: {str(e)}"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-    @action(detail=True, methods=['post'])
-    def refuser(self, request, pk=None):
-        logger.info(f"Requête reçue pour refuser le congé {pk} par l'utilisateur {request.user.email}")
-        try:
-            conge = self.get_object()
-            
-            # Vérification supplémentaire lors du refus
-            if conge.employe.titre and conge.employe.titre.lower() == 'stagiaire':
-                return Response(
-                    {"error": "Impossible de traiter un congé pour un stagiaire."},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-                
-            motif_refus = request.data.get('motif_refus')
-            if not motif_refus:
-                logger.error("Motif de refus non fourni")
-                return Response(
-                    {'error': 'La raison du refus est requise.'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            conge.statut = 'refuse'
-            conge.date_decision = timezone.now()
-            conge.motif_refus = motif_refus
-            conge.save()
-            logger.info(f"Congé {pk} refusé avec succès")
-            return Response({
-                'status': 'congé refusé',
-                'message': f"Un email de notification a été envoyé à {conge.employe.email}.",
-                'motif_refus': conge.motif_refus or 'Non spécifiée'
-            })
-        except Exception as e:
-            logger.error(f"Erreur lors du refus du congé {pk}: {str(e)}")
-            return Response(
-                {'error': f"Erreur lors du refus du congé: {str(e)}"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
 
 
 class EvenementViewSet(viewsets.ModelViewSet):
@@ -725,33 +595,6 @@ class ExportStatisticsPDFAPIView(APIView):
                 ('PADDING', (0, 0), (-1, -1), 6),
             ]))
             elements.append(pointage_table)
-            elements.append(Spacer(1, 20))
-            
-            elements.append(Paragraph("🏖️ CONGÉS", section_style))
-            elements.append(Spacer(1, 10))
-            
-            conge_data = [
-                ['Congés validés', f"{stats.get('conges_valides', 0)}"],
-                ['Congés refusés', f"{stats.get('conges_refuses', 0)}"],
-                ['Congés en attente', f"{stats.get('conges_en_attente', 0)}"],
-                ['Total jours de congé', f"{stats.get('total_jours_conges', 0)} jours"],
-                ['Taux d\'approbation', f"{stats.get('taux_approbation_conges', 0):.1f}%"],
-            ]
-            
-            conge_table = Table(conge_data, colWidths=[100*mm, 60*mm])
-            conge_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#18A999')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 12),
-                ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F0FFF4')),
-                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-                ('FONTSIZE', (0, 1), (-1, -1), 10),
-                ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#CCCCCC')),
-                ('PADDING', (0, 0), (-1, -1), 6),
-            ]))
-            elements.append(conge_table)
             elements.append(Spacer(1, 25))
             
             footer_style = styles['Italic']
@@ -811,8 +654,6 @@ class ExportStatisticsPDFAPIView(APIView):
                 ['Moyenne quotidienne', self._format_duration(stats.get('moyenne_heures_quotidiennes'))],
                 ['Taux de présence', f"{stats.get('taux_presence', 0):.1f}%"],
                 ['Taux de régularité global', f"{stats.get('taux_regularite_global', 0):.1f}%"],
-                ['Congés validés', f"{stats.get('conges_valides', 0)}"],
-                ['Taux validation congés', f"{stats.get('taux_validation_conges', 0):.1f}%"],
                 ['Événements organisés', f"{stats.get('total_evenements', 0)}"],
             ]
             

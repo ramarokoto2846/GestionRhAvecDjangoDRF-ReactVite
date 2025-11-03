@@ -28,7 +28,6 @@ import {
   Menu as MenuIcon,
   Event as EventIcon,
   Warning as WarningIcon,
-  BeachAccess as BeachAccessIcon,
   AccessTime as AccessTimeIcon,
   Person as PersonIcon,
   Email as EmailIcon,
@@ -40,7 +39,7 @@ import {
 } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
 import Swal from "sweetalert2";
-import { getConges, getEmployes, getEvenements, getPointages } from "../services/api";
+import { getEmployes, getEvenements, getPointages } from "../services/api";
 
 // Palette de couleurs ORTM améliorée
 const ORTM_COLORS = {
@@ -204,7 +203,6 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
   const handleNotificationClick = (type) => {
     handleNotificationsClose();
     if (type === "employes_inactifs") navigate("/employes");
-    else if (type === "conges") navigate("/conges");
     else if (type === "evenements") navigate("/evenements");
     else if (type === "pointages") navigate("/pointages");
   };
@@ -219,9 +217,8 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
       }
 
       try {
-        const [employesData, congesData, pointagesData, evenementsData] = await Promise.all([
+        const [employesData, pointagesData, evenementsData] = await Promise.all([
           getEmployes().catch(() => []),
-          getConges().catch(() => []),
           getPointages().catch(() => []),
           getEvenements().catch(() => []),
         ]);
@@ -232,14 +229,6 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
           type: "employes_inactifs",
           message: `${employesInactifs.length} employé${employesInactifs.length > 1 ? "s" : ""} inactif${employesInactifs.length > 1 ? "s" : ""}`,
           count: employesInactifs.length
-        }] : [];
-
-        // Congés en attente
-        const congesEnAttente = congesData.filter(c => c.statut === 'en_attente');
-        const congesNotification = congesEnAttente.length > 0 ? [{
-          type: "conges",
-          message: `${congesEnAttente.length} congé${congesEnAttente.length > 1 ? "s" : ""} en attente`,
-          count: congesEnAttente.length
         }] : [];
 
         // Pointages en cours
@@ -261,7 +250,6 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
 
         const allNotifications = [
           ...employesNotification,
-          ...congesNotification,
           ...pointagesNotification,
           ...evenementsNotification,
         ];
@@ -280,7 +268,6 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
 
   const getNotificationIcon = (type) => {
     switch (type) {
-      case "conges": return <BeachAccessIcon sx={{ color: ORTM_COLORS.accent }} />;
       case "employes_inactifs": return <WarningIcon sx={{ color: ORTM_COLORS.warning }} />;
       case "evenements": return <EventIcon sx={{ color: ORTM_COLORS.secondary }} />;
       case "pointages": return <AccessTimeIcon sx={{ color: ORTM_COLORS.primary }} />;
@@ -290,11 +277,9 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
 
   // Navigation items
   const navItems = [
-    { label: "Accueil", path: "/home", icon: <HomeIcon sx={{ mr: 1 }} /> },
     { label: "Employés", path: "/employes", icon: <PeopleIcon sx={{ mr: 1 }} /> },
     { label: "Départements", path: "/departements", icon: <ApartmentIcon sx={{ mr: 1 }} /> },
     { label: "Pointages", path: "/pointages", icon: <AccessTimeIcon sx={{ mr: 1 }} /> },
-    { label: "Congés", path: "/conges", icon: <BeachAccessIcon sx={{ mr: 1 }} /> },
     { label: "Événements", path: "/evenements", icon: <EventIcon sx={{ mr: 1 }} /> },
   ];
 
@@ -302,13 +287,13 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
   const drawerContent = (
     <Box sx={{ width: 280, bgcolor: ORTM_COLORS.background }} onClick={handleMobileDrawerToggle}>
       <Box sx={{ p: 2, borderBottom: `1px solid ${alpha(ORTM_COLORS.primary, 0.1)}`, bgcolor: ORTM_COLORS.surface }}>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center' }} onClick={() => navigate('/statistiques/overview')}>
           <img 
             src={ortmLogo} 
             alt="ORTM Logo" 
             style={{ 
-              width: 100,  // Logo agrandi
-              height: 100, // Logo agrandi
+              width: 100,
+              height: 100,
               marginRight: 12,
               objectFit: 'contain'
             }} 
@@ -410,13 +395,13 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
         </IconButton>
 
         {/* Logo ORTM à gauche - Logo agrandi */}
-        <Box sx={{ display: "flex", alignItems: "center", cursor: 'pointer' }} onClick={() => navigate('/home')}>
+        <Box sx={{ display: "flex", alignItems: "center", cursor: 'pointer' }} onClick={() => navigate('/statistiques/overview')}>
           <img 
             src={ortmLogo} 
             alt="ORTM Logo" 
             style={{ 
-              width: 60,  // Logo agrandi
-              height: 60, // Logo agrandi
+              width: 60,
+              height: 60,
               marginRight: 16,
               objectFit: 'contain'
             }} 
@@ -451,8 +436,8 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
           {navItems.map((item) => (
             <Button
               key={item.path}
-              onClick={() => navigate(item.path)}
               startIcon={item.icon}
+              onClick={() => handleNavigation(item.path)}
               sx={{
                 color: location.pathname === item.path ? ORTM_COLORS.accent : ORTM_COLORS.text.secondary,
                 fontWeight: location.pathname === item.path ? 'bold' : 'normal',

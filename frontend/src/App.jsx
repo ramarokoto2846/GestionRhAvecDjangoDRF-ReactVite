@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { Routes, Route, useNavigate, Navigate } from "react-router-dom";
-import Auth from "./pages/Auth";
-import Home from "./pages/Home";
+import Auth from "./components/Auth";
 import PrivateRoute from "./components/PrivateRoute";
 import Employes from "./pages/employes/Employes";
 import Departements from "./pages/departements/Departements";
 import Pointages from "./pages/pointages/Pointages";
 import Evenements from "./pages/evenements/Evenements";
-import Conges from "./pages/conges/Conges";
 import { getCurrentUser, isSuperuser } from "./services/api";
 
 // Import des pages de statistiques
@@ -15,11 +13,9 @@ import StatisticsOverview from "./pages/statistiques/StatisticsOverview";
 import EmployeeStatistics from "./pages/statistiques/EmployeeStatistics";
 
 const privateRoutes = [
-  { path: "/home", element: <Home /> },
   { path: "/employes", element: <Employes /> },
   { path: "/departements", element: <Departements /> },
   { path: "/pointages", element: <Pointages /> },
-  { path: "/conges", element: <Conges /> },
   { path: "/evenements", element: <Evenements /> },
   // Routes des statistiques
   { path: "/statistiques/overview", element: <StatisticsOverview /> },

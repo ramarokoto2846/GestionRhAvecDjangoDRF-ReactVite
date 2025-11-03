@@ -33,24 +33,21 @@ import {
   Close as CloseIcon,
   Person as PersonIcon,
   Schedule as ScheduleIcon,
-  BeachAccess as BeachAccessIcon,
-  EventBusy as EventBusyIcon,
   TrendingUp as TrendingUpIcon
 } from '@mui/icons-material';
-import { 
-  getEmployeeStatistics, 
-  getEmployes, 
-  exportStatisticsPDF, 
-  StatisticsUtils, 
-  getCurrentUser, 
-  isSuperuser 
+import {
+  getEmployeeStatistics,
+  getEmployes,
+  exportStatisticsPDF,
+  StatisticsUtils,
+  getCurrentUser,
+  isSuperuser
 } from '../../services/api';
 import Header from '../../components/Header';
 
 const EmployeeStatistics = () => {
   const theme = useTheme();
   const navigate = useNavigate();
-
   const [employees, setEmployees] = useState([]);
   const [selectedEmployee, setSelectedEmployee] = useState('');
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
@@ -88,14 +85,11 @@ const EmployeeStatistics = () => {
         navigate("/");
         return;
       }
-
       try {
         const user = await getCurrentUser();
         setCurrentUser(user);
-
         const superuser = await isSuperuser();
         setIsSuperuserState(superuser);
-
         await loadEmployees();
       } catch (err) {
         console.error("Erreur lors de la récupération de l'utilisateur:", err);
@@ -105,7 +99,6 @@ const EmployeeStatistics = () => {
         navigate("/");
       }
     };
-
     fetchUserAndData();
   }, [navigate]);
 
@@ -132,15 +125,15 @@ const EmployeeStatistics = () => {
       setStats(null);
       return;
     }
-    
+
     try {
       setLoading(true);
       setError('');
       setStats(null);
-      
+
       const formattedDate = `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}`;
       const params = { periode: 'mois', date: formattedDate };
-      
+
       const data = await getEmployeeStatistics(selectedEmployee, params);
       setStats(data);
     } catch (err) {
@@ -157,7 +150,7 @@ const EmployeeStatistics = () => {
       setError('Veuillez sélectionner un employé');
       return;
     }
-    
+
     try {
       setLoadingPDF(true);
       const formattedDate = `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}`;
@@ -166,7 +159,7 @@ const EmployeeStatistics = () => {
         setError('Données de l\'employé non trouvées');
         return;
       }
-      
+
       await exportStatisticsPDF('employe', {
         matricule: selectedEmployee,
         periode: 'mois',
@@ -194,10 +187,10 @@ const EmployeeStatistics = () => {
 
   const selectedEmployeeData = employees.find(emp => emp.matricule === selectedEmployee);
 
-  // Composant MetricCard uniforme pour toutes les sections
+  // Composant MetricCard uniforme
   const MetricCard = ({ title, icon, children, color = 'primary' }) => (
-    <Card 
-      sx={{ 
+    <Card
+      sx={{
         height: '100%',
         background: `linear-gradient(135deg, ${theme.palette.background.paper}, ${alpha(theme.palette[color].light, 0.05)})`,
         border: `1px solid ${theme.palette.divider}`,
@@ -248,10 +241,10 @@ const EmployeeStatistics = () => {
         </Box>
       </TableCell>
       <TableCell sx={{ border: 'none', py: 1.5 }} align="right">
-        <Chip 
-          label={value} 
+        <Chip
+          label={value}
           size="small"
-          sx={{ 
+          sx={{
             backgroundColor: `${theme.palette[color].main}15`,
             color: theme.palette[color].main,
             fontWeight: 600,
@@ -265,21 +258,21 @@ const EmployeeStatistics = () => {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: theme.palette.background.default }}>
       <Header user={currentUser} onMenuToggle={() => {}} />
-      
-      <Box 
-        component="main" 
-        sx={{ 
-          flexGrow: 1, 
+
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
           p: 3,
-          mt: 8 // Margin top to account for header height
+          mt: 8
         }}
       >
         <Container maxWidth="xl">
           {/* Header Section */}
           <Box sx={{ mb: 4 }}>
-            <Typography 
-              variant="h3" 
-              sx={{ 
+            <Typography
+              variant="h3"
+              sx={{
                 fontWeight: 700,
                 background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
                 backgroundClip: 'text',
@@ -296,8 +289,8 @@ const EmployeeStatistics = () => {
           </Box>
 
           {/* Filters Section */}
-          <Card 
-            sx={{ 
+          <Card
+            sx={{
               mb: 3,
               background: `linear-gradient(135deg, ${theme.palette.background.paper}, ${alpha(theme.palette.primary.light, 0.03)})`,
               border: `1px solid ${theme.palette.divider}`,
@@ -306,7 +299,7 @@ const EmployeeStatistics = () => {
             }}
           >
             <CardContent sx={{ p: 3 }}>
-              <Grid container spacing={3} alignItems="center">                
+              <Grid container spacing={3} alignItems="center">
                 <Grid item xs={12} sm={6} md={2} width={380}>
                   <FormControl fullWidth>
                     <InputLabel>Employé</InputLabel>
@@ -324,7 +317,7 @@ const EmployeeStatistics = () => {
                     </Select>
                   </FormControl>
                 </Grid>
-                
+
                 <Grid item xs={12} sm={6} md={2} width={380}>
                   <FormControl fullWidth>
                     <InputLabel>Mois</InputLabel>
@@ -368,7 +361,7 @@ const EmployeeStatistics = () => {
                     startIcon={loadingPDF ? <CircularProgress size={20} /> : <DownloadIcon />}
                     onClick={handleExportPDF}
                     disabled={!selectedEmployee || !stats || loadingPDF}
-                    sx={{ 
+                    sx={{
                       borderRadius: 2,
                       py: 1.5,
                       background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
@@ -386,16 +379,16 @@ const EmployeeStatistics = () => {
 
           {/* Status Alert */}
           {selectedEmployee && stats && (
-            <Alert 
-              severity="info" 
-              sx={{ 
+            <Alert
+              severity="info"
+              sx={{
                 mb: 3,
                 borderRadius: 2,
                 background: `${theme.palette.info.light}10`,
                 border: `1px solid ${theme.palette.info.light}30`
               }}
             >
-              📊 Période analysée : <strong>{months.find(m => m.value === selectedMonth)?.label} {selectedYear}</strong>
+              Période analysée : <strong>{months.find(m => m.value === selectedMonth)?.label} {selectedYear}</strong>
               {selectedEmployeeData && (
                 <> • Employé : <strong>{selectedEmployeeData.nom} {selectedEmployeeData.prenom}</strong></>
               )}
@@ -403,8 +396,8 @@ const EmployeeStatistics = () => {
           )}
 
           {error && (
-            <Alert 
-              severity="error" 
+            <Alert
+              severity="error"
               onClose={() => setError('')}
               sx={{ mb: 3, borderRadius: 2 }}
             >
@@ -431,28 +424,28 @@ const EmployeeStatistics = () => {
                   <TableContainer>
                     <Table size="small">
                       <TableBody>
-                        <MetricRow 
-                          label="Nom complet" 
+                        <MetricRow
+                          label="Nom complet"
                           value={`${selectedEmployeeData.nom} ${selectedEmployeeData.prenom}`}
                           color="primary"
                         />
-                        <MetricRow 
-                          label="Matricule" 
+                        <MetricRow
+                          label="Matricule"
                           value={selectedEmployeeData.matricule}
                           color="primary"
                         />
-                        <MetricRow 
-                          label="Département" 
+                        <MetricRow
+                          label="Département"
                           value={selectedEmployeeData.departement?.nom || 'Non assigné'}
                           color="primary"
                         />
-                        <MetricRow 
-                          label="Poste" 
+                        <MetricRow
+                          label="Poste"
                           value={selectedEmployeeData.poste}
                           color="primary"
                         />
-                        <MetricRow 
-                          label="Email" 
+                        <MetricRow
+                          label="Email"
                           value={selectedEmployeeData.email || 'Non renseigné'}
                           color="primary"
                         />
@@ -468,35 +461,35 @@ const EmployeeStatistics = () => {
                   <TableContainer>
                     <Table size="small">
                       <TableBody>
-                        <MetricRow 
-                          label="Heures totales" 
+                        <MetricRow
+                          label="Heures totales"
                           value={StatisticsUtils.formatDuration(stats.heures_travail_total)}
                           color="primary"
-                          icon="⏱️"
+                          icon="Heure"
                         />
-                        <MetricRow 
-                          label="Jours travaillés" 
+                        <MetricRow
+                          label="Jours travaillés"
                           value={stats.jours_travailles}
                           color="success"
-                          icon="📅"
+                          icon="Calendrier"
                         />
-                        <MetricRow 
-                          label="Moyenne quotidienne" 
+                        <MetricRow
+                          label="Moyenne quotidienne"
                           value={StatisticsUtils.formatDuration(stats.moyenne_heures_quotidiennes)}
                           color="info"
-                          icon="📊"
+                          icon="Graphique"
                         />
-                        <MetricRow 
-                          label="Pointages réguliers" 
+                        <MetricRow
+                          label="Pointages réguliers"
                           value={stats.pointages_reguliers}
                           color="success"
-                          icon="✅"
+                          icon="Valide"
                         />
-                        <MetricRow 
-                          label="Pointages irréguliers" 
+                        <MetricRow
+                          label="Pointages irréguliers"
                           value={stats.pointages_irreguliers}
                           color="warning"
-                          icon="⚠️"
+                          icon="Alerte"
                         />
                       </TableBody>
                     </Table>
@@ -504,109 +497,12 @@ const EmployeeStatistics = () => {
                 </MetricCard>
               </Grid>
 
-              {/* Congés - Trois cartes distinctes */}
-              <Grid item xs={12} lg={4}>
-                <MetricCard title="Congés Validés" icon={<BeachAccessIcon />} color="success">
-                  <Box sx={{ textAlign: 'center', py: 4 }}>
-                    <Typography variant="h1" sx={{ 
-                      fontWeight: 700,
-                      color: theme.palette.success.main,
-                      mb: 2,
-                      fontSize: '4rem'
-                    }}>
-                      {stats.conges_valides}
-                    </Typography>
-                    <Typography variant="h6" sx={{ 
-                      color: 'text.secondary',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 1
-                    }}>
-                      <span>✅</span>
-                      Demandes approuvées
-                    </Typography>
-                    <Typography variant="body2" sx={{ 
-                      color: 'text.secondary',
-                      mt: 1,
-                      opacity: 0.7
-                    }}>
-                      Congés validés pour cette période
-                    </Typography>
-                  </Box>
-                </MetricCard>
-              </Grid>
-
-              <Grid item xs={12} lg={4}>
-                <MetricCard title="Congés Refusés" icon={<EventBusyIcon />} color="error">
-                  <Box sx={{ textAlign: 'center', py: 4 }}>
-                    <Typography variant="h1" sx={{ 
-                      fontWeight: 700,
-                      color: theme.palette.error.main,
-                      mb: 2,
-                      fontSize: '4rem'
-                    }}>
-                      {stats.conges_refuses}
-                    </Typography>
-                    <Typography variant="h6" sx={{ 
-                      color: 'text.secondary',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 1
-                    }}>
-                      <span>❌</span>
-                      Demandes refusées
-                    </Typography>
-                    <Typography variant="body2" sx={{ 
-                      color: 'text.secondary',
-                      mt: 1,
-                      opacity: 0.7
-                    }}>
-                      Congés non approuvés pour cette période
-                    </Typography>
-                  </Box>
-                </MetricCard>
-              </Grid>
-
-              <Grid item xs={12} lg={4}>
-                <MetricCard title="Congés en Attente" icon={<ScheduleIcon />} color="warning">
-                  <Box sx={{ textAlign: 'center', py: 4 }}>
-                    <Typography variant="h1" sx={{ 
-                      fontWeight: 700,
-                      color: theme.palette.warning.main,
-                      mb: 2,
-                      fontSize: '4rem'
-                    }}>
-                      {stats.conges_en_attente}
-                    </Typography>
-                    <Typography variant="h6" sx={{ 
-                      color: 'text.secondary',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 1
-                    }}>
-                      <span>⏳</span>
-                      En attente de validation
-                    </Typography>
-                    <Typography variant="body2" sx={{ 
-                      color: 'text.secondary',
-                      mt: 1,
-                      opacity: 0.7
-                    }}>
-                      Demandes en cours de traitement
-                    </Typography>
-                  </Box>
-                </MetricCard>
-              </Grid>
-
-              {/* Section supplémentaire pour d'autres métriques si disponibles */}
+              {/* Régularité (si disponible) */}
               {stats.taux_regularite && (
                 <Grid item xs={12} lg={4}>
                   <MetricCard title="Régularité" icon={<ScheduleIcon />} color="info">
                     <Box sx={{ textAlign: 'center', py: 4 }}>
-                      <Typography variant="h1" sx={{ 
+                      <Typography variant="h1" sx={{
                         fontWeight: 700,
                         color: theme.palette.info.main,
                         mb: 2,
@@ -614,17 +510,17 @@ const EmployeeStatistics = () => {
                       }}>
                         {StatisticsUtils.formatPercentage(stats.taux_regularite)}
                       </Typography>
-                      <Typography variant="h6" sx={{ 
+                      <Typography variant="h6" sx={{
                         color: 'text.secondary',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         gap: 1
                       }}>
-                        <span>📈</span>
+                        <span>Tendance</span>
                         Taux de régularité
                       </Typography>
-                      <Typography variant="body2" sx={{ 
+                      <Typography variant="body2" sx={{
                         color: 'text.secondary',
                         mt: 1,
                         opacity: 0.7
@@ -640,10 +536,10 @@ const EmployeeStatistics = () => {
 
           {/* Empty States */}
           {!selectedEmployee && !loading && (
-            <Paper 
-              sx={{ 
-                textAlign: 'center', 
-                py: 8, 
+            <Paper
+              sx={{
+                textAlign: 'center',
+                py: 8,
                 borderRadius: 3,
                 background: `linear-gradient(135deg, ${theme.palette.background.paper}, ${alpha(theme.palette.primary.light, 0.05)})`
               }}
@@ -659,10 +555,10 @@ const EmployeeStatistics = () => {
           )}
 
           {selectedEmployee && !stats && !loading && (
-            <Paper 
-              sx={{ 
-                textAlign: 'center', 
-                py: 8, 
+            <Paper
+              sx={{
+                textAlign: 'center',
+                py: 8,
                 borderRadius: 3,
                 background: `linear-gradient(135deg, ${theme.palette.background.paper}, ${alpha(theme.palette.warning.light, 0.05)})`
               }}

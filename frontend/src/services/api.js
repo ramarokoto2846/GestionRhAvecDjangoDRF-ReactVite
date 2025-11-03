@@ -225,42 +225,6 @@ export const getPointagesStatsMensuelles = async (mois, annee) => {
 };
 
 // ========================
-// CONGÉS
-// ========================
-const congesCrud = createCrudFunctions("conges", "id_conge");
-export const getConges = congesCrud.getAll;
-export const getConge = congesCrud.getOne;
-export const createConge = congesCrud.create;
-export const updateConge = congesCrud.update;
-export const deleteConge = congesCrud.deleteOne;
-
-// Valider un congé
-export const validerConge = async (id) => {
-  try {
-    const response = await axios.post(`${BASE_URL}/conges/${id}/valider/`, {}, {
-      headers: getAuthHeader(),
-    });
-    return response.data;
-  } catch (error) {
-    handleError(error, "Erreur lors de la validation du congé.");
-  }
-};
-
-// Refuser un congé
-export const refuserConge = async (id, motifRefus) => {
-  try {
-    const response = await axios.post(
-      `${BASE_URL}/conges/${id}/refuser/`,
-      { motif_refus: motifRefus },
-      { headers: getAuthHeader() }
-    );
-    return response.data;
-  } catch (error) {
-    handleError(error, "Erreur lors du refus du congé.");
-  }
-};
-
-// ========================
 // ÉVÉNEMENTS
 // ========================
 const evenementsCrud = createCrudFunctions("evenements", "id_evenement");
@@ -651,15 +615,6 @@ export default {
   updatePointage,
   deletePointage,
   getPointagesStatsMensuelles,
-
-  // Congés
-  getConges,
-  getConge,
-  createConge,
-  updateConge,
-  deleteConge,
-  validerConge,
-  refuserConge,
 
   // Événements
   getEvenements,

@@ -91,7 +91,7 @@ WSGI_APPLICATION = "backend.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "gestion_rh_ortm",       # Remplace par le nom de ta DB
+        "NAME": "gestion_ptg_ortm",       # Remplace par le nom de ta DB
         "USER": "postgres",      # Remplace par ton user PostgreSQL
         "PASSWORD": "", # Remplace par ton mot de passe
         "HOST": "localhost",            # Ou l'adresse du serveur PostgreSQL

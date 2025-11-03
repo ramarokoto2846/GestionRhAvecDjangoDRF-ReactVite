@@ -162,111 +162,6 @@ class Pointage(models.Model):
         return f"Pointage {self.id_pointage} - {self.employe}"
 
 # ========================
-# Conge
-# ========================
-class Conge(models.Model):
-    STATUT_VALIDE = [
-        ('en_attente', 'En attente'),
-        ('valide', 'Validé'),
-        ('refuse', 'Refusé')
-    ]
-
-    id_conge = models.CharField(max_length=10, primary_key=True)
-    employe = models.ForeignKey('Employe', on_delete=models.CASCADE, related_name="conges")
-    date_debut = models.DateField()
-    date_fin = models.DateField()
-    nbr_jours = models.IntegerField(editable=False)
-    motif = models.TextField()
-    motif_refus = models.TextField(null=True, blank=True)
-    statut = models.CharField(max_length=20, choices=STATUT_VALIDE, default='en_attente')
-    date_demande = models.DateTimeField(auto_now_add=True)
-    date_decision = models.DateTimeField(null=True, blank=True)
-    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_conges')
-
-    def clean(self):
-        if self.date_fin < self.date_debut:
-            raise ValidationError("La date de fin doit être après la date de début")
-        
-        overlapping_conges = Conge.objects.filter(
-            employe=self.employe,
-            date_debut__lte=self.date_fin,
-            date_fin__gte=self.date_debut
-        ).exclude(id_conge=self.id_conge)
-        
-        if overlapping_conges.exists():
-            raise ValidationError("Cet employé a déjà un congé sur cette période.")
-        
-        super().clean()
-
-    def save(self, *args, **kwargs):
-        delta = self.date_fin - self.date_debut
-        self.nbr_jours = delta.days + 1
-
-        old_status = None
-        is_update = False
-
-        if self.pk and Conge.objects.filter(pk=self.pk).exists():
-            old_instance = Conge.objects.get(pk=self.pk)
-            old_status = old_instance.statut
-            is_update = True
-
-        if self.statut in ['valide', 'refuse'] and not self.date_decision:
-            from django.utils import timezone
-            self.date_decision = timezone.now()
-
-        super().save(*args, **kwargs)
-
-        if not is_update or (is_update and old_status != self.statut):
-            self._send_notification_email()
-
-    def _send_notification_email(self):
-        subject = f"Statut de votre demande de congé #{self.id_conge}"
-        if self.statut == 'en_attente':
-            message = (
-                f"Bonjour {self.employe.nom} {self.employe.prenom},\n\n"
-                f"Votre demande de congé (ID: {self.id_conge}) du {self.date_debut} au {self.date_fin} "
-                f"a été soumise avec succès et est en attente de validation.\n"
-                f"Motif : {self.motif}\n\n"
-                f"Vous serez informé(e) de la décision finale.\n\n"
-                f"Cordialement,\nL'équipe RH"
-            )
-        elif self.statut == 'valide':
-            message = (
-                f"Bonjour {self.employe.nom} {self.employe.prenom},\n\n"
-                f"Nous avons le plaisir de vous informer que votre demande de congé (ID: {self.id_conge}) "
-                f"du {self.date_debut} au {self.date_fin} a été validée.\n"
-                f"Motif : {self.motif}\n"
-                f"Nombre de jours : {self.nbr_jours}\n\n"
-                f"Cordialement,\nL'équipe RH"
-            )
-        elif self.statut == 'refuse':
-            message = (
-                f"Bonjour {self.employe.nom} {self.employe.prenom},\n\n"
-                f"Nous sommes désolés de vous informer que votre demande de congé (ID: {self.id_conge}) "
-                f"du {self.date_debut} au {self.date_fin} a été refusée.\n"
-                f"Motif : {self.motif}\n"
-                f"Raison du refus : {self.motif_refus or 'Non spécifiée'}\n"
-                f"Pour plus d'informations, veuillez contacter le service RH.\n\n"
-                f"Cordialement,\nL'équipe RH"
-            )
-
-        try:
-            from django.core.mail import send_mail
-            from django.conf import settings
-            send_mail(
-                subject=subject,
-                message=message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[self.employe.email],
-                fail_silently=False,
-            )
-        except Exception as e:
-            print(f"Erreur lors de l'envoi de l'email pour le congé {self.id_conge}: {str(e)}")
-
-    def __str__(self):
-        return f"Congé {self.id_conge} - {self.employe} ({self.statut})"
-
-# ========================
 # Evenement
 # ========================
 class Evenement(models.Model):
@@ -293,7 +188,7 @@ class Evenement(models.Model):
     
     
 # ========================
-# Statistiques (SANS ABSENCES)
+# Statistiques
 # ========================
 class StatistiquesEmploye(models.Model):
     PERIODE_TYPE = [
@@ -313,14 +208,7 @@ class StatistiquesEmploye(models.Model):
     moyenne_heures_quotidiennes = models.DurationField(null=True, blank=True)
     pointages_reguliers = models.IntegerField(default=0)
     pointages_irreguliers = models.IntegerField(default=0)
-    taux_regularite = models.FloatField(default=0)  # Ajouté pour remplacer les absences
-    
-    # Statistiques Congé
-    conges_valides = models.IntegerField(default=0)
-    conges_refuses = models.IntegerField(default=0)
-    conges_en_attente = models.IntegerField(default=0)
-    total_jours_conges = models.IntegerField(default=0)
-    taux_approbation_conges = models.FloatField(default=0)
+    taux_regularite = models.FloatField(default=0)
     
     jours_ouvrables = models.IntegerField(default=0)
     date_calcul = models.DateTimeField(auto_now=True)
@@ -344,25 +232,18 @@ class StatistiquesGlobales(models.Model):
     
     # Statistiques Globales
     total_employes = models.IntegerField(default=0)
-    employes_actifs = models.IntegerField(default=0)  # Ajouté
+    employes_actifs = models.IntegerField(default=0)
     total_departements = models.IntegerField(default=0)
-    departements_actifs = models.IntegerField(default=0)  # Ajouté
+    departements_actifs = models.IntegerField(default=0)
     taux_activite_global = models.FloatField(default=0)
     
     # Statistiques Pointage
     total_pointages = models.IntegerField(default=0)
-    pointages_reguliers = models.IntegerField(default=0)  # Ajouté
+    pointages_reguliers = models.IntegerField(default=0)
     heures_travail_total = models.DurationField(null=True, blank=True)
-    moyenne_heures_quotidiennes = models.DurationField(null=True, blank=True)  # Ajouté
+    moyenne_heures_quotidiennes = models.DurationField(null=True, blank=True)
     taux_presence = models.FloatField(default=0)
-    taux_regularite_global = models.FloatField(default=0)  # Ajouté pour remplacer les absences
-    
-    # Statistiques Congé
-    total_conges = models.IntegerField(default=0)
-    conges_valides = models.IntegerField(default=0)
-    conges_refuses = models.IntegerField(default=0)
-    conges_en_attente = models.IntegerField(default=0)  # Ajouté
-    taux_validation_conges = models.FloatField(default=0)
+    taux_regularite_global = models.FloatField(default=0)
     
     # Statistiques Événements
     total_evenements = models.IntegerField(default=0)

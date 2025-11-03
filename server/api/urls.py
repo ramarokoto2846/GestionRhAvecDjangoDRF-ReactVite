@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 from . import views
 from .views import (
     RegisterViewSet, DepartementViewSet, EmployeViewSet,
-    PointageViewSet, CongeViewSet, EvenementViewSet, CurrentUserView,
+    PointageViewSet, EvenementViewSet, CurrentUserView,
 )
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
@@ -12,7 +12,6 @@ router.register('register', RegisterViewSet, basename='register')
 router.register('departements', DepartementViewSet)
 router.register('employes', EmployeViewSet)
 router.register('pointages', PointageViewSet)
-router.register('conges', CongeViewSet)
 router.register('evenements', EvenementViewSet)
 
 urlpatterns = [   

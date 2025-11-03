@@ -21,12 +21,9 @@ import {
   People as PeopleIcon,
   Apartment as ApartmentIcon,
   AccessTime as AccessTimeIcon,
-  BeachAccess as BeachAccessIcon,
   TrendingUp as TrendingUpIcon,
   Download as DownloadIcon,
   Event as EventIcon,
-  CheckCircle as CheckCircleIcon,
-  Cancel as CancelIcon,
   Schedule as ScheduleIcon
 } from '@mui/icons-material';
 import { getGlobalStatistics, exportStatisticsPDF, StatisticsUtils, getCurrentUser, isSuperuser } from '../../services/api';
@@ -228,14 +225,7 @@ const StatisticsOverview = () => {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: theme.palette.background.default }}>
         <Header user={currentUser} onMenuToggle={() => {}} />
-        <Box 
-          component="main" 
-          sx={{ 
-            flexGrow: 1, 
-            p: 3,
-            mt: 8 // Margin top to account for header height
-          }}
-        >
+        <Box component="main" sx={{ flexGrow: 1, p: 3, mt: 8 }}>
           <Container maxWidth="xl">
             <Box sx={{ textAlign: 'center', py: 8 }}>
               <CircularProgress size={60} sx={{ mb: 2, color: theme.palette.primary.main }} />
@@ -253,22 +243,9 @@ const StatisticsOverview = () => {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: theme.palette.background.default }}>
         <Header user={currentUser} onMenuToggle={() => {}} />
-        <Box 
-          component="main" 
-          sx={{ 
-            flexGrow: 1, 
-            p: 3,
-            mt: 8 // Margin top to account for header height
-          }}
-        >
+        <Box component="main" sx={{ flexGrow: 1, p: 3, mt: 8 }}>
           <Container maxWidth="xl">
-            <Alert 
-              severity="error" 
-              sx={{ 
-                borderRadius: 2,
-                mb: 3
-              }}
-            >
+            <Alert severity="error" sx={{ borderRadius: 2, mb: 3 }}>
               {error}
             </Alert>
           </Container>
@@ -281,14 +258,7 @@ const StatisticsOverview = () => {
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: theme.palette.background.default }}>
       <Header user={currentUser} onMenuToggle={() => {}} />
       
-      <Box 
-        component="main" 
-        sx={{ 
-          flexGrow: 1, 
-          p: 3,
-          mt: 8 // Margin top to account for header height
-        }}
-      >
+      <Box component="main" sx={{ flexGrow: 1, p: 3, mt: 8 }}>
         <Container maxWidth="xl">
           {/* Header Section */}
           <Box sx={{ mb: 4 }}>
@@ -322,7 +292,7 @@ const StatisticsOverview = () => {
           >
             <CardContent sx={{ p: 3 }}>
               <Grid container spacing={3} alignItems="center">
-                <Grid item xs={12} sm={6} md={3} width={500}>
+                <Grid item xs={12} sm={6} md={3}>
                   <FormControl fullWidth>
                     <InputLabel>Mois</InputLabel>
                     <Select
@@ -340,7 +310,7 @@ const StatisticsOverview = () => {
                   </FormControl>
                 </Grid>
 
-                <Grid item xs={12} sm={6} md={3} width={500}>
+                <Grid item xs={12} sm={6} md={3}>
                   <FormControl fullWidth>
                     <InputLabel>Année</InputLabel>
                     <Select
@@ -396,7 +366,6 @@ const StatisticsOverview = () => {
 
           {/* Main Statistics Grid */}
           <Grid container spacing={3} sx={{ mb: 4 }}>
-            {/* Key Metrics */}
             <Grid item xs={12} sm={6} md={3}>
               <StatCard
                 title="Effectif Total"
@@ -444,55 +413,6 @@ const StatisticsOverview = () => {
 
           {/* Detailed Metrics Grid */}
           <Grid container spacing={3}>
-            {/* Congés */}
-            <Grid item xs={12} md={6} lg={4}>
-              <MetricCard title="Gestion des Congés" icon={<BeachAccessIcon />} color="success">
-                <Grid container spacing={2}>
-                  <Grid item xs={4}>
-                    <Box sx={{ textAlign: 'center' }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
-                        <CheckCircleIcon sx={{ color: 'success.main', mr: 0.5 }} />
-                        <Typography variant="h5" sx={{ fontWeight: 700, color: 'success.main' }}>
-                          {stats?.conges_valides || 0}
-                        </Typography>
-                      </Box>
-                      <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                        Validés
-                      </Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={4}>
-                    <Box sx={{ textAlign: 'center' }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
-                        <CancelIcon sx={{ color: 'error.main', mr: 0.5 }} />
-                        <Typography variant="h5" sx={{ fontWeight: 700, color: 'error.main' }}>
-                          {stats?.conges_refuses || 0}
-                        </Typography>
-                      </Box>
-                      <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                        Refusés
-                      </Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={4}>
-                    <Box sx={{ textAlign: 'center' }}>
-                      <Typography variant="h5" sx={{ fontWeight: 700, color: 'info.main', mb: 1 }}>
-                        {StatisticsUtils.formatPercentage(stats?.taux_validation_conges)}
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                        Taux
-                      </Typography>
-                    </Box>
-                  </Grid>
-                </Grid>
-                <Box sx={{ mt: 2, p: 2, backgroundColor: 'success.light', borderRadius: 2, textAlign: 'center' }}>
-                  <Typography variant="body2" sx={{ fontWeight: 600, color: 'success.dark' }}>
-                    📊 {stats?.total_conges || 0} demandes totales traitées
-                  </Typography>
-                </Box>
-              </MetricCard>
-            </Grid>
-
             {/* Événements */}
             <Grid item xs={12} md={6} lg={4}>
               <MetricCard title="Événements & Activités" icon={<EventIcon />} color="info">
@@ -514,10 +434,9 @@ const StatisticsOverview = () => {
                   {[
                     { label: 'Heures travaillées', value: StatisticsUtils.formatDuration(stats?.heures_travail_total), color: 'primary' },
                     { label: 'Taux de présence', value: StatisticsUtils.formatPercentage(stats?.taux_presence), color: 'success' },
-                    { label: 'Demandes de congé', value: stats?.total_conges || 0, color: 'info' },
                     { label: 'Pointages réguliers', value: stats?.pointages_reguliers || 0, color: 'warning' },
                   ].map((item, index) => (
-                    <Grid item xs={6} key={index}>
+                    <Grid item xs={4} key={index}>
                       <Box sx={{ textAlign: 'center', p: 2 }}>
                         <Typography variant="h4" sx={{ 
                           fontWeight: 700,
@@ -541,10 +460,10 @@ const StatisticsOverview = () => {
               <MetricCard title="Résumé de la Période" icon={<ScheduleIcon />} color="secondary">
                 <Grid container spacing={3}>
                   {[
-                    { label: 'Employés au total', value: stats?.total_employes || 0, icon: '👥' },
-                    { label: 'Jours travaillés', value: stats?.total_pointages || 0, icon: '📅' },
-                    { label: 'Événements organisés', value: stats?.total_evenements || 0, icon: '🎯' },
-                    { label: 'Heures productives', value: StatisticsUtils.formatDuration(stats?.heures_travail_total), icon: '⏱️' },
+                    { label: 'Employés au total', value: stats?.total_employes || 0, icon: 'Personnes' },
+                    { label: 'Jours travaillés', value: stats?.total_pointages || 0, icon: 'Calendrier' },
+                    { label: 'Événements organisés', value: stats?.total_evenements || 0, icon: 'Cible' },
+                    { label: 'Heures productives', value: StatisticsUtils.formatDuration(stats?.heures_travail_total), icon: 'Horloge' },
                   ].map((item, index) => (
                     <Grid item xs={6} key={index}>
                       <Box sx={{ textAlign: 'center', p: 2 }}>
@@ -578,12 +497,11 @@ const StatisticsOverview = () => {
               <MetricCard title="Statistiques Avancées" icon={<TrendingUpIcon />} color="info">
                 <Grid container spacing={3}>
                   {[
-                    { label: 'Taux de régularité', value: StatisticsUtils.formatPercentage(stats?.taux_regularite_global), icon: '📈' },
-                    { label: 'Congés en attente', value: stats?.conges_en_attente || 0, icon: '⏳' },
-                    { label: 'Moyenne heures/jour', value: StatisticsUtils.formatDuration(stats?.moyenne_heures_quotidiennes), icon: '🕒' },
-                    { label: 'Départements actifs', value: stats?.departements_actifs || 0, icon: '🏢' },
+                    { label: 'Taux de régularité', value: StatisticsUtils.formatPercentage(stats?.taux_regularite_global), icon: 'Graphique' },
+                    { label: 'Moyenne heures/jour', value: StatisticsUtils.formatDuration(stats?.moyenne_heures_quotidiennes), icon: 'Horloge' },
+                    { label: 'Départements actifs', value: stats?.departements_actifs || 0, icon: 'Bâtiment' },
                   ].map((item, index) => (
-                    <Grid item xs={6} key={index}>
+                    <Grid item xs={4} key={index}>
                       <Box sx={{ textAlign: 'center', p: 2 }}>
                         <Typography variant="h4" sx={{ 
                           fontWeight: 700,

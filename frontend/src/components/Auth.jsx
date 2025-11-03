@@ -180,7 +180,7 @@ const Auth = ({ setIsAuthenticated }) => {
           }
         });
         setIsAuthenticated(true);
-        navigate("/home");
+        navigate("/statistiques/overview");
       } else {
         const errorData = await response.json();
         const errorMessage = errorData.detail || "Email ou mot de passe incorrect";
@@ -308,7 +308,7 @@ const Auth = ({ setIsAuthenticated }) => {
                     fontSize: { xs: '1.5rem', md: '2rem' }
                   }}
                 >
-                  Office de la Radio et de la Télévision de Madagascar
+                  Office de la Radio et de la Télévision publique de Madagascar
                 </Typography>
                 
                 <Typography 
@@ -334,8 +334,7 @@ const Auth = ({ setIsAuthenticated }) => {
               <Box sx={{ mt: 4, display: { xs: 'none', md: 'block' } }}>
                 {[
                   "Gestion centralisée des employés ORTM",
-                  "Suivi des pointages en temps réel", 
-                  "Gestion des congés et absences",
+                  "Suivi des pointages en temps réel",
                   "Administration des départements",
                   "Tableaux de bord personnalisés",
                   "Sécurité et confidentialité des données"
@@ -450,7 +449,7 @@ const Auth = ({ setIsAuthenticated }) => {
                   <Box>
                     <form onSubmit={handleRegister}>
                       <TextField 
-                        label="Nom complet" 
+                        label="Nom d'utilisateur" 
                         fullWidth 
                         margin="normal" 
                         value={nom} 

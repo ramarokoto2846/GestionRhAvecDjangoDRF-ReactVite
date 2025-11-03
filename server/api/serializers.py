@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import CustomUser, Departement, Employe, Pointage, Conge, Evenement, StatistiquesEmploye, StatistiquesGlobales
+from .models import CustomUser, Departement, Employe, Pointage, Evenement, StatistiquesEmploye, StatistiquesGlobales
 from django.contrib.auth.hashers import make_password
 
 # -----------------------
@@ -102,21 +102,6 @@ class PointageSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 # -----------------------
-# Conge
-# -----------------------
-class CongeSerializer(serializers.ModelSerializer):
-    nbr_jours = serializers.IntegerField(read_only=True)
-    employe_nom = serializers.CharField(source='employe.nom_complet', read_only=True)
-    created_by = serializers.PrimaryKeyRelatedField(read_only=True)
-    created_by_username = serializers.CharField(source='created_by.email', read_only=True)
-    created_by_nom = serializers.CharField(source='created_by.nom', read_only=True)
-
-    class Meta:
-        model = Conge
-        fields = '__all__'
-        read_only_fields = ['date_demande', 'date_decision', 'nbr_jours', 'employe_nom', 'created_by']
-
-# -----------------------
 # Evenement
 # -----------------------
 class EvenementSerializer(serializers.ModelSerializer):
@@ -178,11 +163,7 @@ class StatistiquesEmployeSerializer(serializers.ModelSerializer):
             # Pointage
             'heures_travail_total', 'heures_travail_total_str', 'jours_travailles',
             'moyenne_heures_quotidiennes', 'moyenne_heures_quotidiennes_str',
-            'pointages_reguliers', 'pointages_irreguliers',
-            
-            # Congé
-            'conges_valides', 'conges_refuses', 'conges_en_attente', 'total_jours_conges',
-            'taux_approbation_conges',
+            'pointages_reguliers', 'pointages_irreguliers', 'taux_regularite',
             
             'jours_ouvrables', 'date_calcul', 'created_by', 'created_by_username', 'created_by_nom'
         ]
@@ -209,13 +190,11 @@ class StatistiquesGlobalesSerializer(serializers.ModelSerializer):
             'id', 'periode', 'type_periode', 'periode_display',
             
             # Global
-            'total_employes', 'total_departements', 'taux_activite_global',
+            'total_employes', 'employes_actifs', 'total_departements', 'departements_actifs', 'taux_activite_global',
             
             # Pointage
-            'total_pointages', 'heures_travail_total', 'heures_travail_total_str', 'taux_presence',
-            
-            # Congé
-            'total_conges', 'conges_valides', 'conges_refuses', 'taux_validation_conges',
+            'total_pointages', 'pointages_reguliers', 'heures_travail_total', 'heures_travail_total_str',
+            'moyenne_heures_quotidiennes', 'taux_presence', 'taux_regularite_global',
             
             # Événements
             'total_evenements',
@@ -244,13 +223,7 @@ class EmployeeStatsCalculatedSerializer(serializers.Serializer):
     moyenne_heures_quotidiennes_str = serializers.SerializerMethodField()
     pointages_reguliers = serializers.IntegerField()
     pointages_irreguliers = serializers.IntegerField()
-    
-    # Congé
-    conges_valides = serializers.IntegerField()
-    conges_refuses = serializers.IntegerField()
-    conges_en_attente = serializers.IntegerField()
-    total_jours_conges = serializers.IntegerField()
-    taux_approbation_conges = serializers.FloatField()
+    taux_regularite = serializers.FloatField()
     
     jours_ouvrables = serializers.IntegerField()
     
@@ -267,20 +240,19 @@ class GlobalStatsCalculatedSerializer(serializers.Serializer):
     
     # Global
     total_employes = serializers.IntegerField()
+    employes_actifs = serializers.IntegerField()
     total_departements = serializers.IntegerField()
+    departements_actifs = serializers.IntegerField()
     taux_activite_global = serializers.FloatField()
     
     # Pointage
     total_pointages = serializers.IntegerField()
+    pointages_reguliers = serializers.IntegerField()
     heures_travail_total = serializers.DurationField()
     heures_travail_total_str = serializers.SerializerMethodField()
+    moyenne_heures_quotidiennes = serializers.DurationField()
     taux_presence = serializers.FloatField()
-    
-    # Congé
-    total_conges = serializers.IntegerField()
-    conges_valides = serializers.IntegerField()
-    conges_refuses = serializers.IntegerField()
-    taux_validation_conges = serializers.FloatField()
+    taux_regularite_global = serializers.FloatField()
     
     # Événements
     total_evenements = serializers.IntegerField()

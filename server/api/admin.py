@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import CustomUser, Departement, Employe, Pointage, Conge, Evenement
+from .models import CustomUser, Departement, Employe, Pointage, Evenement
 
 # -------------------------------
 # CustomUser Admin
@@ -34,15 +34,6 @@ class PointageAdmin(admin.ModelAdmin):
     list_display = ('id_pointage', 'employe', 'date_pointage', 'heure_entree', 'heure_sortie', 'duree_travail', 'remarque')
     search_fields = ('id_pointage', 'employe__nom', 'employe__prenom', 'employe__matricule')
     list_filter = ('date_pointage',)
-
-# -------------------------------
-# Conge Admin
-# -------------------------------
-@admin.register(Conge)
-class CongeAdmin(admin.ModelAdmin):
-    list_display = ('id_conge', 'employe', 'date_debut', 'date_fin', 'nbr_jours', 'motif', 'statut', 'date_demande', 'date_decision')
-    search_fields = ('id_conge', 'employe__nom', 'employe__prenom')
-    list_filter = ('statut',)
 
 # -------------------------------
 # Evenement Admin
