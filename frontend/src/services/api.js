@@ -280,6 +280,19 @@ export const getGlobalStatistics = async (params = {}) => {
   }
 };
 
+// Statistiques département
+export const getDepartmentStatistics = async (departementId, params = {}) => {
+  try {
+    const response = await axios.get(`${BASE_URL}/statistiques/departement/${departementId}/`, {
+      headers: getAuthHeader(),
+      params,
+    });
+    return response.data;
+  } catch (error) {
+    handleError(error, "Erreur lors de la récupération des statistiques département.");
+  }
+};
+
 // Export PDF des statistiques avec nom de fichier personnalisé
 export const exportStatisticsPDF = async (exportType, params = {}) => {
   try {
@@ -334,6 +347,16 @@ export const exportStatisticsPDF = async (exportType, params = {}) => {
         const date = new Date().toISOString().split('T')[0];
         filename = `statistiques_globales_${date}.pdf`;
         break;
+
+      case 'departement':
+        // Pour les statistiques département
+        if (params.nom_departement) {
+          const nomNormalise = normalizeFileName(params.nom_departement);
+          filename = `statistiques_departement_${nomNormalise}.pdf`;
+        } else {
+          filename = `statistiques_departement_${new Date().toISOString().split('T')[0]}.pdf`;
+        }
+        break;
         
       default:
         // Fallback générique
@@ -355,7 +378,50 @@ export const exportStatisticsPDF = async (exportType, params = {}) => {
 };
 
 // ========================
-// UTILITAIRES STATISTIQUES
+// NOUVELLES FONCTIONNALITÉS STATISTIQUES
+// ========================
+
+// Analyse de ponctualité détaillée
+export const getPonctualiteAnalysis = async (matricule, params = {}) => {
+  try {
+    const response = await axios.get(`${BASE_URL}/statistiques/ponctualite/${matricule}/`, {
+      headers: getAuthHeader(),
+      params,
+    });
+    return response.data;
+  } catch (error) {
+    handleError(error, "Erreur lors de la récupération de l'analyse de ponctualité.");
+  }
+};
+
+// Comparaison des heures travaillées
+export const getHeuresComparison = async (matricule, params = {}) => {
+  try {
+    const response = await axios.get(`${BASE_URL}/statistiques/comparaison-heures/${matricule}/`, {
+      headers: getAuthHeader(),
+      params,
+    });
+    return response.data;
+  } catch (error) {
+    handleError(error, "Erreur lors de la récupération de la comparaison des heures.");
+  }
+};
+
+// Tendances mensuelles
+export const getMonthlyTrends = async (matricule, params = {}) => {
+  try {
+    const response = await axios.get(`${BASE_URL}/statistiques/tendances/${matricule}/`, {
+      headers: getAuthHeader(),
+      params,
+    });
+    return response.data;
+  } catch (error) {
+    handleError(error, "Erreur lors de la récupération des tendances mensuelles.");
+  }
+};
+
+// ========================
+// UTILITAIRES STATISTIQUES AMÉLIORÉS
 // ========================
 
 export const StatisticsUtils = {
@@ -405,6 +471,86 @@ export const StatisticsUtils = {
     if (rate >= thresholds.good) return 'success';
     if (rate >= thresholds.warning) return 'warning';
     return 'error';
+  },
+
+  // Obtenir la couleur basée sur le statut des heures
+  getHeuresStatusColor: (statut) => {
+    switch (statut) {
+      case 'INSUFFISANT':
+        return 'error';
+      case 'NORMAL':
+        return 'success';
+      case 'SURPLUS':
+        return 'info';
+      default:
+        return 'default';
+    }
+  },
+
+  // Obtenir l'icône basée sur le statut des heures
+  getHeuresStatusIcon: (statut) => {
+    switch (statut) {
+      case 'INSUFFISANT':
+        return 'warning';
+      case 'NORMAL':
+        return 'check_circle';
+      case 'SURPLUS':
+        return 'trending_up';
+      default:
+        return 'help';
+    }
+  },
+
+  // Analyser le statut des heures
+  analyzeHeuresStatus: (heuresReelles, heuresAttendues) => {
+    const heuresReellesSeconds = typeof heuresReelles === 'string' ? 
+      StatisticsUtils.parseDurationToSeconds(heuresReelles) : heuresReelles.total_seconds();
+    const heuresAttenduesSeconds = typeof heuresAttendues === 'string' ?
+      StatisticsUtils.parseDurationToSeconds(heuresAttendues) : heuresAttendues.total_seconds();
+
+    if (heuresReellesSeconds < heuresAttenduesSeconds) {
+      return 'INSUFFISANT';
+    } else if (heuresReellesSeconds === heuresAttenduesSeconds) {
+      return 'NORMAL';
+    } else {
+      return 'SURPLUS';
+    }
+  },
+
+  // Parser une durée en secondes
+  parseDurationToSeconds: (duration) => {
+    if (typeof duration === 'string') {
+      // Format "Xh YYmin" ou "HH:MM:SS"
+      const timeParts = duration.split(/[h: ]/).filter(part => part !== '');
+      if (timeParts.length >= 2) {
+        const hours = parseInt(timeParts[0]) || 0;
+        const minutes = parseInt(timeParts[1]) || 0;
+        return (hours * 3600) + (minutes * 60);
+      }
+    }
+    return 0;
+  },
+
+  // Calculer l'écart en heures
+  calculateEcartHeures: (heuresReelles, heuresAttendues) => {
+    const reellesSeconds = typeof heuresReelles === 'string' ?
+      StatisticsUtils.parseDurationToSeconds(heuresReelles) : heuresReelles.total_seconds();
+    const attenduesSeconds = typeof heuresAttendues === 'string' ?
+      StatisticsUtils.parseDurationToSeconds(heuresAttendues) : heuresAttendues.total_seconds();
+    
+    const ecartSeconds = Math.abs(reellesSeconds - attenduesSeconds);
+    return StatisticsUtils.formatDuration(timedelta(seconds=ecartSeconds));
+  },
+
+  // Calculer le pourcentage d'écart
+  calculatePourcentageEcart: (heuresReelles, heuresAttendues) => {
+    const reellesSeconds = typeof heuresReelles === 'string' ?
+      StatisticsUtils.parseDurationToSeconds(heuresReelles) : heuresReelles.total_seconds();
+    const attenduesSeconds = typeof heuresAttendues === 'string' ?
+      StatisticsUtils.parseDurationToSeconds(heuresAttendues) : heuresAttendues.total_seconds();
+    
+    if (attenduesSeconds === 0) return 0;
+    return ((reellesSeconds - attenduesSeconds) / attenduesSeconds) * 100;
   },
 
   // Générer les options de période
@@ -540,9 +686,51 @@ export const StatisticsUtils = {
         
       case 'global':
         return `statistiques_globales_${date}.pdf`;
+
+      case 'departement':
+        if (params.nom_departement) {
+          const nomNormalise = normalize(params.nom_departement);
+          return `statistiques_departement_${nomNormalise}.pdf`;
+        } else {
+          return `statistiques_departement_${date}.pdf`;
+        }
         
       default:
         return `statistiques_${type}_${date}.pdf`;
+    }
+  },
+
+  // Générer une observation basée sur les statistiques
+  generateObservation: (stats) => {
+    if (!stats) return "Aucune donnée disponible";
+    
+    const {
+      statut_heures,
+      heures_travail_total,
+      heures_attendues_jours_passes,
+      jours_passes_mois,
+      jours_travailles,
+      taux_ponctualite,
+      ecart_heures,
+      pourcentage_ecart
+    } = stats;
+
+    const heuresReellesStr = StatisticsUtils.formatDuration(heures_travail_total);
+    const heuresAttenduesStr = StatisticsUtils.formatDuration(heures_attendues_jours_passes);
+    const ecartStr = StatisticsUtils.formatDuration(ecart_heures);
+
+    switch (statut_heures) {
+      case 'INSUFFISANT':
+        return `⚠️ Heures INSUFFISANTES. Avec ${jours_passes_mois} jours passés dans le mois, l'employé devrait avoir travaillé ${heuresAttenduesStr} (8h × ${jours_passes_mois} jours). Actuellement: ${heuresReellesStr} (${jours_travailles} jours pointés). Déficit: ${ecartStr}. Taux de ponctualité: ${StatisticsUtils.formatPercentage(taux_ponctualite)}`;
+      
+      case 'NORMAL':
+        return `✅ Heures CONFORMES. Sur ${jours_passes_mois} jours passés dans le mois, l'employé a travaillé exactement les ${heuresAttenduesStr} attendues (${jours_travailles} jours pointés). Taux de ponctualité: ${StatisticsUtils.formatPercentage(taux_ponctualite)}`;
+      
+      case 'SURPLUS':
+        return `📈 Heures en SURPLUS. Avec ${jours_passes_mois} jours passés dans le mois, les heures attendues sont ${heuresAttenduesStr}. L'employé a travaillé ${heuresReellesStr} (${jours_travailles} jours pointés). Excédent: ${ecartStr}. Taux de ponctualité: ${StatisticsUtils.formatPercentage(taux_ponctualite)}`;
+      
+      default:
+        return `Statut indéterminé. Taux de ponctualité: ${StatisticsUtils.formatPercentage(taux_ponctualite)}`;
     }
   }
 };
@@ -624,10 +812,16 @@ export default {
   deleteEvenement,
   getEvenementsAVenir,
 
-  // Statistiques (UNIQUEMENT EMPLOYÉ ET GLOBALES)
+  // Statistiques
   getEmployeeStatistics,
   getGlobalStatistics,
+  getDepartmentStatistics,
   exportStatisticsPDF,
+
+  // Nouvelles fonctionnalités statistiques
+  getPonctualiteAnalysis,
+  getHeuresComparison,
+  getMonthlyTrends,
 
   // Utilitaires
   StatisticsUtils,

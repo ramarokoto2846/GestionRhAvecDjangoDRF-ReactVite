@@ -4,6 +4,12 @@ from . import views
 from .views import (
     RegisterViewSet, DepartementViewSet, EmployeViewSet,
     PointageViewSet, EvenementViewSet, CurrentUserView,
+    EmployeePonctualiteAnalysisAPIView,
+    EmployeeHeuresComparisonAPIView, 
+    EmployeeMonthlyTrendsAPIView,
+    EmployeeStatisticsAPIView,
+    GlobalStatisticsAPIView,
+    ExportStatisticsPDFAPIView
 )
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
@@ -21,8 +27,14 @@ urlpatterns = [
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/users/me/', CurrentUserView.as_view(), name='current-user'),
 
-    path('api/statistiques/employe/', views.EmployeeStatisticsAPIView.as_view(), name='employee_stats'),
-    path('api/statistiques/employe/<str:matricule>/', views.EmployeeStatisticsAPIView.as_view(), name='employee_stats_detail'),
-    path('api/statistiques/global/', views.GlobalStatisticsAPIView.as_view(), name='global_stats'),
-    path('api/statistiques/export-pdf/', views.ExportStatisticsPDFAPIView.as_view(), name='export_stats_pdf'),
+    # Statistiques existantes
+    path('api/statistiques/employe/', EmployeeStatisticsAPIView.as_view(), name='employee_stats'),
+    path('api/statistiques/employe/<str:matricule>/', EmployeeStatisticsAPIView.as_view(), name='employee_stats_detail'),
+    path('api/statistiques/global/', GlobalStatisticsAPIView.as_view(), name='global_stats'),
+    path('api/statistiques/export-pdf/', ExportStatisticsPDFAPIView.as_view(), name='export_stats_pdf'),
+
+    # ✅ CORRECTION : Ajouter 'api/' devant les nouvelles URLs
+    path('api/statistiques/ponctualite/<str:matricule>/', EmployeePonctualiteAnalysisAPIView.as_view(), name='employee-ponctualite'),
+    path('api/statistiques/comparaison-heures/<str:matricule>/', EmployeeHeuresComparisonAPIView.as_view(), name='employee-comparaison-heures'),
+    path('api/statistiques/tendances/<str:matricule>/', EmployeeMonthlyTrendsAPIView.as_view(), name='employee-tendances'),
 ]

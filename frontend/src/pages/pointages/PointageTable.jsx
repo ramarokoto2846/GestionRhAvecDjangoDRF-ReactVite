@@ -4,11 +4,10 @@ import {
   TableBody, IconButton, Chip, Box, Avatar, Typography,
   Tooltip, CircularProgress, Button, Dialog, DialogTitle,
   DialogContent, DialogActions, TextField, Paper,
-  Badge, alpha, useTheme, LinearProgress, Card, CardContent
+  Badge, alpha, useTheme, Card, CardContent
 } from "@mui/material";
 import { format, parseISO, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
-
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import PersonIcon from '@mui/icons-material/Person';
@@ -49,7 +48,6 @@ const PointageTable = ({
   onDelete,
   onViewDetails,
   onUpdatePointage,
-  theme,
   currentUser
 }) => {
   const currentTheme = useTheme();
@@ -82,12 +80,11 @@ const PointageTable = ({
 
   const handleExitSubmit = async () => {
     if (!selectedPointage) return;
-
     setExitLoading(true);
     try {
       const currentTime = new Date();
       const heureSortie = `${currentTime.getHours().toString().padStart(2, '0')}:${currentTime.getMinutes().toString().padStart(2, '0')}`;
-      
+
       const updateData = {
         id_pointage: selectedPointage.id_pointage,
         employe: selectedPointage.employe,
@@ -107,7 +104,6 @@ const PointageTable = ({
         };
         onEdit(updatedPointage);
       }
-
       handleCloseExitDialog();
     } catch (error) {
       console.error("Erreur lors de la mise à jour du pointage:", error);
@@ -116,27 +112,39 @@ const PointageTable = ({
     }
   };
 
-  const isWorking = (pointage) => {
-    return !pointage.heure_sortie;
+  // Fonction corrigée : calcule la durée même si le pointage est terminé
+  const calculateDuration = (pointage) => {
+    if (!pointage.heure_entree) return "-";
+
+    const [hIn, mIn] = pointage.heure_entree.split(':').map(Number);
+    if (isNaN(hIn) || isNaN(mIn)) return "-";
+
+    const baseDate = pointage.date_pointage && isValid(parseISO(pointage.date_pointage))
+      ? parseISO(pointage.date_pointage)
+      : new Date();
+
+    const start = new Date(baseDate);
+    start.setHours(hIn, mIn, 0, 0);
+
+    let end = new Date();
+    if (pointage.heure_sortie) {
+      const [hOut, mOut] = pointage.heure_sortie.split(':').map(Number);
+      if (!isNaN(hOut) && !isNaN(mOut)) {
+        end = new Date(baseDate);
+        end.setHours(hOut, mOut, 0, 0);
+      }
+    }
+
+    const diffMs = end - start;
+    if (diffMs < 0) return "-";
+
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+    return `${hours}h ${minutes.toString().padStart(2, "0")}min`;
   };
 
-  const calculateWorkingTime = (pointage) => {
-    if (!pointage.heure_entree || pointage.heure_sortie) return null;
-    
-    try {
-      const [hours, minutes] = pointage.heure_entree.split(':').map(Number);
-      const startTime = new Date();
-      startTime.setHours(hours, minutes, 0, 0);
-      const now = new Date();
-      const diffMs = now - startTime;
-      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-      const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-      
-      return `${diffHours}h ${diffMinutes.toString().padStart(2, '0')}min`;
-    } catch (error) {
-      return null;
-    }
-  };
+  const isWorking = (pointage) => !pointage.heure_sortie;
 
   const getStatusConfig = (pointage) => {
     if (pointage.heure_sortie) {
@@ -158,13 +166,13 @@ const PointageTable = ({
 
   if (loading) {
     return (
-      <Card sx={{ 
+      <Card sx={{
         borderRadius: 4,
         background: `linear-gradient(135deg, ${ORTM_COLORS.background} 0%, ${ORTM_COLORS.surface} 100%)`,
         boxShadow: `0 12px 35px ${alpha(ORTM_COLORS.primary, 0.08)}`,
         border: `1px solid ${alpha(ORTM_COLORS.primary, 0.1)}`,
-        textAlign: "center", 
-        py: 8 
+        textAlign: "center",
+        py: 8
       }}>
         <CardContent>
           <CircularProgress size={60} thickness={4} sx={{ color: ORTM_COLORS.primary, mb: 3 }} />
@@ -178,16 +186,16 @@ const PointageTable = ({
 
   if (!pointages || pointages.length === 0) {
     return (
-      <Card sx={{ 
+      <Card sx={{
         borderRadius: 4,
         background: `linear-gradient(135deg, ${ORTM_COLORS.background} 0%, ${ORTM_COLORS.surface} 100%)`,
         boxShadow: `0 12px 35px ${alpha(ORTM_COLORS.primary, 0.08)}`,
         border: `1px solid ${alpha(ORTM_COLORS.primary, 0.1)}`,
-        textAlign: "center", 
-        py: 6 
+        textAlign: "center",
+        py: 6
       }}>
         <CardContent>
-          <Box sx={{ 
+          <Box sx={{
             display: 'inline-flex',
             p: 3,
             mb: 3,
@@ -210,9 +218,9 @@ const PointageTable = ({
 
   return (
     <>
-      <Paper sx={{ 
-        width: "100%", 
-        overflow: "hidden", 
+      <Paper sx={{
+        width: "100%",
+        overflow: "hidden",
         borderRadius: 4,
         background: `linear-gradient(135deg, ${currentTheme.palette.background.paper} 0%, ${alpha(ORTM_COLORS.primary, 0.02)} 100%)`,
         boxShadow: `0 12px 35px ${alpha(ORTM_COLORS.primary, 0.08)}`,
@@ -221,11 +229,11 @@ const PointageTable = ({
         <TableContainer>
           <Table>
             <TableHead>
-              <TableRow sx={{ 
+              <TableRow sx={{
                 background: `linear-gradient(135deg, ${alpha(ORTM_COLORS.primary, 0.05)} 0%, ${alpha(ORTM_COLORS.primary, 0.1)} 100%)`,
               }}>
-                <TableCell sx={{ 
-                  fontWeight: '800', 
+                <TableCell sx={{
+                  fontWeight: '800',
                   fontSize: '0.95rem',
                   color: ORTM_COLORS.primary,
                   borderBottom: `2px solid ${alpha(ORTM_COLORS.primary, 0.2)}`,
@@ -234,8 +242,8 @@ const PointageTable = ({
                 }}>
                   ID Pointage
                 </TableCell>
-                <TableCell sx={{ 
-                  fontWeight: '800', 
+                <TableCell sx={{
+                  fontWeight: '800',
                   fontSize: '0.95rem',
                   color: ORTM_COLORS.primary,
                   borderBottom: `2px solid ${alpha(ORTM_COLORS.primary, 0.2)}`,
@@ -243,8 +251,8 @@ const PointageTable = ({
                 }}>
                   Employé
                 </TableCell>
-                <TableCell sx={{ 
-                  fontWeight: '800', 
+                <TableCell sx={{
+                  fontWeight: '800',
                   fontSize: '0.95rem',
                   color: ORTM_COLORS.primary,
                   borderBottom: `2px solid ${alpha(ORTM_COLORS.primary, 0.2)}`,
@@ -253,8 +261,8 @@ const PointageTable = ({
                 }}>
                   Date
                 </TableCell>
-                <TableCell sx={{ 
-                  fontWeight: '800', 
+                <TableCell sx={{
+                  fontWeight: '800',
                   fontSize: '0.95rem',
                   color: ORTM_COLORS.primary,
                   borderBottom: `2px solid ${alpha(ORTM_COLORS.primary, 0.2)}`,
@@ -263,8 +271,8 @@ const PointageTable = ({
                 }}>
                   Heure Entrée
                 </TableCell>
-                <TableCell sx={{ 
-                  fontWeight: '800', 
+                <TableCell sx={{
+                  fontWeight: '800',
                   fontSize: '0.95rem',
                   color: ORTM_COLORS.primary,
                   borderBottom: `2px solid ${alpha(ORTM_COLORS.primary, 0.2)}`,
@@ -273,8 +281,8 @@ const PointageTable = ({
                 }}>
                   Heure Sortie
                 </TableCell>
-                <TableCell sx={{ 
-                  fontWeight: '800', 
+                <TableCell sx={{
+                  fontWeight: '800',
                   fontSize: '0.95rem',
                   color: ORTM_COLORS.primary,
                   borderBottom: `2px solid ${alpha(ORTM_COLORS.primary, 0.2)}`,
@@ -283,8 +291,8 @@ const PointageTable = ({
                 }}>
                   Statut & Durée
                 </TableCell>
-                <TableCell sx={{ 
-                  fontWeight: '800', 
+                <TableCell sx={{
+                  fontWeight: '800',
                   fontSize: '0.95rem',
                   color: ORTM_COLORS.primary,
                   borderBottom: `2px solid ${alpha(ORTM_COLORS.primary, 0.2)}`,
@@ -301,19 +309,19 @@ const PointageTable = ({
                   console.warn(`Pointage invalide à l'index ${index}:`, pointage);
                   return null;
                 }
-                
+
                 const canEdit = hasPermission(pointage);
                 const working = isWorking(pointage);
                 const statusConfig = getStatusConfig(pointage);
-                const workingTime = calculateWorkingTime(pointage);
-                
+                const duration = calculateDuration(pointage);
+
                 return (
-                  <TableRow 
-                    key={pointage.id_pointage} 
+                  <TableRow
+                    key={pointage.id_pointage}
                     hover
-                    sx={{ 
+                    sx={{
                       transition: 'all 0.3s ease',
-                      background: index % 2 === 0 
+                      background: index % 2 === 0
                         ? alpha(currentTheme.palette.background.default, 0.5)
                         : 'transparent',
                       '&:hover': {
@@ -332,7 +340,7 @@ const PointageTable = ({
                         color="primary"
                         variant="dot"
                         invisible={!working}
-                        sx={{ 
+                        sx={{
                           '& .MuiBadge-dot': {
                             backgroundColor: ORTM_COLORS.warning,
                             boxShadow: `0 0 0 2px ${currentTheme.palette.background.paper}`,
@@ -382,9 +390,9 @@ const PointageTable = ({
                     {/* Date */}
                     <TableCell sx={{ py: 2.5 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        <Box sx={{ 
-                          p: 0.75, 
-                          borderRadius: 2, 
+                        <Box sx={{
+                          p: 0.75,
+                          borderRadius: 2,
                           background: `linear-gradient(135deg, ${alpha(ORTM_COLORS.info, 0.1)} 0%, ${alpha(ORTM_COLORS.info, 0.2)} 100%)`,
                           display: 'flex',
                           alignItems: 'center',
@@ -403,9 +411,9 @@ const PointageTable = ({
                     {/* Heure Entrée */}
                     <TableCell sx={{ py: 2.5 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        <Box sx={{ 
-                          p: 0.75, 
-                          borderRadius: 2, 
+                        <Box sx={{
+                          p: 0.75,
+                          borderRadius: 2,
                           background: `linear-gradient(135deg, ${alpha(ORTM_COLORS.success, 0.1)} 0%, ${alpha(ORTM_COLORS.success, 0.2)} 100%)`,
                           display: 'flex',
                           alignItems: 'center',
@@ -423,9 +431,9 @@ const PointageTable = ({
                     <TableCell sx={{ py: 2.5 }}>
                       {pointage.heure_sortie ? (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                          <Box sx={{ 
-                            p: 0.75, 
-                            borderRadius: 2, 
+                          <Box sx={{
+                            p: 0.75,
+                            borderRadius: 2,
                             background: `linear-gradient(135deg, ${alpha(ORTM_COLORS.error, 0.1)} 0%, ${alpha(ORTM_COLORS.error, 0.2)} 100%)`,
                             display: 'flex',
                             alignItems: 'center',
@@ -463,7 +471,7 @@ const PointageTable = ({
                       )}
                     </TableCell>
 
-                    {/* Statut & Durée */}
+                    {/* Statut & Durée — CORRIGÉ */}
                     <TableCell sx={{ py: 2.5 }}>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                         <Chip
@@ -480,14 +488,12 @@ const PointageTable = ({
                             }
                           }}
                         />
-                        {working && workingTime && (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <WorkHistoryIcon fontSize="small" sx={{ color: ORTM_COLORS.warning }} />
-                            <Typography variant="caption" fontWeight="600" color={ORTM_COLORS.warning}>
-                              {workingTime}
-                            </Typography>
-                          </Box>
-                        )}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <WorkHistoryIcon fontSize="small" sx={{ color: ORTM_COLORS.warning }} />
+                          <Typography variant="caption" fontWeight="600" color={ORTM_COLORS.warning}>
+                            {duration}
+                          </Typography>
+                        </Box>
                       </Box>
                     </TableCell>
 
@@ -498,7 +504,7 @@ const PointageTable = ({
                           <Tooltip title="Modifier le pointage" arrow>
                             <IconButton
                               color="primary"
-                              onClick={() => onEdit(pointage)} 
+                              onClick={() => onEdit(pointage)}
                               disabled={actionLoading}
                               size="medium"
                               sx={{
@@ -516,11 +522,11 @@ const PointageTable = ({
                               <EditIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
-                          
+
                           <Tooltip title="Supprimer le pointage" arrow>
                             <IconButton
                               color="error"
-                              onClick={() => onDelete(pointage.id_pointage)} 
+                              onClick={() => onDelete(pointage.id_pointage)}
                               disabled={actionLoading}
                               size="medium"
                               sx={{
@@ -535,16 +541,16 @@ const PointageTable = ({
                                 transition: 'all 0.3s ease',
                               }}
                             >
-                              {actionLoading && deletingId === pointage.id_pointage ? 
+                              {actionLoading && deletingId === pointage.id_pointage ?
                                 <CircularProgress size={20} /> : <DeleteIcon fontSize="small" />
                               }
                             </IconButton>
                           </Tooltip>
 
                           <Tooltip title="Détails du pointage" arrow>
-                            <IconButton 
-                              color="info" 
-                              onClick={() => onViewDetails(pointage)} 
+                            <IconButton
+                              color="info"
+                              onClick={() => onViewDetails(pointage)}
                               disabled={actionLoading}
                               size="medium"
                               sx={{
@@ -565,8 +571,8 @@ const PointageTable = ({
 
                           {working && (
                             <Tooltip title="Enregistrer la sortie" arrow>
-                              <IconButton 
-                                color="success" 
+                              <IconButton
+                                color="success"
                                 onClick={() => handleOpenExitDialog(pointage)}
                                 disabled={actionLoading}
                                 size="medium"
@@ -591,9 +597,9 @@ const PointageTable = ({
                         <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
                           <Box sx={{ display: "flex", gap: 1, justifyContent: "center" }}>
                             <Tooltip title="Action non autorisée - Créateur uniquement" arrow>
-                              <IconButton 
-                                color="default" 
-                                disabled 
+                              <IconButton
+                                color="default"
+                                disabled
                                 size="medium"
                                 sx={{
                                   background: `linear-gradient(135deg, ${alpha(ORTM_COLORS.text, 0.1)} 0%, ${alpha(ORTM_COLORS.text, 0.2)} 100%)`,
@@ -604,11 +610,11 @@ const PointageTable = ({
                                 <LockIcon fontSize="small" />
                               </IconButton>
                             </Tooltip>
-                            
+
                             <Tooltip title="Voir les détails" arrow>
-                              <IconButton 
-                                color="info" 
-                                onClick={() => onViewDetails(pointage)} 
+                              <IconButton
+                                color="info"
+                                onClick={() => onViewDetails(pointage)}
                                 disabled={actionLoading}
                                 size="medium"
                                 sx={{
@@ -627,11 +633,11 @@ const PointageTable = ({
                               </IconButton>
                             </Tooltip>
                           </Box>
-                          
-                          <Typography 
-                            variant="caption" 
-                            color="text.secondary" 
-                            sx={{ 
+
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{
                               fontWeight: '500',
                               background: alpha(ORTM_COLORS.text, 0.1),
                               px: 1,
@@ -661,15 +667,15 @@ const PointageTable = ({
         onClose={handleCloseExitDialog}
         maxWidth="sm"
         fullWidth
-        PaperProps={{ 
-          sx: { 
+        PaperProps={{
+          sx: {
             borderRadius: 4,
             background: `linear-gradient(135deg, ${ORTM_COLORS.background} 0%, ${ORTM_COLORS.surface} 100%)`,
             boxShadow: `0 20px 60px ${alpha(ORTM_COLORS.primary, 0.2)}`,
-          } 
+          }
         }}
       >
-        <DialogTitle sx={{ 
+        <DialogTitle sx={{
           background: `linear-gradient(135deg, ${ORTM_COLORS.primary} 0%, ${ORTM_COLORS.primaryDark} 100%)`,
           color: ORTM_COLORS.surface,
           py: 3
@@ -681,14 +687,14 @@ const PointageTable = ({
             </Typography>
           </Box>
         </DialogTitle>
-        
+
         <DialogContent sx={{ pt: 3 }}>
           {selectedPointage && (
             <Box>
               <Typography variant="body1" gutterBottom fontWeight="600">
                 Vous êtes sur le point d'enregistrer la sortie de :
               </Typography>
-              
+
               <Card sx={{ mb: 3, p: 2, borderRadius: 3, background: alpha(ORTM_COLORS.primary, 0.05) }}>
                 <CardContent sx={{ p: '0 !important' }}>
                   <Typography variant="subtitle1" fontWeight="bold" color={ORTM_COLORS.primary}>
@@ -704,7 +710,7 @@ const PointageTable = ({
                   </Typography>
                 </CardContent>
               </Card>
-              
+
               <TextField
                 fullWidth
                 multiline
@@ -716,16 +722,16 @@ const PointageTable = ({
                 variant="outlined"
                 sx={{ mb: 2 }}
               />
-              
+
               <Typography variant="body2" color="text.secondary" fontWeight="500">
                 Heure de sortie actuelle: {new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
               </Typography>
             </Box>
           )}
         </DialogContent>
-        
+
         <DialogActions sx={{ p: 3, gap: 2 }}>
-          <Button 
+          <Button
             onClick={handleCloseExitDialog}
             variant="outlined"
             disabled={exitLoading}
@@ -738,7 +744,7 @@ const PointageTable = ({
           >
             Annuler
           </Button>
-          <Button 
+          <Button
             onClick={handleExitSubmit}
             variant="contained"
             color="success"
