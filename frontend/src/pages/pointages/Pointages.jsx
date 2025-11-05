@@ -5,7 +5,7 @@ import {
   InputLabel, Select, MenuItem, TextField, IconButton,
   InputAdornment, Dialog, DialogTitle, DialogContent,
   DialogActions, Button, Divider, Chip, Avatar,
-  useTheme, Stack
+  useTheme, Stack, alpha
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { format, parseISO, isValid } from "date-fns";
@@ -24,6 +24,8 @@ import WorkIcon from '@mui/icons-material/Work';
 import EmailIcon from '@mui/icons-material/Email';
 import PhoneIcon from '@mui/icons-material/Phone';
 import BusinessIcon from '@mui/icons-material/Business';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import QrCodeIcon from '@mui/icons-material/QrCode';
 
 import { 
   getPointages, 
@@ -37,18 +39,64 @@ import Header, { triggerNotificationsRefresh } from "../../components/Header";
 import PointageTable from "./PointageTable";
 import PointageModal from "./PointageModal";
 
+// Palette de couleurs ORTM
+const ORTM_COLORS = {
+  primary: "#1B5E20",
+  primaryLight: "#4CAF50",
+  primaryDark: "#0D3D12",
+  secondary: "#FFC107",
+  secondaryLight: "#FFD54F",
+  secondaryDark: "#FF8F00",
+  background: "#F8FDF9",
+  surface: "#FFFFFF",
+  text: "#1A331C",
+  error: "#D32F2F",
+  success: "#2E7D32",
+  warning: "#FF9800",
+  info: "#1976D2"
+};
+
 // Composant pour afficher les éléments de détail
-const DetailItem = ({ icon, label, value, color = "text.primary" }) => (
-  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 1 }}>
-    <Box sx={{ color: 'primary.main', minWidth: 24 }}>
+const DetailItem = ({ icon, label, value, color = "text.primary", size = "medium" }) => (
+  <Box sx={{ 
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: 2, 
+    py: size === 'small' ? 0.5 : 1,
+    borderRadius: 2,
+    transition: 'all 0.3s ease',
+    '&:hover': {
+      backgroundColor: alpha(ORTM_COLORS.primary, 0.02),
+    }
+  }}>
+    <Box sx={{ 
+      color: ORTM_COLORS.primary, 
+      minWidth: 24,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }}>
       {icon}
     </Box>
     <Box sx={{ flex: 1 }}>
-      <Typography variant="subtitle2" color="text.secondary" fontSize="0.8rem">
+      <Typography 
+        variant={size === 'small' ? 'caption' : 'subtitle2'} 
+        color="text.secondary" 
+        fontSize={size === 'small' ? '0.75rem' : '0.8rem'}
+        fontWeight="500"
+      >
         {label}
       </Typography>
-      <Typography variant="body1" color={color} fontWeight="500">
-        {value}
+      <Typography 
+        variant={size === 'small' ? 'body2' : 'body1'} 
+        color={color} 
+        fontWeight="600"
+        sx={{ 
+          wordBreak: 'break-word',
+          lineHeight: 1.2
+        }}
+      >
+        {value || "Non spécifié"}
       </Typography>
     </Box>
   </Box>
@@ -72,12 +120,11 @@ const Pointages = () => {
   const [detailView, setDetailView] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [exitFilter, setExitFilter] = useState("all");
-  
+  const [searchType, setSearchType] = useState("all"); // Type de recherche
   const [generatingPDF, setGeneratingPDF] = useState(false);
 
   // ✅ FONCTION POUR GÉNÉRER L'ID AUTOMATIQUE AU FORMAT PTG0025
   const generatePointageId = () => {
-    // Génère un nombre aléatoire entre 1 et 9999 et le formate sur 4 chiffres
     const randomNum = Math.floor(Math.random() * 9999) + 1;
     const formattedNum = randomNum.toString().padStart(4, '0');
     return `PTG${formattedNum}`;
@@ -187,7 +234,7 @@ const Pointages = () => {
     const hours = Math.floor(diffMinutes / 60);
     const minutes = diffMinutes % 60;
     
-    return `${hours}h ${minutes}min`;
+    return `${hours}h ${minutes.toString().padStart(2, '0')}min`;
   };
 
   const getStatusColor = (heureSortie) => {
@@ -291,10 +338,9 @@ const Pointages = () => {
       });
     } else {
       setEditingPointage(null);
-      // ✅ GÉNÉRATION AUTOMATIQUE DE L'ID AU FORMAT PTG0025
       setFormData({ 
         ...initialFormData, 
-        id_pointage: generatePointageId() // ← ID généré automatiquement
+        id_pointage: generatePointageId()
       });
     }
     setOpenDialog(true);
@@ -303,7 +349,6 @@ const Pointages = () => {
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setEditingPointage(null);
-    // ✅ CORRIGÉ : Réinitialiser avec id_pointage vide
     setFormData({ 
       ...initialFormData, 
       id_pointage: "" 
@@ -317,6 +362,11 @@ const Pointages = () => {
 
   const handleExitFilterChange = (e) => {
     setExitFilter(e.target.value);
+  };
+
+  const handleSearchTypeChange = (e) => {
+    setSearchType(e.target.value);
+    setSearchTerm(""); // Réinitialiser la recherche quand on change le type
   };
 
   const validateForm = () => {
@@ -387,23 +437,57 @@ const Pointages = () => {
     }
   };
 
-  // ✅ CORRECTION : Utiliser filteredPointages au lieu de filteredData
+  // ✅ RECHERCHE AVANCÉE PAR TYPE
   const filteredPointages = pointages.filter(pointage => {
     if (!pointage || !pointage.id_pointage || !pointage.employe) {
-      console.warn("Pointage invalide dans filteredPointages:", pointage);
       return false;
     }
-    const employeNom = String(pointage.employe_nom || "");
-    const idPointage = String(pointage.id_pointage || "");
-    return (
-      (
-        employeNom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        idPointage.includes(searchTerm)
-      ) &&
-      (exitFilter === "all" ||
-       (exitFilter === "working" && !pointage.heure_sortie) ||
-       (exitFilter === "exited" && pointage.heure_sortie))
-    );
+
+    const searchLower = searchTerm.toLowerCase();
+    const employeNom = String(pointage.employe_nom || "").toLowerCase();
+    const idPointage = String(pointage.id_pointage || "").toLowerCase();
+    const matricule = String(pointage.employe_matricule || "").toLowerCase();
+    
+    // Recherche par date
+    let dateMatch = false;
+    if (pointage.date_pointage && isValid(parseISO(pointage.date_pointage))) {
+      const formattedDate = format(parseISO(pointage.date_pointage), "dd/MM/yyyy");
+      const frenchDate = format(parseISO(pointage.date_pointage), "dd MMMM yyyy", { locale: fr }).toLowerCase();
+      dateMatch = formattedDate.includes(searchTerm) || frenchDate.includes(searchLower);
+    }
+
+    // Filtre par type de recherche
+    let matchesSearch = false;
+    switch (searchType) {
+      case "matricule":
+        matchesSearch = matricule.includes(searchLower);
+        break;
+      case "nom":
+        matchesSearch = employeNom.includes(searchLower);
+        break;
+      case "id_pointage":
+        matchesSearch = idPointage.includes(searchLower);
+        break;
+      case "date":
+        matchesSearch = dateMatch;
+        break;
+      case "all":
+      default:
+        matchesSearch = 
+          employeNom.includes(searchLower) ||
+          idPointage.includes(searchLower) ||
+          matricule.includes(searchLower) ||
+          dateMatch;
+        break;
+    }
+
+    // Filtre par statut
+    const matchesStatus = 
+      exitFilter === "all" ||
+      (exitFilter === "working" && !pointage.heure_sortie) ||
+      (exitFilter === "exited" && pointage.heure_sortie);
+
+    return matchesSearch && matchesStatus;
   });
 
   return (
@@ -417,7 +501,7 @@ const Pointages = () => {
         component="main" 
         sx={{ 
           flexGrow: 1, 
-          bgcolor: "#f8fafc", 
+          bgcolor: ORTM_COLORS.background, 
           minHeight: "100vh", 
           p: 3, 
           mt: 8, 
@@ -429,7 +513,7 @@ const Pointages = () => {
         }}
       >
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
+          <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
             {error}
           </Alert>
         )}
@@ -444,7 +528,7 @@ const Pointages = () => {
           }}
         >
           <Box>
-            <Typography variant="h4" sx={{ fontWeight: "bold", mb: 1 }}>
+            <Typography variant="h4" sx={{ fontWeight: "bold", mb: 1, color: ORTM_COLORS.text }}>
               Gestion des Pointages
             </Typography>
             <Typography variant="body1" color="text.secondary">
@@ -452,7 +536,6 @@ const Pointages = () => {
             </Typography>
           </Box>
           
-          {/* ✅ NOUVEAU : STACK AVEC BOUTON PDF ET NOUVEAU POINTAGE */}
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>            
             <Fab
               color="primary"
@@ -464,7 +547,11 @@ const Pointages = () => {
                 px: 3,
                 textTransform: "none",
                 fontWeight: "bold",
-                fontSize: '1rem'
+                fontSize: '1rem',
+                background: `linear-gradient(135deg, ${ORTM_COLORS.primary} 0%, ${ORTM_COLORS.primaryLight} 100%)`,
+                '&:hover': {
+                  background: `linear-gradient(135deg, ${ORTM_COLORS.primaryDark} 0%, ${ORTM_COLORS.primary} 100%)`,
+                }
               }}
               disabled={actionLoading}
             >
@@ -477,30 +564,42 @@ const Pointages = () => {
         {/* Cartes de statistiques */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid item xs={12} sm={6} md={3}>
-            <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
+            <Card sx={{ 
+              borderRadius: 3, 
+              boxShadow: `0 4px 20px ${alpha(ORTM_COLORS.primary, 0.1)}`,
+              background: `linear-gradient(135deg, ${ORTM_COLORS.surface} 0%, ${alpha(ORTM_COLORS.primary, 0.05)} 100%)`
+            }}>
               <CardContent>
-                <Typography color="text.secondary">Total Pointages</Typography>
-                <Typography variant="h4" sx={{ fontWeight: "bold", color: "primary.main" }}>
+                <Typography color="text.secondary" gutterBottom>Total Pointages</Typography>
+                <Typography variant="h4" sx={{ fontWeight: "bold", color: ORTM_COLORS.primary }}>
                   {stats.total}
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
-            <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
+            <Card sx={{ 
+              borderRadius: 3, 
+              boxShadow: `0 4px 20px ${alpha(ORTM_COLORS.success, 0.1)}`,
+              background: `linear-gradient(135deg, ${ORTM_COLORS.surface} 0%, ${alpha(ORTM_COLORS.success, 0.05)} 100%)`
+            }}>
               <CardContent>
-                <Typography color="text.secondary">Avec Heure de Sortie</Typography>
-                <Typography variant="h4" sx={{ fontWeight: "bold", color: "success.main" }}>
+                <Typography color="text.secondary" gutterBottom>Avec Heure de Sortie</Typography>
+                <Typography variant="h4" sx={{ fontWeight: "bold", color: ORTM_COLORS.success }}>
                   {stats.withExit}
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
-            <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
+            <Card sx={{ 
+              borderRadius: 3, 
+              boxShadow: `0 4px 20px ${alpha(ORTM_COLORS.warning, 0.1)}`,
+              background: `linear-gradient(135deg, ${ORTM_COLORS.surface} 0%, ${alpha(ORTM_COLORS.warning, 0.05)} 100%)`
+            }}>
               <CardContent>
-                <Typography color="text.secondary">Sans Heure de Sortie</Typography>
-                <Typography variant="h4" sx={{ fontWeight: "bold", color: "warning.main" }}>
+                <Typography color="text.secondary" gutterBottom>Sans Heure de Sortie</Typography>
+                <Typography variant="h4" sx={{ fontWeight: "bold", color: ORTM_COLORS.warning }}>
                   {stats.withoutExit}
                 </Typography>
               </CardContent>
@@ -508,19 +607,55 @@ const Pointages = () => {
           </Grid>
         </Grid>
 
-        {/* Barre de recherche et filtres */}
-        <Paper sx={{ p: 2, mb: 3, borderRadius: 3 }}>
-          <Grid container spacing={2} alignItems="center" ml={10}>
-            <Grid item xs={12} sm={6} width={800}>
+        {/* ✅ BARRE DE RECHERCHE AVANCÉE */}
+        <Paper sx={{ 
+          p: 3, 
+          mb: 3, 
+          borderRadius: 3,
+          background: `linear-gradient(135deg, ${ORTM_COLORS.surface} 0%, ${alpha(ORTM_COLORS.primary, 0.02)} 100%)`,
+          boxShadow: `0 4px 20px ${alpha(ORTM_COLORS.primary, 0.08)}`
+        }}>
+          <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1, color: ORTM_COLORS.primary }}>
+            <FilterListIcon />
+            Recherche Avancée
+          </Typography>
+          
+          <Grid container spacing={2} alignItems="center">
+            {/* Type de recherche */}
+            <Grid item xs={12} sm={3}>
+              <FormControl fullWidth>
+                <InputLabel>Type de recherche</InputLabel>
+                <Select
+                  value={searchType}
+                  label="Type de recherche"
+                  onChange={handleSearchTypeChange}
+                >
+                  <MenuItem value="all">Tous les critères</MenuItem>
+                  <MenuItem value="matricule">Matricule employé</MenuItem>
+                  <MenuItem value="nom">Nom employé</MenuItem>
+                  <MenuItem value="id_pointage">ID Pointage</MenuItem>
+                  <MenuItem value="date">Date (JJ/MM/AAAA)</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            {/* Champ de recherche */}
+            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                placeholder="Rechercher un pointage..."
+                placeholder={
+                  searchType === "matricule" ? "Rechercher par matricule..." :
+                  searchType === "nom" ? "Rechercher par nom..." :
+                  searchType === "id_pointage" ? "Rechercher par ID pointage..." :
+                  searchType === "date" ? "Rechercher par date (JJ/MM/AAAA)..." :
+                  "Rechercher un pointage..."
+                }
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <SearchIcon />
+                      <SearchIcon color="primary" />
                     </InputAdornment>
                   ),
                   endAdornment: searchTerm && (
@@ -536,20 +671,19 @@ const Pointages = () => {
                 }}
               />
             </Grid>
-            <Grid item xs={12} sm={6} width={800}>
+
+            {/* Filtre par statut */}
+            <Grid item xs={12} sm={3}>
               <FormControl fullWidth>
-                <InputLabel id="exit-filter-label">
-                  Filtrer par statut
-                </InputLabel>
+                <InputLabel>Statut</InputLabel>
                 <Select
-                  labelId="exit-filter-label"
                   value={exitFilter}
-                  label="Filtrer par statut"
+                  label="Statut"
                   onChange={handleExitFilterChange}
                 >
                   <MenuItem value="all">Tous les statuts</MenuItem>
-                  <MenuItem value="working">En cours de travail</MenuItem>
-                  <MenuItem value="exited">Déjà sortis</MenuItem>
+                  <MenuItem value="working">En cours</MenuItem>
+                  <MenuItem value="exited">Terminés</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -557,7 +691,13 @@ const Pointages = () => {
         </Paper>
 
         {/* Tableau des pointages */}
-        <Paper sx={{ width: "100%", overflow: "hidden", borderRadius: 3 }}>
+        <Paper sx={{ 
+          width: "100%", 
+          overflow: "hidden", 
+          borderRadius: 3,
+          background: `linear-gradient(135deg, ${ORTM_COLORS.surface} 0%, ${alpha(ORTM_COLORS.primary, 0.02)} 100%)`,
+          boxShadow: `0 4px 20px ${alpha(ORTM_COLORS.primary, 0.08)}`
+        }}>
           <PointageTable
             pointages={filteredPointages}
             loading={loading}
@@ -584,7 +724,7 @@ const Pointages = () => {
           onInputChange={handleInputChange}
         />
         
-        {/* Dialog des détails stylisé */}
+        {/* ✅ DIALOG DES DÉTAILS STYLISÉ */}
         <Dialog
           open={!!detailView}
           onClose={closeDetails}
@@ -593,25 +733,32 @@ const Pointages = () => {
           PaperProps={{ 
             sx: { 
               borderRadius: 3,
-              background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)'
+              background: ORTM_COLORS.surface,
+              boxShadow: `0 20px 60px ${alpha(ORTM_COLORS.primary, 0.2)}`,
+              overflow: 'hidden'
             }
           }}
         >
           <DialogTitle sx={{ 
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            background: `linear-gradient(135deg, ${ORTM_COLORS.primary} 0%, ${ORTM_COLORS.primaryDark} 100%)`,
             color: 'white',
-            py: 3
+            py: 3,
+            position: 'relative'
           }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)' }}>
-                <AccessTimeIcon />
+              <Avatar sx={{ 
+                bgcolor: 'rgba(255,255,255,0.2)',
+                width: 56,
+                height: 56
+              }}>
+                <QrCodeIcon fontSize="large" />
               </Avatar>
               <Box>
                 <Typography variant="h5" fontWeight="bold">
                   Détails du Pointage
                 </Typography>
                 <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                  #{detailView?.id_pointage || "Inconnu"}
+                  ID: {detailView?.id_pointage || "Inconnu"}
                 </Typography>
               </Box>
             </Box>
@@ -620,30 +767,59 @@ const Pointages = () => {
           <DialogContent sx={{ pt: 4, pb: 2 }}>
             {detailView && (
               <Grid container spacing={3}>
-                {/* En-tête avec statut */}
+                {/* En-tête avec statut et durée */}
                 <Grid item xs={12}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center', 
+                    mb: 3,
+                    p: 2,
+                    borderRadius: 2,
+                    background: alpha(ORTM_COLORS.primary, 0.05)
+                  }}>
                     <Chip
                       icon={<AccessTimeIcon />}
                       label={getStatusText(detailView.heure_sortie)}
                       color={getStatusColor(detailView.heure_sortie)}
                       variant="filled"
-                      sx={{ fontWeight: 'bold', fontSize: '0.9rem' }}
+                      sx={{ 
+                        fontWeight: 'bold', 
+                        fontSize: '0.9rem',
+                        px: 2,
+                        py: 1
+                      }}
                     />
                     {detailView.heure_sortie && (
-                      <Typography variant="h6" color="primary" fontWeight="bold">
-                        Durée: {calculateWorkingHours(detailView.heure_entree, detailView.heure_sortie)}
-                      </Typography>
+                      <Box sx={{ textAlign: 'right' }}>
+                        <Typography variant="caption" color="text.secondary" display="block">
+                          Durée de travail
+                        </Typography>
+                        <Typography variant="h6" color={ORTM_COLORS.primary} fontWeight="bold">
+                          {calculateWorkingHours(detailView.heure_entree, detailView.heure_sortie)}
+                        </Typography>
+                      </Box>
                     )}
                   </Box>
                 </Grid>
 
-                {/* Informations principales */}
+                {/* Informations du pointage */}
                 <Grid item xs={12} md={6}>
-                  <Card sx={{ borderRadius: 2, boxShadow: 2, height: '100%' }}>
+                  <Card sx={{ 
+                    borderRadius: 2, 
+                    boxShadow: `0 4px 12px ${alpha(ORTM_COLORS.primary, 0.1)}`,
+                    height: '100%',
+                    border: `1px solid ${alpha(ORTM_COLORS.primary, 0.1)}`
+                  }}>
                     <CardContent>
-                      <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <CalendarTodayIcon color="primary" />
+                      <Typography variant="h6" gutterBottom sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 1,
+                        color: ORTM_COLORS.primary,
+                        mb: 3
+                      }}>
+                        <CalendarTodayIcon />
                         Informations du Pointage
                       </Typography>
                       <Box sx={{ mt: 2 }}>
@@ -651,14 +827,16 @@ const Pointages = () => {
                           icon={<AccessTimeIcon />}
                           label="Heure d'Entrée"
                           value={detailView.heure_entree || "-"}
-                          color="success"
+                          color={ORTM_COLORS.success}
                         />
+                        <Divider sx={{ my: 1 }} />
                         <DetailItem 
                           icon={<ExitToAppIcon />}
                           label="Heure de Sortie"
                           value={detailView.heure_sortie || "-"}
-                          color="info"
+                          color={ORTM_COLORS.info}
                         />
+                        <Divider sx={{ my: 1 }} />
                         <DetailItem 
                           icon={<CalendarTodayIcon />}
                           label="Date"
@@ -675,10 +853,21 @@ const Pointages = () => {
 
                 {/* Informations de l'employé */}
                 <Grid item xs={12} md={6}>
-                  <Card sx={{ borderRadius: 2, boxShadow: 2, height: '100%' }}>
+                  <Card sx={{ 
+                    borderRadius: 2, 
+                    boxShadow: `0 4px 12px ${alpha(ORTM_COLORS.primary, 0.1)}`,
+                    height: '100%',
+                    border: `1px solid ${alpha(ORTM_COLORS.primary, 0.1)}`
+                  }}>
                     <CardContent>
-                      <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <PersonIcon color="primary" />
+                      <Typography variant="h6" gutterBottom sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 1,
+                        color: ORTM_COLORS.primary,
+                        mb: 3
+                      }}>
+                        <PersonIcon />
                         Informations de l'Employé
                       </Typography>
                       <Box sx={{ mt: 2 }}>
@@ -687,6 +876,7 @@ const Pointages = () => {
                           label="Nom Complet"
                           value={detailView.employe_nom || "Inconnu"}
                         />
+                        <Divider sx={{ my: 1 }} />
                         <DetailItem 
                           icon={<BusinessIcon />}
                           label="Matricule"
@@ -700,23 +890,32 @@ const Pointages = () => {
                 {/* Remarques */}
                 {detailView.remarque && (
                   <Grid item xs={12}>
-                    <Card sx={{ borderRadius: 2, boxShadow: 2 }}>
+                    <Card sx={{ 
+                      borderRadius: 2, 
+                      boxShadow: `0 4px 12px ${alpha(ORTM_COLORS.primary, 0.1)}`,
+                      border: `1px solid ${alpha(ORTM_COLORS.primary, 0.1)}`
+                    }}>
                       <CardContent>
-                        <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <NotesIcon color="primary" />
+                        <Typography variant="h6" gutterBottom sx={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: 1,
+                          color: ORTM_COLORS.primary
+                        }}>
+                          <NotesIcon />
                           Remarques
                         </Typography>
                         <Paper 
                           variant="outlined" 
                           sx={{ 
                             p: 2, 
-                            mt: 1, 
-                            bgcolor: 'grey.50',
-                            borderColor: 'grey.300',
+                            mt: 2,
+                            bgcolor: alpha(ORTM_COLORS.primary, 0.03),
+                            borderColor: alpha(ORTM_COLORS.primary, 0.2),
                             borderRadius: 2
                           }}
                         >
-                          <Typography variant="body1" fontStyle="italic">
+                          <Typography variant="body1" fontStyle="italic" color="text.primary">
                             "{detailView.remarque}"
                           </Typography>
                         </Paper>
@@ -728,41 +927,62 @@ const Pointages = () => {
                 {/* Informations détaillées de l'employé */}
                 {detailView.employe_details && Object.keys(detailView.employe_details).length > 0 && (
                   <Grid item xs={12}>
-                    <Card sx={{ borderRadius: 2, boxShadow: 2 }}>
+                    <Card sx={{ 
+                      borderRadius: 2, 
+                      boxShadow: `0 4px 12px ${alpha(ORTM_COLORS.primary, 0.1)}`,
+                      border: `1px solid ${alpha(ORTM_COLORS.primary, 0.1)}`
+                    }}>
                       <CardContent>
-                        <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <WorkIcon color="primary" />
+                        <Typography variant="h6" gutterBottom sx={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: 1,
+                          color: ORTM_COLORS.primary
+                        }}>
+                          <WorkIcon />
                           Détails de l'Employé
                         </Typography>
                         <Grid container spacing={2} sx={{ mt: 1 }}>
-                          <Grid item xs={12} md={6}>
-                            <DetailItem 
-                              icon={<BusinessIcon />}
-                              label="Département"
-                              value={detailView.employe_details.departement?.nom || "Non spécifié"}
-                            />
-                          </Grid>
-                          <Grid item xs={12} md={6}>
-                            <DetailItem 
-                              icon={<WorkIcon />}
-                              label="Poste"
-                              value={detailView.employe_details.poste || "Non spécifié"}
-                            />
-                          </Grid>
-                          <Grid item xs={12} md={6}>
-                            <DetailItem 
-                              icon={<EmailIcon />}
-                              label="Email"
-                              value={detailView.employe_details.email || "Non spécifié"}
-                            />
-                          </Grid>
-                          <Grid item xs={12} md={6}>
-                            <DetailItem 
-                              icon={<PhoneIcon />}
-                              label="Téléphone"
-                              value={detailView.employe_details.telephone || "Non spécifié"}
-                            />
-                          </Grid>
+                          {detailView.employe_details.email && (
+                            <Grid item xs={12} sm={6}>
+                              <DetailItem 
+                                icon={<EmailIcon />}
+                                label="Email"
+                                value={detailView.employe_details.email}
+                                size="small"
+                              />
+                            </Grid>
+                          )}
+                          {detailView.employe_details.telephone && (
+                            <Grid item xs={12} sm={6}>
+                              <DetailItem 
+                                icon={<PhoneIcon />}
+                                label="Téléphone"
+                                value={detailView.employe_details.telephone}
+                                size="small"
+                              />
+                            </Grid>
+                          )}
+                          {detailView.employe_details.departement && (
+                            <Grid item xs={12} sm={6}>
+                              <DetailItem 
+                                icon={<BusinessIcon />}
+                                label="Département"
+                                value={detailView.employe_details.departement}
+                                size="small"
+                              />
+                            </Grid>
+                          )}
+                          {detailView.employe_details.poste && (
+                            <Grid item xs={12} sm={6}>
+                              <DetailItem 
+                                icon={<WorkIcon />}
+                                label="Poste"
+                                value={detailView.employe_details.poste}
+                                size="small"
+                              />
+                            </Grid>
+                          )}
                         </Grid>
                       </CardContent>
                     </Card>
@@ -772,14 +992,47 @@ const Pointages = () => {
             )}
           </DialogContent>
           
-          <DialogActions sx={{ p: 3, gap: 1 }}>
+          <DialogActions sx={{ 
+            px: 3, 
+            py: 2, 
+            background: alpha(ORTM_COLORS.primary, 0.02),
+            borderTop: `1px solid ${alpha(ORTM_COLORS.primary, 0.1)}`
+          }}>
             <Button 
-              onClick={closeDetails} 
+              onClick={closeDetails}
               variant="outlined"
-              sx={{ borderRadius: 2, px: 3 }}
+              startIcon={<CloseIcon />}
+              sx={{ 
+                borderRadius: 2,
+                textTransform: 'none',
+                fontWeight: 'bold',
+                px: 3
+              }}
             >
               Fermer
             </Button>
+            {detailView && (
+              <Button 
+                onClick={() => {
+                  handleOpenDialog(detailView);
+                  closeDetails();
+                }}
+                variant="contained"
+                startIcon={<AccessTimeIcon />}
+                sx={{ 
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 'bold',
+                  px: 3,
+                  background: `linear-gradient(135deg, ${ORTM_COLORS.primary} 0%, ${ORTM_COLORS.primaryLight} 100%)`,
+                  '&:hover': {
+                    background: `linear-gradient(135deg, ${ORTM_COLORS.primaryDark} 0%, ${ORTM_COLORS.primary} 100%)`,
+                  }
+                }}
+              >
+                Modifier le Pointage
+              </Button>
+            )}
           </DialogActions>
         </Dialog>
 
@@ -788,12 +1041,64 @@ const Pointages = () => {
           open={snackbar.open}
           autoHideDuration={6000}
           onClose={handleCloseSnackbar}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         >
-          <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+          <Alert
+            onClose={handleCloseSnackbar}
+            severity={snackbar.severity}
+            variant="filled"
+            sx={{ 
+              borderRadius: 2,
+              fontWeight: 'medium',
+              alignItems: 'center'
+            }}
+          >
             {snackbar.message}
           </Alert>
         </Snackbar>
+
+        {/* Loading overlay pour les actions */}
+        {actionLoading && (
+          <Box
+            sx={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              zIndex: 9999
+            }}
+          >
+            <Box
+              sx={{
+                background: ORTM_COLORS.surface,
+                borderRadius: 3,
+                p: 4,
+                boxShadow: `0 8px 32px ${alpha(ORTM_COLORS.primary, 0.2)}`,
+                textAlign: 'center'
+              }}
+            >
+              <CircularProgress 
+                size={60} 
+                thickness={4}
+                sx={{ 
+                  color: ORTM_COLORS.primary,
+                  mb: 2
+                }} 
+              />
+              <Typography variant="h6" color={ORTM_COLORS.text} fontWeight="bold">
+                {deletingId ? "Suppression en cours..." : "Traitement en cours..."}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                Veuillez patienter...
+              </Typography>
+            </Box>
+          </Box>
+        )}
       </Box>
     </Box>
   );

@@ -33,77 +33,10 @@ from .serializers import (
 )
 from .permissions import IsOwnerOrAdminForWrite
 
-# Import de StatisticsService avec fallback
-try:
-    from .services.statistics_service import StatisticsService
-except ImportError as e:
-    class StatisticsService:
-        @staticmethod
-        def calculate_employee_weekly_stats(employe, date_reference=None):
-            return {
-                'employe': employe,
-                'periode_debut': timezone.now().date(),
-                'periode_fin': timezone.now().date(),
-                'type_periode': 'hebdo',
-                'heures_travail_total': timezone.timedelta(hours=40),
-                'jours_travailles': 5,
-                'moyenne_heures_quotidiennes': timezone.timedelta(hours=8),
-                'pointages_reguliers': 4,
-                'pointages_irreguliers': 1,
-                'taux_regularite': 80.0,
-                'jours_ouvrables': 5
-            }
-        
-        @staticmethod
-        def calculate_employee_monthly_stats(employe, mois=None):
-            return {
-                'employe': employe,
-                'periode_debut': timezone.now().date().replace(day=1),
-                'periode_fin': timezone.now().date(),
-                'type_periode': 'mensuel',
-                'heures_travail_total': timezone.timedelta(hours=160),
-                'jours_travailles': 20,
-                'moyenne_heures_quotidiennes': timezone.timedelta(hours=8),
-                'pointages_reguliers': 18,
-                'pointages_irreguliers': 2,
-                'taux_regularite': 90.0,
-                'jours_passes_mois': 22,
-                'heures_attendues_jours_passes': timezone.timedelta(hours=176),
-                'statut_heures': 'NORMAL',
-                'ecart_heures': timezone.timedelta(hours=0),
-                'pourcentage_ecart': 0.0,
-                'observation_heures': 'Heures conformes aux attentes',
-                'pointages_ponctuels': 18,
-                'pointages_non_ponctuels': 2,
-                'taux_ponctualite': 90.0,
-                'jours_ouvrables': 22
-            }
-        
-        @staticmethod
-        def calculate_global_monthly_stats(mois=None):
-            return {
-                'periode': timezone.now().date().replace(day=1),
-                'type_periode': 'mensuel',
-                'total_employes': 150,
-                'employes_actifs': 140,
-                'total_departements': 8,
-                'departements_actifs': 8,
-                'taux_activite_global': 95.0,
-                'total_pointages': 3000,
-                'pointages_reguliers': 2700,
-                'heures_travail_total': timezone.timedelta(hours=24000),
-                'moyenne_heures_quotidiennes': timezone.timedelta(hours=8),
-                'taux_presence': 92.0,
-                'taux_regularite_global': 90.0,
-                'total_evenements': 12
-            }
-        
-        @staticmethod
-        def save_employee_stats_to_db(stats_data):
-            return True
+# Import de StatisticsService
+from .services.statistics_service import StatisticsService
 
 logger = logging.getLogger(__name__)
-
 
 def parse_date(date_str):
     """Parse une date depuis une chaîne"""
@@ -120,7 +53,6 @@ def parse_date(date_str):
         return date_str
     except Exception:
         return None
-
 
 # FONCTION D'ENVOI D'EMAIL POUR LES ÉVÉNEMENTS
 def send_event_notification_email(event, employes, action="creation"):
@@ -216,14 +148,12 @@ def send_event_notification_email(event, employes, action="creation"):
         logger.error(f"Erreur envoi email événement: {str(e)}")
         return False
 
-
 class CurrentUserView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         serializer = CustomUserSerializer(request.user)
         return Response(serializer.data)
-
 
 class RegisterViewSet(viewsets.ViewSet):
     permission_classes = [permissions.AllowAny]
@@ -234,7 +164,6 @@ class RegisterViewSet(viewsets.ViewSet):
             user = serializer.save()
             return Response(CustomUserSerializer(user).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 class DepartementViewSet(viewsets.ModelViewSet):
     queryset = Departement.objects.all()
@@ -248,7 +177,6 @@ class DepartementViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
-
 
 class EmployeViewSet(viewsets.ModelViewSet):
     queryset = Employe.objects.select_related('departement').all()
@@ -273,7 +201,6 @@ class EmployeViewSet(viewsets.ModelViewSet):
             'employes_actifs': employes_actifs,
             'employes_inactifs': employes_inactifs
         })
-
 
 class PointageViewSet(viewsets.ModelViewSet):
     queryset = Pointage.objects.select_related('employe').all()
@@ -322,7 +249,6 @@ class PointageViewSet(viewsets.ModelViewSet):
             'total_heures': total_heures,
             'nombre_pointages': pointages.count()
         })
-
 
 class EvenementViewSet(viewsets.ModelViewSet):
     queryset = Evenement.objects.all()
@@ -376,7 +302,6 @@ class EvenementViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(evenements, many=True)
         return Response(serializer.data)
 
-
 class EmployeeStatisticsAPIView(APIView):
     def get(self, request, matricule=None):
         try:
@@ -429,7 +354,6 @@ class EmployeeStatisticsAPIView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-
 class GlobalStatisticsAPIView(APIView):
     def get(self, request):
         try:
@@ -462,7 +386,6 @@ class GlobalStatisticsAPIView(APIView):
                 {"error": str(e)}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
 
 # NOUVELLES VUES POUR LES ANALYSES AVANCÉES
 class EmployeePonctualiteAnalysisAPIView(APIView):
@@ -542,7 +465,6 @@ class EmployeePonctualiteAnalysisAPIView(APIView):
             return "Ponctualité acceptable, quelques retards occasionnels."
         else:
             return "Ponctualité à améliorer, retards fréquents."
-
 
 class EmployeeHeuresComparisonAPIView(APIView):
     """Comparaison des heures travaillées sur plusieurs mois"""
@@ -630,7 +552,6 @@ class EmployeeHeuresComparisonAPIView(APIView):
             'periode_analysée': current_date.strftime('%Y-%m')
         }
 
-
 class EmployeeMonthlyTrendsAPIView(APIView):
     """Tendances mensuelles des performances"""
     
@@ -686,7 +607,6 @@ class EmployeeMonthlyTrendsAPIView(APIView):
             },
             'alertes': []  # Aucune alerte pour l'instant
         }
-
 
 class ExportStatisticsPDFAPIView(APIView):
     def _normaliser_nom_fichier(self, nom):

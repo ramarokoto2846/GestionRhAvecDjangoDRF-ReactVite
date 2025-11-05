@@ -4,7 +4,8 @@ import {
   TableBody, IconButton, Chip, Box, Avatar, Typography,
   Tooltip, CircularProgress, Button, Dialog, DialogTitle,
   DialogContent, DialogActions, TextField, Paper,
-  Badge, alpha, useTheme, Card, CardContent
+  Badge, alpha, useTheme, Card, CardContent,
+  Collapse, TablePagination
 } from "@mui/material";
 import { format, parseISO, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -21,6 +22,8 @@ import TodayIcon from '@mui/icons-material/Today';
 import WorkHistoryIcon from '@mui/icons-material/WorkHistory';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import StopIcon from '@mui/icons-material/Stop';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 
 // Palette de couleurs ORTM
 const ORTM_COLORS = {
@@ -55,6 +58,53 @@ const PointageTable = ({
   const [selectedPointage, setSelectedPointage] = useState(null);
   const [exitRemarque, setExitRemarque] = useState("");
   const [exitLoading, setExitLoading] = useState(false);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [expandedEmployees, setExpandedEmployees] = useState({});
+
+  // Regrouper les pointages par employé
+  const groupedPointages = pointages.reduce((acc, pointage) => {
+    if (!pointage || !pointage.employe) return acc;
+    
+    const employeId = pointage.employe;
+    if (!acc[employeId]) {
+      acc[employeId] = {
+        employe: pointage.employe,
+        employe_nom: pointage.employe_nom,
+        employe_matricule: pointage.employe_matricule,
+        pointages: []
+      };
+    }
+    acc[employeId].pointages.push(pointage);
+    return acc;
+  }, {});
+
+  // Convertir en tableau pour l'affichage
+  const employeeGroups = Object.values(groupedPointages);
+
+  // Pagination
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  // Toggle expand/collapse pour un employé
+  const handleToggleExpand = (employeId) => {
+    setExpandedEmployees(prev => ({
+      ...prev,
+      [employeId]: !prev[employeId]
+    }));
+  };
+
+  // Paginer les groupes d'employés
+  const paginatedEmployees = employeeGroups.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage
+  );
 
   const hasPermission = (pointage) => {
     if (!currentUser || !pointage || !pointage.employe) {
@@ -164,6 +214,259 @@ const PointageTable = ({
     }
   };
 
+  // Composant pour une ligne d'employé (groupe)
+  const EmployeeRow = ({ employeeGroup }) => {
+    const isExpanded = expandedEmployees[employeeGroup.employe];
+    const totalPointages = employeeGroup.pointages.length;
+    const pointagesEnCours = employeeGroup.pointages.filter(p => isWorking(p)).length;
+
+    return (
+      <>
+        <TableRow
+          hover
+          sx={{
+            transition: 'all 0.3s ease',
+            background: `linear-gradient(135deg, ${alpha(ORTM_COLORS.primary, 0.05)} 0%, ${alpha(ORTM_COLORS.primary, 0.02)} 100%)`,
+            '&:hover': {
+              background: `linear-gradient(135deg, ${alpha(ORTM_COLORS.primary, 0.1)} 0%, ${alpha(ORTM_COLORS.primary, 0.05)} 100%)`,
+            },
+          }}
+        >
+          {/* Bouton expand/collapse */}
+          <TableCell sx={{ py: 2.5, width: '60px' }}>
+            <IconButton
+              size="small"
+              onClick={() => handleToggleExpand(employeeGroup.employe)}
+              sx={{
+                color: ORTM_COLORS.primary,
+                background: alpha(ORTM_COLORS.primary, 0.1),
+                '&:hover': {
+                  background: alpha(ORTM_COLORS.primary, 0.2),
+                }
+              }}
+            >
+              {isExpanded ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+            </IconButton>
+          </TableCell>
+
+          {/* Employé */}
+          <TableCell sx={{ py: 2.5 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Avatar
+                sx={{
+                  bgcolor: alpha(ORTM_COLORS.primary, 0.2),
+                  color: ORTM_COLORS.primary,
+                  width: 48,
+                  height: 48,
+                  border: `2px solid ${alpha(ORTM_COLORS.primary, 0.2)}`,
+                }}
+              >
+                <PersonIcon />
+              </Avatar>
+              <Box>
+                <Typography variant="subtitle1" fontWeight="700" sx={{ mb: 0.5 }}>
+                  {String(employeeGroup.employe_nom || "Inconnu")}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Matricule: {String(employeeGroup.employe_matricule || employeeGroup.employe || "Inconnu")}
+                </Typography>
+              </Box>
+            </Box>
+          </TableCell>
+
+          {/* Résumé des pointages */}
+          <TableCell sx={{ py: 2.5 }}>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <Chip
+                label={`${totalPointages} pointage${totalPointages > 1 ? 's' : ''}`}
+                color="primary"
+                variant="outlined"
+                size="small"
+              />
+              {pointagesEnCours > 0 && (
+                <Chip
+                  label={`${pointagesEnCours} en cours`}
+                  color="warning"
+                  variant="filled"
+                  size="small"
+                />
+              )}
+            </Box>
+          </TableCell>
+
+          {/* Dernier pointage */}
+          <TableCell sx={{ py: 2.5 }}>
+            {employeeGroup.pointages.length > 0 && (
+              <Typography variant="body2" fontWeight="600">
+                {employeeGroup.pointages[0].date_pointage && isValid(parseISO(employeeGroup.pointages[0].date_pointage))
+                  ? format(parseISO(employeeGroup.pointages[0].date_pointage), "dd/MM/yyyy", { locale: fr })
+                  : "-"}
+              </Typography>
+            )}
+          </TableCell>
+
+          {/* Statut global */}
+          <TableCell sx={{ py: 2.5 }}>
+            <Chip
+              label={pointagesEnCours > 0 ? "En activité" : "Terminé"}
+              color={pointagesEnCours > 0 ? "warning" : "success"}
+              variant="filled"
+              size="small"
+            />
+          </TableCell>
+
+          {/* Actions */}
+          <TableCell sx={{ py: 2.5 }}>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => handleToggleExpand(employeeGroup.employe)}
+              startIcon={isExpanded ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+              sx={{
+                borderRadius: 2,
+                fontWeight: '600',
+                border: `2px solid ${alpha(ORTM_COLORS.primary, 0.3)}`,
+              }}
+            >
+              {isExpanded ? 'Réduire' : 'Détails'}
+            </Button>
+          </TableCell>
+        </TableRow>
+
+        {/* Ligne détaillée avec les pointages */}
+        <TableRow>
+          <TableCell colSpan={6} sx={{ py: 0, border: 'none' }}>
+            <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+              <Box sx={{ margin: 1, py: 2 }}>
+                <Typography variant="h6" gutterBottom sx={{ color: ORTM_COLORS.primary, mb: 2 }}>
+                  Pointages de {employeeGroup.employe_nom}
+                </Typography>
+                
+                <Table size="small" sx={{ background: alpha(ORTM_COLORS.background, 0.5) }}>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ fontWeight: '700', color: ORTM_COLORS.primary }}>ID</TableCell>
+                      <TableCell sx={{ fontWeight: '700', color: ORTM_COLORS.primary }}>Date</TableCell>
+                      <TableCell sx={{ fontWeight: '700', color: ORTM_COLORS.primary }}>Heure Entrée</TableCell>
+                      <TableCell sx={{ fontWeight: '700', color: ORTM_COLORS.primary }}>Heure Sortie</TableCell>
+                      <TableCell sx={{ fontWeight: '700', color: ORTM_COLORS.primary }}>Durée</TableCell>
+                      <TableCell sx={{ fontWeight: '700', color: ORTM_COLORS.primary }}>Statut</TableCell>
+                      <TableCell sx={{ fontWeight: '700', color: ORTM_COLORS.primary }}>Actions</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {employeeGroup.pointages.map((pointage) => {
+                      const canEdit = hasPermission(pointage);
+                      const working = isWorking(pointage);
+                      const statusConfig = getStatusConfig(pointage);
+                      const duration = calculateDuration(pointage);
+
+                      return (
+                        <TableRow key={pointage.id_pointage} hover>
+                          <TableCell>
+                            <Chip
+                              label={`PTG-${pointage.id_pointage}`}
+                              color="primary"
+                              variant="outlined"
+                              size="small"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" fontWeight="600">
+                              {pointage.date_pointage && isValid(parseISO(pointage.date_pointage))
+                                ? format(parseISO(pointage.date_pointage), "dd/MM/yyyy", { locale: fr })
+                                : "-"}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" fontWeight="600">
+                              {pointage.heure_entree || "-"}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            {pointage.heure_sortie ? (
+                              <Typography variant="body2" fontWeight="600">
+                                {pointage.heure_sortie}
+                              </Typography>
+                            ) : (
+                              <Button
+                                variant="outlined"
+                                color="warning"
+                                size="small"
+                                startIcon={<ExitToAppIcon />}
+                                onClick={() => handleOpenExitDialog(pointage)}
+                                disabled={!canEdit || actionLoading}
+                              >
+                                Sortie
+                              </Button>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" color={ORTM_COLORS.warning} fontWeight="600">
+                              {duration}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              icon={statusConfig.icon}
+                              label={statusConfig.label}
+                              size="small"
+                              sx={{
+                                background: statusConfig.bgColor,
+                                color: statusConfig.color,
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Box sx={{ display: "flex", gap: 0.5 }}>
+                              <Tooltip title="Modifier">
+                                <IconButton
+                                  color="primary"
+                                  size="small"
+                                  onClick={() => onEdit(pointage)}
+                                  disabled={!canEdit || actionLoading}
+                                >
+                                  <EditIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+
+                              <Tooltip title="Supprimer">
+                                <IconButton
+                                  color="error"
+                                  size="small"
+                                  onClick={() => onDelete(pointage.id_pointage)}
+                                  disabled={!canEdit || actionLoading}
+                                >
+                                  {actionLoading && deletingId === pointage.id_pointage ?
+                                    <CircularProgress size={16} /> : <DeleteIcon fontSize="small" />
+                                  }
+                                </IconButton>
+                              </Tooltip>
+
+                              <Tooltip title="Détails">
+                                <IconButton
+                                  color="info"
+                                  size="small"
+                                  onClick={() => onViewDetails(pointage)}
+                                >
+                                  <InfoIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            </Box>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </Box>
+            </Collapse>
+          </TableCell>
+        </TableRow>
+      </>
+    );
+  };
+
   if (loading) {
     return (
       <Card sx={{
@@ -232,433 +535,50 @@ const PointageTable = ({
               <TableRow sx={{
                 background: `linear-gradient(135deg, ${alpha(ORTM_COLORS.primary, 0.05)} 0%, ${alpha(ORTM_COLORS.primary, 0.1)} 100%)`,
               }}>
-                <TableCell sx={{
-                  fontWeight: '800',
-                  fontSize: '0.95rem',
-                  color: ORTM_COLORS.primary,
-                  borderBottom: `2px solid ${alpha(ORTM_COLORS.primary, 0.2)}`,
-                  py: 3,
-                  width: '140px'
-                }}>
-                  ID Pointage
-                </TableCell>
-                <TableCell sx={{
-                  fontWeight: '800',
-                  fontSize: '0.95rem',
-                  color: ORTM_COLORS.primary,
-                  borderBottom: `2px solid ${alpha(ORTM_COLORS.primary, 0.2)}`,
-                  py: 3
-                }}>
+                <TableCell sx={{ width: '60px' }}></TableCell>
+                <TableCell sx={{ fontWeight: '800', fontSize: '0.95rem', color: ORTM_COLORS.primary, py: 3 }}>
                   Employé
                 </TableCell>
-                <TableCell sx={{
-                  fontWeight: '800',
-                  fontSize: '0.95rem',
-                  color: ORTM_COLORS.primary,
-                  borderBottom: `2px solid ${alpha(ORTM_COLORS.primary, 0.2)}`,
-                  py: 3,
-                  width: '150px'
-                }}>
-                  Date
+                <TableCell sx={{ fontWeight: '800', fontSize: '0.95rem', color: ORTM_COLORS.primary, py: 3 }}>
+                  Pointages
                 </TableCell>
-                <TableCell sx={{
-                  fontWeight: '800',
-                  fontSize: '0.95rem',
-                  color: ORTM_COLORS.primary,
-                  borderBottom: `2px solid ${alpha(ORTM_COLORS.primary, 0.2)}`,
-                  py: 3,
-                  width: '130px'
-                }}>
-                  Heure Entrée
+                <TableCell sx={{ fontWeight: '800', fontSize: '0.95rem', color: ORTM_COLORS.primary, py: 3 }}>
+                  Dernier Pointage
                 </TableCell>
-                <TableCell sx={{
-                  fontWeight: '800',
-                  fontSize: '0.95rem',
-                  color: ORTM_COLORS.primary,
-                  borderBottom: `2px solid ${alpha(ORTM_COLORS.primary, 0.2)}`,
-                  py: 3,
-                  width: '160px'
-                }}>
-                  Heure Sortie
+                <TableCell sx={{ fontWeight: '800', fontSize: '0.95rem', color: ORTM_COLORS.primary, py: 3 }}>
+                  Statut Global
                 </TableCell>
-                <TableCell sx={{
-                  fontWeight: '800',
-                  fontSize: '0.95rem',
-                  color: ORTM_COLORS.primary,
-                  borderBottom: `2px solid ${alpha(ORTM_COLORS.primary, 0.2)}`,
-                  py: 3,
-                  width: '140px'
-                }}>
-                  Statut & Durée
-                </TableCell>
-                <TableCell sx={{
-                  fontWeight: '800',
-                  fontSize: '0.95rem',
-                  color: ORTM_COLORS.primary,
-                  borderBottom: `2px solid ${alpha(ORTM_COLORS.primary, 0.2)}`,
-                  py: 3,
-                  width: '180px'
-                }}>
+                <TableCell sx={{ fontWeight: '800', fontSize: '0.95rem', color: ORTM_COLORS.primary, py: 3 }}>
                   Actions
                 </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {pointages.map((pointage, index) => {
-                if (!pointage || !pointage.id_pointage || !pointage.employe) {
-                  console.warn(`Pointage invalide à l'index ${index}:`, pointage);
-                  return null;
-                }
-
-                const canEdit = hasPermission(pointage);
-                const working = isWorking(pointage);
-                const statusConfig = getStatusConfig(pointage);
-                const duration = calculateDuration(pointage);
-
-                return (
-                  <TableRow
-                    key={pointage.id_pointage}
-                    hover
-                    sx={{
-                      transition: 'all 0.3s ease',
-                      background: index % 2 === 0
-                        ? alpha(currentTheme.palette.background.default, 0.5)
-                        : 'transparent',
-                      '&:hover': {
-                        background: `linear-gradient(135deg, ${alpha(ORTM_COLORS.primary, 0.05)} 0%, ${alpha(ORTM_COLORS.primary, 0.02)} 100%)`,
-                        transform: 'translateY(-2px)',
-                        boxShadow: `0 4px 15px ${alpha(ORTM_COLORS.primary, 0.1)}`,
-                      },
-                      '&:last-child td': {
-                        borderBottom: 'none',
-                      }
-                    }}
-                  >
-                    {/* ID Pointage */}
-                    <TableCell sx={{ py: 2.5 }}>
-                      <Badge
-                        color="primary"
-                        variant="dot"
-                        invisible={!working}
-                        sx={{
-                          '& .MuiBadge-dot': {
-                            backgroundColor: ORTM_COLORS.warning,
-                            boxShadow: `0 0 0 2px ${currentTheme.palette.background.paper}`,
-                          }
-                        }}
-                      >
-                        <Chip
-                          label={`PTG-${pointage.id_pointage}`}
-                          color="primary"
-                          variant="outlined"
-                          sx={{
-                            fontWeight: '700',
-                            borderRadius: 2,
-                            border: `2px solid ${alpha(ORTM_COLORS.primary, 0.2)}`,
-                            background: `linear-gradient(135deg, ${alpha(ORTM_COLORS.primary, 0.1)} 0%, ${alpha(ORTM_COLORS.primary, 0.05)} 100%)`,
-                          }}
-                        />
-                      </Badge>
-                    </TableCell>
-
-                    {/* Employé */}
-                    <TableCell sx={{ py: 2.5 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Avatar
-                          sx={{
-                            bgcolor: alpha(ORTM_COLORS.primary, 0.2),
-                            color: ORTM_COLORS.primary,
-                            width: 48,
-                            height: 48,
-                            border: `2px solid ${alpha(ORTM_COLORS.primary, 0.2)}`,
-                            boxShadow: `0 4px 12px ${alpha(ORTM_COLORS.primary, 0.2)}`,
-                          }}
-                        >
-                          <PersonIcon />
-                        </Avatar>
-                        <Box>
-                          <Typography variant="subtitle1" fontWeight="700" sx={{ mb: 0.5 }}>
-                            {String(pointage.employe_nom || "Inconnu")}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            Matricule: {String(pointage.employe_matricule || pointage.employe || "Inconnu")}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </TableCell>
-
-                    {/* Date */}
-                    <TableCell sx={{ py: 2.5 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        <Box sx={{
-                          p: 0.75,
-                          borderRadius: 2,
-                          background: `linear-gradient(135deg, ${alpha(ORTM_COLORS.info, 0.1)} 0%, ${alpha(ORTM_COLORS.info, 0.2)} 100%)`,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}>
-                          <TodayIcon fontSize="small" sx={{ color: ORTM_COLORS.info }} />
-                        </Box>
-                        <Typography variant="body2" fontWeight="600">
-                          {pointage.date_pointage && isValid(parseISO(pointage.date_pointage))
-                            ? format(parseISO(pointage.date_pointage), "dd MMMM yyyy", { locale: fr })
-                            : "-"}
-                        </Typography>
-                      </Box>
-                    </TableCell>
-
-                    {/* Heure Entrée */}
-                    <TableCell sx={{ py: 2.5 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        <Box sx={{
-                          p: 0.75,
-                          borderRadius: 2,
-                          background: `linear-gradient(135deg, ${alpha(ORTM_COLORS.success, 0.1)} 0%, ${alpha(ORTM_COLORS.success, 0.2)} 100%)`,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}>
-                          <PlayArrowIcon fontSize="small" sx={{ color: ORTM_COLORS.success }} />
-                        </Box>
-                        <Typography variant="body2" fontWeight="600">
-                          {pointage.heure_entree || "-"}
-                        </Typography>
-                      </Box>
-                    </TableCell>
-
-                    {/* Heure Sortie */}
-                    <TableCell sx={{ py: 2.5 }}>
-                      {pointage.heure_sortie ? (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                          <Box sx={{
-                            p: 0.75,
-                            borderRadius: 2,
-                            background: `linear-gradient(135deg, ${alpha(ORTM_COLORS.error, 0.1)} 0%, ${alpha(ORTM_COLORS.error, 0.2)} 100%)`,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}>
-                            <StopIcon fontSize="small" sx={{ color: ORTM_COLORS.error }} />
-                          </Box>
-                          <Typography variant="body2" fontWeight="600">
-                            {pointage.heure_sortie}
-                          </Typography>
-                        </Box>
-                      ) : (
-                        <Button
-                          variant="outlined"
-                          color="warning"
-                          size="small"
-                          startIcon={<ExitToAppIcon />}
-                          onClick={() => handleOpenExitDialog(pointage)}
-                          disabled={!canEdit || actionLoading}
-                          sx={{
-                            borderRadius: 3,
-                            fontWeight: '600',
-                            border: `2px solid ${alpha(ORTM_COLORS.warning, 0.3)}`,
-                            background: alpha(ORTM_COLORS.warning, 0.05),
-                            '&:hover': {
-                              background: alpha(ORTM_COLORS.warning, 0.1),
-                              borderColor: ORTM_COLORS.warning,
-                              transform: 'translateY(-1px)',
-                            },
-                            transition: 'all 0.3s ease'
-                          }}
-                        >
-                          Enregistrer Sortie
-                        </Button>
-                      )}
-                    </TableCell>
-
-                    {/* Statut & Durée — CORRIGÉ */}
-                    <TableCell sx={{ py: 2.5 }}>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                        <Chip
-                          icon={statusConfig.icon}
-                          label={statusConfig.label}
-                          sx={{
-                            fontWeight: '700',
-                            borderRadius: 2,
-                            background: statusConfig.bgColor,
-                            color: statusConfig.color,
-                            border: `2px solid ${alpha(statusConfig.color, 0.3)}`,
-                            '& .MuiChip-icon': {
-                              color: statusConfig.color,
-                            }
-                          }}
-                        />
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <WorkHistoryIcon fontSize="small" sx={{ color: ORTM_COLORS.warning }} />
-                          <Typography variant="caption" fontWeight="600" color={ORTM_COLORS.warning}>
-                            {duration}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </TableCell>
-
-                    {/* Actions */}
-                    <TableCell sx={{ py: 2.5 }}>
-                      {canEdit ? (
-                        <Box sx={{ display: "flex", gap: 1, justifyContent: "center" }}>
-                          <Tooltip title="Modifier le pointage" arrow>
-                            <IconButton
-                              color="primary"
-                              onClick={() => onEdit(pointage)}
-                              disabled={actionLoading}
-                              size="medium"
-                              sx={{
-                                background: `linear-gradient(135deg, ${alpha(ORTM_COLORS.primary, 0.1)} 0%, ${alpha(ORTM_COLORS.primary, 0.2)} 100%)`,
-                                border: `1px solid ${alpha(ORTM_COLORS.primary, 0.2)}`,
-                                borderRadius: 2,
-                                '&:hover': {
-                                  background: `linear-gradient(135deg, ${alpha(ORTM_COLORS.primary, 0.2)} 0%, ${alpha(ORTM_COLORS.primary, 0.3)} 100%)`,
-                                  transform: 'scale(1.1)',
-                                  boxShadow: `0 6px 20px ${alpha(ORTM_COLORS.primary, 0.3)}`,
-                                },
-                                transition: 'all 0.3s ease',
-                              }}
-                            >
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-
-                          <Tooltip title="Supprimer le pointage" arrow>
-                            <IconButton
-                              color="error"
-                              onClick={() => onDelete(pointage.id_pointage)}
-                              disabled={actionLoading}
-                              size="medium"
-                              sx={{
-                                background: `linear-gradient(135deg, ${alpha(ORTM_COLORS.error, 0.1)} 0%, ${alpha(ORTM_COLORS.error, 0.2)} 100%)`,
-                                border: `1px solid ${alpha(ORTM_COLORS.error, 0.2)}`,
-                                borderRadius: 2,
-                                '&:hover': {
-                                  background: `linear-gradient(135deg, ${alpha(ORTM_COLORS.error, 0.2)} 0%, ${alpha(ORTM_COLORS.error, 0.3)} 100%)`,
-                                  transform: 'scale(1.1)',
-                                  boxShadow: `0 6px 20px ${alpha(ORTM_COLORS.error, 0.3)}`,
-                                },
-                                transition: 'all 0.3s ease',
-                              }}
-                            >
-                              {actionLoading && deletingId === pointage.id_pointage ?
-                                <CircularProgress size={20} /> : <DeleteIcon fontSize="small" />
-                              }
-                            </IconButton>
-                          </Tooltip>
-
-                          <Tooltip title="Détails du pointage" arrow>
-                            <IconButton
-                              color="info"
-                              onClick={() => onViewDetails(pointage)}
-                              disabled={actionLoading}
-                              size="medium"
-                              sx={{
-                                background: `linear-gradient(135deg, ${alpha(ORTM_COLORS.info, 0.1)} 0%, ${alpha(ORTM_COLORS.info, 0.2)} 100%)`,
-                                border: `1px solid ${alpha(ORTM_COLORS.info, 0.2)}`,
-                                borderRadius: 2,
-                                '&:hover': {
-                                  background: `linear-gradient(135deg, ${alpha(ORTM_COLORS.info, 0.2)} 0%, ${alpha(ORTM_COLORS.info, 0.3)} 100%)`,
-                                  transform: 'scale(1.1)',
-                                  boxShadow: `0 6px 20px ${alpha(ORTM_COLORS.info, 0.3)}`,
-                                },
-                                transition: 'all 0.3s ease',
-                              }}
-                            >
-                              <ListAltIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-
-                          {working && (
-                            <Tooltip title="Enregistrer la sortie" arrow>
-                              <IconButton
-                                color="success"
-                                onClick={() => handleOpenExitDialog(pointage)}
-                                disabled={actionLoading}
-                                size="medium"
-                                sx={{
-                                  background: `linear-gradient(135deg, ${alpha(ORTM_COLORS.success, 0.1)} 0%, ${alpha(ORTM_COLORS.success, 0.2)} 100%)`,
-                                  border: `1px solid ${alpha(ORTM_COLORS.success, 0.2)}`,
-                                  borderRadius: 2,
-                                  '&:hover': {
-                                    background: `linear-gradient(135deg, ${alpha(ORTM_COLORS.success, 0.2)} 0%, ${alpha(ORTM_COLORS.success, 0.3)} 100%)`,
-                                    transform: 'scale(1.1)',
-                                    boxShadow: `0 6px 20px ${alpha(ORTM_COLORS.success, 0.3)}`,
-                                  },
-                                  transition: 'all 0.3s ease',
-                                }}
-                              >
-                                <ExitToAppIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          )}
-                        </Box>
-                      ) : (
-                        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
-                          <Box sx={{ display: "flex", gap: 1, justifyContent: "center" }}>
-                            <Tooltip title="Action non autorisée - Créateur uniquement" arrow>
-                              <IconButton
-                                color="default"
-                                disabled
-                                size="medium"
-                                sx={{
-                                  background: `linear-gradient(135deg, ${alpha(ORTM_COLORS.text, 0.1)} 0%, ${alpha(ORTM_COLORS.text, 0.2)} 100%)`,
-                                  border: `1px solid ${alpha(ORTM_COLORS.text, 0.2)}`,
-                                  borderRadius: 2,
-                                }}
-                              >
-                                <LockIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-
-                            <Tooltip title="Voir les détails" arrow>
-                              <IconButton
-                                color="info"
-                                onClick={() => onViewDetails(pointage)}
-                                disabled={actionLoading}
-                                size="medium"
-                                sx={{
-                                  background: `linear-gradient(135deg, ${alpha(ORTM_COLORS.info, 0.1)} 0%, ${alpha(ORTM_COLORS.info, 0.2)} 100%)`,
-                                  border: `1px solid ${alpha(ORTM_COLORS.info, 0.2)}`,
-                                  borderRadius: 2,
-                                  '&:hover': {
-                                    background: `linear-gradient(135deg, ${alpha(ORTM_COLORS.info, 0.2)} 0%, ${alpha(ORTM_COLORS.info, 0.3)} 100%)`,
-                                    transform: 'scale(1.1)',
-                                    boxShadow: `0 6px 20px ${alpha(ORTM_COLORS.info, 0.3)}`,
-                                  },
-                                  transition: 'all 0.3s ease',
-                                }}
-                              >
-                                <InfoIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          </Box>
-
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            sx={{
-                              fontWeight: '500',
-                              background: alpha(ORTM_COLORS.text, 0.1),
-                              px: 1,
-                              py: 0.25,
-                              borderRadius: 1,
-                              textAlign: 'center',
-                              maxWidth: 140,
-                              lineHeight: 1.2
-                            }}
-                          >
-                            Créé par {pointage.created_by_nom || pointage.created_by_username || "Utilisateur inconnu"}
-                          </Typography>
-                        </Box>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              }).filter(row => row !== null)}
+              {paginatedEmployees.map((employeeGroup) => (
+                <EmployeeRow key={employeeGroup.employe} employeeGroup={employeeGroup} />
+              ))}
             </TableBody>
           </Table>
         </TableContainer>
+
+        {/* Pagination */}
+        <TablePagination
+          rowsPerPageOptions={[5, 10, 25]}
+          component="div"
+          count={employeeGroups.length}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+          labelRowsPerPage="Employés par page:"
+          labelDisplayedRows={({ from, to, count }) => 
+            `${from}-${to} sur ${count} employé${count > 1 ? 's' : ''}`
+          }
+          sx={{
+            borderTop: `1px solid ${alpha(ORTM_COLORS.primary, 0.1)}`,
+            background: alpha(ORTM_COLORS.background, 0.5),
+          }}
+        />
       </Paper>
 
       {/* Dialog pour l'enregistrement de la sortie */}

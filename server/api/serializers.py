@@ -2,6 +2,49 @@ from rest_framework import serializers
 from .models import CustomUser, Departement, Employe, Pointage, Evenement, StatistiquesEmploye, StatistiquesGlobales
 from django.contrib.auth.hashers import make_password
 
+# Service pour formater les durées
+class StatisticsService:
+    @staticmethod
+    def format_duration(duration):
+        """Formate une durée en chaîne lisible"""
+        if not duration:
+            return "0h 00min"
+        
+        if isinstance(duration, str):
+            try:
+                # Gérer le format "1 day, 08:14:00" de Django
+                if 'day' in duration:
+                    parts = duration.split(', ')
+                    if len(parts) == 2:
+                        days = int(parts[0].split()[0]) if 'day' in parts[0] else 0
+                        time_parts = parts[1].split(':')
+                        if len(time_parts) >= 2:
+                            hours = int(time_parts[0]) + (days * 24)
+                            minutes = int(time_parts[1])
+                            return f"{hours}h {minutes:02d}min"
+                # Format simple "HH:MM:SS"
+                parts = duration.split(':')
+                if len(parts) >= 2:
+                    hours = int(parts[0])
+                    minutes = int(parts[1])
+                    return f"{hours}h {minutes:02d}min"
+            except:
+                return duration
+            return duration
+        
+        # Si c'est un timedelta
+        try:
+            if hasattr(duration, 'total_seconds'):
+                total_seconds = duration.total_seconds()
+            else:
+                total_seconds = float(duration)
+            
+            hours = int(total_seconds // 3600)
+            minutes = int((total_seconds % 3600) // 60)
+            return f"{hours}h {minutes:02d}min"
+        except:
+            return "0h 00min"
+
 # -----------------------
 # CustomUser
 # -----------------------
@@ -43,10 +86,11 @@ class DepartementSerializer(serializers.ModelSerializer):
 # -----------------------
 class EmployeMinimalSerializer(serializers.ModelSerializer):
     nom_complet = serializers.SerializerMethodField()
+    departement_nom = serializers.CharField(source='departement.nom', read_only=True)
     
     class Meta:
         model = Employe
-        fields = ['matricule', 'nom', 'prenom', 'nom_complet', 'poste', 'departement']
+        fields = ['matricule', 'nom', 'prenom', 'nom_complet', 'poste', 'departement', 'departement_nom', 'email']
     
     def get_nom_complet(self, obj):
         return f"{obj.nom} {obj.prenom}"
@@ -118,35 +162,6 @@ class EvenementSerializer(serializers.ModelSerializer):
 # Statistiques
 # -----------------------
 
-# Service pour formater les durées (identique à celui du frontend)
-class StatisticsService:
-    @staticmethod
-    def format_duration(duration):
-        """Formate une durée en chaîne lisible"""
-        if not duration:
-            return "0h 00min"
-        
-        if isinstance(duration, str):
-            # Si c'est une chaîne, essayer de la parser
-            try:
-                parts = duration.split(':')
-                if len(parts) >= 2:
-                    hours = int(parts[0])
-                    minutes = int(parts[1])
-                    return f"{hours}h {minutes:02d}min"
-            except:
-                return duration
-            return duration
-        
-        # Si c'est un timedelta
-        try:
-            total_seconds = duration.total_seconds()
-            hours = int(total_seconds // 3600)
-            minutes = int((total_seconds % 3600) // 60)
-            return f"{hours}h {minutes:02d}min"
-        except:
-            return "0h 00min"
-
 class StatistiquesEmployeSerializer(serializers.ModelSerializer):
     employe = EmployeMinimalSerializer(read_only=True)
     heures_travail_total_str = serializers.SerializerMethodField()
@@ -208,30 +223,50 @@ class StatistiquesGlobalesSerializer(serializers.ModelSerializer):
     def get_periode_display(self, obj):
         return obj.periode.strftime('%B %Y')
 
-# Serializers pour les données calculées (non sauvegardées)
+# Serializers pour les données calculées (non sauvegardées) - CORRIGÉ
 class EmployeeStatsCalculatedSerializer(serializers.Serializer):
+    # Données de base
     employe = EmployeMinimalSerializer()
     periode_debut = serializers.DateField()
     periode_fin = serializers.DateField()
     type_periode = serializers.CharField()
     
-    # Pointage
+    # Métriques de base - CORRECTION: Ajout des champs manquants
     heures_travail_total = serializers.DurationField()
     heures_travail_total_str = serializers.SerializerMethodField()
     jours_travailles = serializers.IntegerField()
     moyenne_heures_quotidiennes = serializers.DurationField()
     moyenne_heures_quotidiennes_str = serializers.SerializerMethodField()
+    
+    # Régularité
     pointages_reguliers = serializers.IntegerField()
     pointages_irreguliers = serializers.IntegerField()
     taux_regularite = serializers.FloatField()
     
-    jours_ouvrables = serializers.IntegerField()
+    # NOUVEAUX CHAMPS AJOUTÉS - CRUCIAUX POUR LE FRONTEND
+    # Analyse des heures
+    jours_passes_mois = serializers.IntegerField(required=False, allow_null=True)
+    heures_attendues_jours_passes = serializers.DurationField(required=False, allow_null=True)
+    statut_heures = serializers.CharField(required=False, allow_null=True)
+    ecart_heures = serializers.DurationField(required=False, allow_null=True)
+    pourcentage_ecart = serializers.FloatField(required=False, allow_null=True)
+    observation_heures = serializers.CharField(required=False, allow_null=True)
+    
+    # Ponctualité - NOUVEAUX CHAMPS
+    pointages_ponctuels = serializers.IntegerField(required=False, allow_null=True)
+    pointages_non_ponctuels = serializers.IntegerField(required=False, allow_null=True)
+    taux_ponctualite = serializers.FloatField(required=False, allow_null=True)
+    
+    # Présence - NOUVEAU CHAMP
+    taux_presence = serializers.FloatField(required=False, allow_null=True)
+    
+    jours_ouvrables = serializers.IntegerField(required=False, allow_null=True)
     
     def get_heures_travail_total_str(self, obj):
-        return StatisticsService.format_duration(obj['heures_travail_total'])
+        return StatisticsService.format_duration(obj.get('heures_travail_total'))
     
     def get_moyenne_heures_quotidiennes_str(self, obj):
-        return StatisticsService.format_duration(obj['moyenne_heures_quotidiennes'])
+        return StatisticsService.format_duration(obj.get('moyenne_heures_quotidiennes'))
 
 class GlobalStatsCalculatedSerializer(serializers.Serializer):
     periode = serializers.DateField()
@@ -254,11 +289,17 @@ class GlobalStatsCalculatedSerializer(serializers.Serializer):
     taux_presence = serializers.FloatField()
     taux_regularite_global = serializers.FloatField()
     
+    # NOUVEAUX CHAMPS POUR LA PONCTUALITÉ
+    pointages_ponctuels = serializers.IntegerField(required=False, allow_null=True)
+    taux_ponctualite_global = serializers.FloatField(required=False, allow_null=True)
+    
     # Événements
     total_evenements = serializers.IntegerField()
     
     def get_heures_travail_total_str(self, obj):
-        return StatisticsService.format_duration(obj['heures_travail_total'])
+        return StatisticsService.format_duration(obj.get('heures_travail_total'))
     
     def get_periode_display(self, obj):
-        return obj['periode'].strftime('%B %Y')
+        if obj.get('periode'):
+            return obj['periode'].strftime('%B %Y')
+        return "Période non définie"

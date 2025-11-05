@@ -35,7 +35,7 @@ import {
   Timeline as TimelineIcon,
   PieChart as PieChartIcon
 } from '@mui/icons-material';
-import { getGlobalStatistics, exportStatisticsPDF, StatisticsUtils, getCurrentUser, isSuperuser } from '../../services/api';
+import { getGlobalStatistics, exportStatisticsPDF, StatisticsUtils, getCurrentUser } from '../../services/api';
 import Header from '../../components/Header';
 
 const StatisticsOverview = () => {
@@ -46,7 +46,6 @@ const StatisticsOverview = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [currentUser, setCurrentUser] = useState(null);
-  const [isSuperuserState, setIsSuperuserState] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [loadingPDF, setLoadingPDF] = useState(false);
@@ -64,16 +63,65 @@ const StatisticsOverview = () => {
 
   // Fonction utilitaire pour les valeurs sécurisées
   const getSafeValue = (value, defaultValue = 0) => {
-    return value !== null && value !== undefined ? value : defaultValue;
+    if (value === null || value === undefined || value === 'undefined' || value === '') {
+      return defaultValue;
+    }
+    
+    if (typeof value === 'string') {
+      const numValue = parseFloat(value);
+      return isNaN(numValue) ? defaultValue : numValue;
+    }
+    
+    return value;
   };
 
-  // Calcul du pourcentage d'heures travaillées
-  const calculateHoursPercentage = (hours) => {
-    if (!hours) return 0;
-    const totalSeconds = typeof hours === 'string' ? 
-      StatisticsUtils.parseDurationToSeconds(hours) : hours.total_seconds();
-    const expectedMonthlyHours = 22 * 8 * 3600; // 22 jours × 8h × 3600 secondes
-    return Math.min((totalSeconds / expectedMonthlyHours) * 100, 100);
+  // ✅ CORRECTION: Fonction pour calculer les pourcentages correctement
+  const calculateHoursPercentage = () => {
+    if (!stats || !stats.heures_travail_total) return 0;
+    
+    // Estimation des heures attendues : 22 jours × 8h × nombre d'employés
+    const heuresAttenduesEstimees = getSafeValue(stats.total_employes) * 22 * 8; // 176h par employé
+    const heuresReelles = parseDurationToHours(stats.heures_travail_total);
+    
+    if (heuresAttenduesEstimees === 0) return 0;
+    
+    const percentage = Math.min(Math.round((heuresReelles / heuresAttenduesEstimees) * 100), 100);
+    return percentage;
+  };
+
+  // ✅ CORRECTION: Fonction pour parser les durées en heures
+  const parseDurationToHours = (duration) => {
+    if (!duration) return 0;
+    
+    // Si c'est une string formatée "Xh YYmin"
+    if (typeof duration === 'string') {
+      if (duration.includes('h')) {
+        const parts = duration.split('h');
+        const hours = parseInt(parts[0]) || 0;
+        const minutes = parseInt(parts[1]) || 0;
+        return hours + (minutes / 60);
+      }
+      // Si c'est un format "HH:MM:SS"
+      if (duration.includes(':')) {
+        const parts = duration.split(':');
+        const hours = parseInt(parts[0]) || 0;
+        const minutes = parseInt(parts[1]) || 0;
+        return hours + (minutes / 60);
+      }
+    }
+    
+    // Si c'est un timedelta (objet)
+    if (typeof duration === 'object' && duration.total_seconds) {
+      return duration.total_seconds() / 3600;
+    }
+    
+    return 0;
+  };
+
+  // ✅ CORRECTION: Calcul du pourcentage de pointages réguliers
+  const calculateRegularPointagesPercentage = () => {
+    if (!stats || !stats.total_pointages || stats.total_pointages === 0) return 0;
+    return Math.round((getSafeValue(stats.pointages_reguliers) / getSafeValue(stats.total_pointages)) * 100);
   };
 
   useEffect(() => {
@@ -87,8 +135,6 @@ const StatisticsOverview = () => {
       try {
         const user = await getCurrentUser();
         setCurrentUser(user);
-        const superuser = await isSuperuser();
-        setIsSuperuserState(superuser);
         await loadStats();
       } catch (err) {
         console.error("Erreur lors de la récupération de l'utilisateur:", err);
@@ -114,8 +160,12 @@ const StatisticsOverview = () => {
         setLoading(true);
       }
       setError('');
+      
       const formattedDate = `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}`;
+      console.log('🔄 Chargement stats globales:', formattedDate);
+      
       const data = await getGlobalStatistics({ mois: formattedDate });
+      console.log('📊 Stats globales reçues:', data);
       setStats(data);
     } catch (err) {
       console.error('Erreur chargement stats globales:', err);
@@ -130,12 +180,14 @@ const StatisticsOverview = () => {
     try {
       setLoadingPDF(true);
       const formattedDate = `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}`;
-      const result = await exportStatisticsPDF('global', { mois: formattedDate });
       
-      if (result && !result.success) {
-        setError(result.message || "Erreur lors de l'export PDF");
-      }
+      await exportStatisticsPDF('global', { 
+        mois: formattedDate,
+        nom_fichier: `statistiques_globales_${formattedDate}`
+      });
+      
     } catch (err) {
+      console.error('Erreur export PDF:', err);
       setError(err.message || "Erreur lors de l'export PDF");
     } finally {
       setLoadingPDF(false);
@@ -146,24 +198,24 @@ const StatisticsOverview = () => {
     loadStats(true);
   };
 
-  // Métriques de performance calculées dynamiquement
+  // ✅ CORRECTION: Métriques de performance avec calculs corrects
   const performanceMetrics = [
     { 
       label: "Heures travaillées", 
-      value: StatisticsUtils.formatDuration(stats?.heures_travail_total),
-      percentage: calculateHoursPercentage(stats?.heures_travail_total),
+      value: stats?.heures_travail_total_str || StatisticsUtils.formatDuration(stats?.heures_travail_total),
+      percentage: calculateHoursPercentage(),
       color: "success"
     },
     { 
       label: "Taux de présence", 
       value: StatisticsUtils.formatPercentage(getSafeValue(stats?.taux_presence)),
-      percentage: getSafeValue(stats?.taux_presence),
+      percentage: Math.min(getSafeValue(stats?.taux_presence), 100), // S'assurer que c'est ≤ 100%
       color: "primary"
     },
     { 
       label: "Pointages réguliers", 
-      value: getSafeValue(stats?.pointages_reguliers),
-      percentage: ((getSafeValue(stats?.pointages_reguliers) / Math.max(getSafeValue(stats?.total_pointages), 1)) * 100),
+      value: `${getSafeValue(stats?.pointages_reguliers)} / ${getSafeValue(stats?.total_pointages)}`,
+      percentage: calculateRegularPointagesPercentage(),
       color: "secondary"
     },
   ];
@@ -211,7 +263,7 @@ const StatisticsOverview = () => {
                 my: 1
               }}
             >
-              {value}
+              {value || 0}
             </Typography>
             {subtitle && (
               <Typography 
@@ -313,7 +365,7 @@ const StatisticsOverview = () => {
       </Box>
       <LinearProgress 
         variant="determinate" 
-        value={percentage} 
+        value={Math.min(percentage, 100)} // ✅ CORRECTION: S'assurer que c'est ≤ 100%
         sx={{
           height: 6,
           borderRadius: 3,
@@ -324,9 +376,18 @@ const StatisticsOverview = () => {
           }
         }}
       />
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
+        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+          Progression
+        </Typography>
+        <Typography variant="caption" sx={{ fontWeight: 600, color: theme.palette[color].main }}>
+          {Math.min(percentage, 100)}%
+        </Typography>
+      </Box>
     </Box>
   );
 
+  // Le reste du composant reste identique...
   if (loading) {
     return (
       <Box sx={{ minHeight: '100vh', background: `linear-gradient(135deg, ${theme.palette.background.default} 0%, ${theme.palette.background.paper} 100%)` }}>
@@ -371,6 +432,15 @@ const StatisticsOverview = () => {
             >
               {error}
             </Alert>
+            <Box sx={{ textAlign: 'center', mt: 2 }}>
+              <Button 
+                variant="outlined" 
+                onClick={handleRefresh}
+                startIcon={<RefreshIcon />}
+              >
+                Réessayer
+              </Button>
+            </Box>
           </Container>
         </Box>
       </Box>
@@ -510,7 +580,7 @@ const StatisticsOverview = () => {
                     variant="contained"
                     startIcon={loadingPDF ? <CircularProgress size={20} /> : <DownloadIcon />}
                     onClick={handleExportPDF}
-                    disabled={loadingPDF}
+                    disabled={loadingPDF || !stats}
                     sx={{
                       py: 1.5,
                       borderRadius: 2,
@@ -532,178 +602,191 @@ const StatisticsOverview = () => {
             </CardContent>
           </Card>
 
+          {/* ✅ CORRECTION: Affichage conditionnel si pas de données */}
+          {!stats && (
+            <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
+              <Typography variant="body1">
+                Aucune donnée disponible pour {months.find(m => m.value === selectedMonth)?.label} {selectedYear}.
+              </Typography>
+            </Alert>
+          )}
+
           {/* Cartes principales */}
-          <Grid container spacing={3} sx={{ mb: 4 }}>
-            <Tooltip title="Nombre total d'employés dans l'entreprise" arrow>
-              <Grid item xs={12} sm={6} md={3}>
-                <StatCard
-                  title="Effectif Total"
-                  value={getSafeValue(stats?.total_employes)}
-                  subtitle={`${getSafeValue(stats?.employes_actifs)} employés actifs`}
-                  icon={<PeopleIcon />}
-                  color="primary"
-                  onClick={() => navigate('/employes')}
-                />
-              </Grid>
-            </Tooltip>
-
-            <Tooltip title="Nombre de départements opérationnels" arrow>
-              <Grid item xs={12} sm={6} md={3}>
-                <StatCard
-                  title="Départements"
-                  value={getSafeValue(stats?.total_departements)}
-                  subtitle="Unités opérationnelles"
-                  icon={<ApartmentIcon />}
-                  color="secondary"
-                />
-              </Grid>
-            </Tooltip>
-
-            <Tooltip title="Taux d'activité moyen des employés" arrow>
-              <Grid item xs={12} sm={6} md={3}>
-                <StatCard
-                  title="Taux d'Activité"
-                  value={StatisticsUtils.formatPercentage(stats?.taux_activite_global)}
-                  subtitle="Performance globale"
-                  icon={<TrendingUpIcon />}
-                  color="success"
-                />
-              </Grid>
-            </Tooltip>
-
-            <Tooltip title="Nombre total de pointages enregistrés ce mois" arrow>
-              <Grid item xs={12} sm={6} md={3}>
-                <StatCard
-                  title="Pointages"
-                  value={getSafeValue(stats?.total_pointages)}
-                  subtitle="Enregistrements ce mois"
-                  icon={<AccessTimeIcon />}
-                  color="info"
-                />
-              </Grid>
-            </Tooltip>
-          </Grid>
-
-          {/* Cartes détaillées */}
-          <Grid container spacing={3}>
-            {/* Événements & Activités */}
-            <Grid item xs={12} md={6} lg={4}>
-              <MetricCard title="Événements & Activités" icon={<EventIcon />} color="warning">
-                <Box sx={{ textAlign: 'center', py: 2 }}>
-                  <Typography 
-                    variant="h2" 
-                    sx={{ 
-                      fontWeight: 800,
-                      background: `linear-gradient(45deg, ${theme.palette.warning.main} 30%, ${theme.palette.warning.dark} 90%)`,
-                      backgroundClip: 'text',
-                      WebkitBackgroundClip: 'text',
-                      color: 'transparent',
-                      mb: 1
-                    }}
-                  >
-                    {getSafeValue(stats?.total_evenements)}
-                  </Typography>
-                  <Typography variant="body1" sx={{ color: 'text.secondary', fontWeight: 500 }}>
-                    Événements planifiés ce mois
-                  </Typography>
-                </Box>
-              </MetricCard>
-            </Grid>
-
-            {/* Indicateurs de Performance */}
-            <Grid item xs={12} md={6} lg={4}>
-              <MetricCard title="Indicateurs de Performance" icon={<TrendingUpIcon />} color="success">
-                <Box sx={{ py: 1 }}>
-                  {performanceMetrics.map((metric, index) => (
-                    <ProgressMetric 
-                      key={index}
-                      label={metric.label} 
-                      value={metric.value}
-                      percentage={metric.percentage}
-                      color={metric.color}
+          {stats && (
+            <>
+              <Grid container spacing={3} sx={{ mb: 4 }}>
+                <Tooltip title="Nombre total d'employés dans l'entreprise" arrow>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <StatCard
+                      title="Effectif Total"
+                      value={getSafeValue(stats.total_employes)}
+                      subtitle={`${getSafeValue(stats.employes_actifs)} employés actifs`}
+                      icon={<PeopleIcon />}
+                      color="primary"
+                      onClick={() => navigate('/employes')}
                     />
-                  ))}
-                </Box>
-              </MetricCard>
-            </Grid>
+                  </Grid>
+                </Tooltip>
 
-            {/* Résumé de la Période */}
-            <Grid item xs={12} lg={4}>
-              <MetricCard title="Résumé de la Période" icon={<ScheduleIcon />} color="info">
-                <Grid container spacing={2}>
-                  {[
-                    { label: 'Employés au total', value: getSafeValue(stats?.total_employes), color: 'primary' },
-                    { label: 'Jours travaillés', value: getSafeValue(stats?.total_pointages), color: 'secondary' },
-                    { label: 'Événements organisés', value: getSafeValue(stats?.total_evenements), color: 'warning' },
-                    { label: 'Heures productives', value: StatisticsUtils.formatDuration(stats?.heures_travail_total), color: 'success' },
-                  ].map((item, index) => (
-                    <Grid item xs={6} key={index}>
-                      <Box sx={{ textAlign: 'center', p: 1 }}>
-                        <Typography 
-                          variant="h4" 
-                          sx={{ 
-                            fontWeight: 700,
-                            color: theme.palette[item.color].main,
-                            mb: 0.5
-                          }}
-                        >
-                          {item.value}
-                        </Typography>
-                        <Typography 
-                          variant="body2" 
-                          sx={{ 
-                            color: 'text.secondary',
-                            fontWeight: 500,
-                            fontSize: '0.75rem'
-                          }}
-                        >
-                          {item.label}
-                        </Typography>
-                      </Box>
-                    </Grid>
-                  ))}
-                </Grid>
-              </MetricCard>
-            </Grid>
+                <Tooltip title="Nombre de départements opérationnels" arrow>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <StatCard
+                      title="Départements"
+                      value={getSafeValue(stats.total_departements)}
+                      subtitle="Unités opérationnelles"
+                      icon={<ApartmentIcon />}
+                      color="secondary"
+                    />
+                  </Grid>
+                </Tooltip>
 
-            {/* Statistiques Avancées */}
-            <Grid item xs={12} lg={6}>
-              <MetricCard title="Statistiques Avancées" icon={<PieChartIcon />} color="secondary">
-                <Grid container spacing={3}>
-                  {[
-                    { label: 'Taux de régularité', value: StatisticsUtils.formatPercentage(stats?.taux_regularite_global), color: 'primary' },
-                    { label: 'Moyenne heures/jour', value: StatisticsUtils.formatDuration(stats?.moyenne_heures_quotidiennes), color: 'success' },
-                    { label: 'Départements actifs', value: getSafeValue(stats?.departements_actifs), color: 'warning' },
-                  ].map((item, index) => (
-                    <Grid item xs={4} key={index}>
-                      <Box sx={{ textAlign: 'center' }}>
-                        <Typography 
-                          variant="h4" 
-                          sx={{ 
-                            fontWeight: 700,
-                            color: theme.palette[item.color].main,
-                            mb: 1
-                          }}
-                        >
-                          {item.value}
-                        </Typography>
-                        <Typography 
-                          variant="body2" 
-                          sx={{ 
-                            color: 'text.secondary',
-                            fontWeight: 500,
-                            lineHeight: 1.2
-                          }}
-                        >
-                          {item.label}
-                        </Typography>
-                      </Box>
-                    </Grid>
-                  ))}
+                <Tooltip title="Taux d'activité moyen des employés" arrow>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <StatCard
+                      title="Taux d'Activité"
+                      value={StatisticsUtils.formatPercentage(getSafeValue(stats.taux_activite_global))}
+                      subtitle="Performance globale"
+                      icon={<TrendingUpIcon />}
+                      color="success"
+                    />
+                  </Grid>
+                </Tooltip>
+
+                <Tooltip title="Nombre total de pointages enregistrés ce mois" arrow>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <StatCard
+                      title="Pointages"
+                      value={getSafeValue(stats.total_pointages)}
+                      subtitle="Enregistrements ce mois"
+                      icon={<AccessTimeIcon />}
+                      color="info"
+                    />
+                  </Grid>
+                </Tooltip>
+              </Grid>
+
+              {/* Cartes détaillées */}
+              <Grid container spacing={3}>
+                {/* Événements & Activités */}
+                <Grid item xs={12} md={6} lg={4}>
+                  <MetricCard title="Événements & Activités" icon={<EventIcon />} color="warning">
+                    <Box sx={{ textAlign: 'center', py: 2 }}>
+                      <Typography 
+                        variant="h2" 
+                        sx={{ 
+                          fontWeight: 800,
+                          background: `linear-gradient(45deg, ${theme.palette.warning.main} 30%, ${theme.palette.warning.dark} 90%)`,
+                          backgroundClip: 'text',
+                          WebkitBackgroundClip: 'text',
+                          color: 'transparent',
+                          mb: 1
+                        }}
+                      >
+                        {getSafeValue(stats.total_evenements)}
+                      </Typography>
+                      <Typography variant="body1" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                        Événements planifiés ce mois
+                      </Typography>
+                    </Box>
+                  </MetricCard>
                 </Grid>
-              </MetricCard>
-            </Grid>
-          </Grid>
+
+                {/* ✅ CORRECTION: Indicateurs de Performance avec barres corrigées */}
+                <Grid item xs={12} md={6} lg={4}>
+                  <MetricCard title="Indicateurs de Performance" icon={<TrendingUpIcon />} color="success">
+                    <Box sx={{ py: 1 }}>
+                      {performanceMetrics.map((metric, index) => (
+                        <ProgressMetric 
+                          key={index}
+                          label={metric.label} 
+                          value={metric.value}
+                          percentage={metric.percentage}
+                          color={metric.color}
+                        />
+                      ))}
+                    </Box>
+                  </MetricCard>
+                </Grid>
+
+                {/* Résumé de la Période */}
+                <Grid item xs={12} lg={4}>
+                  <MetricCard title="Résumé de la Période" icon={<ScheduleIcon />} color="info">
+                    <Grid container spacing={2}>
+                      {[
+                        { label: 'Employés au total', value: getSafeValue(stats.total_employes), color: 'primary' },
+                        { label: 'Jours travaillés', value: getSafeValue(stats.total_pointages), color: 'secondary' },
+                        { label: 'Événements organisés', value: getSafeValue(stats.total_evenements), color: 'warning' },
+                        { label: 'Heures productives', value: stats.heures_travail_total_str || StatisticsUtils.formatDuration(stats.heures_travail_total), color: 'success' },
+                      ].map((item, index) => (
+                        <Grid item xs={6} key={index}>
+                          <Box sx={{ textAlign: 'center', p: 1 }}>
+                            <Typography 
+                              variant="h4" 
+                              sx={{ 
+                                fontWeight: 700,
+                                color: theme.palette[item.color].main,
+                                mb: 0.5
+                              }}
+                            >
+                              {item.value || 0}
+                            </Typography>
+                            <Typography 
+                              variant="body2" 
+                              sx={{ 
+                                color: 'text.secondary',
+                                fontWeight: 500,
+                                fontSize: '0.75rem'
+                              }}
+                            >
+                              {item.label}
+                            </Typography>
+                          </Box>
+                        </Grid>
+                      ))}
+                    </Grid>
+                  </MetricCard>
+                </Grid>
+
+                {/* Statistiques Avancées */}
+                <Grid item xs={12} lg={6}>
+                  <MetricCard title="Statistiques Avancées" icon={<PieChartIcon />} color="secondary">
+                    <Grid container spacing={3}>
+                      {[
+                        { label: 'Taux de régularité', value: StatisticsUtils.formatPercentage(getSafeValue(stats.taux_regularite_global)), color: 'primary' },
+                        { label: 'Moyenne heures/jour', value: stats.moyenne_heures_quotidiennes_str || StatisticsUtils.formatDuration(stats.moyenne_heures_quotidiennes), color: 'success' },
+                        { label: 'Départements actifs', value: getSafeValue(stats.departements_actifs), color: 'warning' },
+                      ].map((item, index) => (
+                        <Grid item xs={4} key={index}>
+                          <Box sx={{ textAlign: 'center' }}>
+                            <Typography 
+                              variant="h4" 
+                              sx={{ 
+                                fontWeight: 700,
+                                color: theme.palette[item.color].main,
+                                mb: 1
+                              }}
+                            >
+                              {item.value || 0}
+                            </Typography>
+                            <Typography 
+                              variant="body2" 
+                              sx={{ 
+                                color: 'text.secondary',
+                                fontWeight: 500,
+                                lineHeight: 1.2
+                              }}
+                            >
+                              {item.label}
+                            </Typography>
+                          </Box>
+                        </Grid>
+                      ))}
+                    </Grid>
+                  </MetricCard>
+                </Grid>
+              </Grid>
+            </>
+          )}
         </Container>
       </Box>
     </Box>

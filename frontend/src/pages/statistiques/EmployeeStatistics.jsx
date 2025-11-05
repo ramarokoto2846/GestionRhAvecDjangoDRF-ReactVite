@@ -23,9 +23,7 @@ import {
   IconButton,
   useTheme,
   alpha,
-  Paper,
   Container,
-  LinearProgress,
   CardHeader,
   Tooltip
 } from '@mui/material';
@@ -34,27 +32,16 @@ import {
   Download as DownloadIcon,
   Search as SearchIcon,
   Close as CloseIcon,
-  Person as PersonIcon,
-  Schedule as ScheduleIcon,
-  TrendingUp as TrendingUpIcon,
-  Warning as WarningIcon,
-  CheckCircle as CheckCircleIcon,
-  AccessTime as AccessTimeIcon,
-  Timeline as TimelineIcon,
-  CompareArrows as CompareArrowsIcon,
   Refresh as RefreshIcon,
-  BarChart as BarChartIcon
+  Schedule as ScheduleIcon,
+  AccessTime as AccessTimeIcon,
+  TrendingUp as TrendingUpIcon
 } from '@mui/icons-material';
 import {
   getEmployeeStatistics,
   getEmployes,
   exportStatisticsPDF,
-  StatisticsUtils,
-  getCurrentUser,
-  isSuperuser,
-  getPonctualiteAnalysis,
-  getHeuresComparison,
-  getMonthlyTrends
+  StatisticsUtils
 } from '../../services/api';
 import Header from '../../components/Header';
 
@@ -68,19 +55,9 @@ const EmployeeStatistics = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [currentUser, setCurrentUser] = useState(null);
-  const [isSuperuserState, setIsSuperuserState] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [loadingPDF, setLoadingPDF] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [ponctualiteAnalysis, setPonctualiteAnalysis] = useState(null);
-  const [heuresComparison, setHeuresComparison] = useState(null);
-  const [monthlyTrends, setMonthlyTrends] = useState(null);
-  const [apiErrors, setApiErrors] = useState({
-    ponctualite: false,
-    comparaison: false,
-    tendances: false
-  });
 
   const months = [
     { value: 1, label: 'Janvier' }, { value: 2, label: 'Février' }, { value: 3, label: 'Mars' },
@@ -98,7 +75,6 @@ const EmployeeStatistics = () => {
       return defaultValue;
     }
     
-    // Si c'est une string, essayer de la convertir en nombre
     if (typeof value === 'string') {
       const numValue = parseFloat(value);
       return isNaN(numValue) ? defaultValue : numValue;
@@ -107,137 +83,28 @@ const EmployeeStatistics = () => {
     return value;
   };
 
-  // Fonction pour calculer le taux de présence (éviter NaN)
+  // Fonction pour calculer le taux de présence
   const calculateTauxPresence = (statsData) => {
-    if (!statsData || !statsData.jours_travailles || !statsData.jours_passes_mois || statsData.jours_passes_mois === 0) {
+    if (!statsData || !statsData.jours_travailles || !statsData.jours_ouvrables || statsData.jours_ouvrables === 0) {
       return 0;
     }
-    return Math.round((statsData.jours_travailles / statsData.jours_passes_mois) * 100);
-  };
-
-  // Fonction pour calculer le score global
-  const calculateScoreGlobal = (statsData) => {
-    if (!statsData) return 0;
-    
-    const regularite = getSafeValue(statsData.taux_regularite, 0);
-    const ponctualite = getSafeValue(statsData.taux_ponctualite, 0);
-    
-    // Score basé sur le statut des heures
-    let scoreStatut = 70; // défaut
-    switch (statsData?.statut_heures) {
-      case 'NORMAL':
-        scoreStatut = 100;
-        break;
-      case 'SURPLUS':
-        scoreStatut = 90;
-        break;
-      case 'INSUFFISANT':
-        scoreStatut = 60;
-        break;
-      default:
-        scoreStatut = 70;
-    }
-    
-    return Math.round((regularite + ponctualite + scoreStatut) / 3);
-  };
-
-  // Fonction pour générer les recommandations
-  const getRecommandations = (statsData) => {
-    const recommandations = [];
-    
-    if (!statsData) {
-      return (
-        <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
-          Aucune donnée disponible pour les recommandations.
-        </Typography>
-      );
-    }
-
-    const statutHeures = statsData.statut_heures;
-    const tauxPonctualite = getSafeValue(statsData.taux_ponctualite, 0);
-    const tauxRegularite = getSafeValue(statsData.taux_regularite, 0);
-    const tauxPresence = calculateTauxPresence(statsData);
-
-    // Recommandations basées sur le statut des heures
-    if (statutHeures === 'INSUFFISANT') {
-      recommandations.push(
-        <Typography key="heures" variant="body2" sx={{ color: 'warning.main', fontStyle: 'italic', mb: 1 }}>
-          ⚠️ Augmenter le temps de travail pour atteindre les objectifs mensuels.
-        </Typography>
-      );
-    }
-
-    // Recommandations basées sur la ponctualité
-    if (tauxPonctualite < 80) {
-      recommandations.push(
-        <Typography key="ponctualite" variant="body2" sx={{ color: 'warning.main', fontStyle: 'italic', mb: 1 }}>
-          ⚠️ Améliorer la ponctualité pour respecter les horaires établis.
-        </Typography>
-      );
-    }
-
-    // Recommandations basées sur la régularité
-    if (tauxRegularite < 80) {
-      recommandations.push(
-        <Typography key="regularite" variant="body2" sx={{ color: 'warning.main', fontStyle: 'italic', mb: 1 }}>
-          ⚠️ Travailler sur la régularité des heures d'arrivée.
-        </Typography>
-      );
-    }
-
-    // Recommandations basées sur la présence
-    if (tauxPresence < 80) {
-      recommandations.push(
-        <Typography key="presence" variant="body2" sx={{ color: 'warning.main', fontStyle: 'italic', mb: 1 }}>
-          ⚠️ Améliorer le taux de présence.
-        </Typography>
-      );
-    }
-
-    // Message positif si tout va bien
-    if (recommandations.length === 0) {
-      recommandations.push(
-        <Typography key="excellent" variant="body2" sx={{ color: 'success.main', fontStyle: 'italic' }}>
-          ✅ Excellentes performances ! Maintenir ce niveau d'engagement.
-        </Typography>
-      );
-    }
-
-    return <>{recommandations}</>;
+    return Math.round((statsData.jours_travailles / statsData.jours_ouvrables) * 100);
   };
 
   useEffect(() => {
-    const fetchUserAndData = async () => {
-      const token = localStorage.getItem("access_token");
-      if (!token) {
-        navigate("/");
-        return;
-      }
-      try {
-        const user = await getCurrentUser();
-        setCurrentUser(user);
-        const superuser = await isSuperuser();
-        setIsSuperuserState(superuser);
-        await loadEmployees();
-      } catch (err) {
-        console.error("Erreur lors de la récupération de l'utilisateur:", err);
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("refresh_token");
-        setCurrentUser(null);
-        navigate("/");
-      }
-    };
-    fetchUserAndData();
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      navigate("/");
+      return;
+    }
+    loadEmployees();
   }, [navigate]);
 
   useEffect(() => {
     if (selectedEmployee) {
-      loadAllStats();
+      loadStatistics();
     } else {
       setStats(null);
-      setPonctualiteAnalysis(null);
-      setHeuresComparison(null);
-      setMonthlyTrends(null);
     }
   }, [selectedEmployee, selectedMonth, selectedYear]);
 
@@ -251,7 +118,7 @@ const EmployeeStatistics = () => {
     }
   };
 
-  const loadAllStats = async (isRefresh = false) => {
+  const loadStatistics = async (isRefresh = false) => {
     if (!selectedEmployee) {
       setStats(null);
       return;
@@ -264,42 +131,25 @@ const EmployeeStatistics = () => {
         setLoading(true);
       }
       setError('');
-      setApiErrors({ ponctualite: false, comparaison: false, tendances: false });
 
       const formattedDate = `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}`;
       const params = { periode: 'mois', date: formattedDate };
 
-      // Charger les statistiques principales
+      console.log('🔄 Chargement des statistiques pour:', selectedEmployee, params);
+
+      // ✅ CORRECTION: Utiliser directement la fonction API
       const statsData = await getEmployeeStatistics(selectedEmployee, params);
-      setStats(statsData);
-
-      // Charger les analyses avancées avec gestion d'erreur
-      try {
-        const ponctualiteData = await getPonctualiteAnalysis(selectedEmployee, params);
-        setPonctualiteAnalysis(ponctualiteData);
-      } catch (err) {
-        console.log('Endpoint ponctualité non disponible');
-        setApiErrors(prev => ({ ...prev, ponctualite: true }));
-      }
-
-      try {
-        const comparisonData = await getHeuresComparison(selectedEmployee, params);
-        setHeuresComparison(comparisonData);
-      } catch (err) {
-        console.log('Endpoint comparaison non disponible');
-        setApiErrors(prev => ({ ...prev, comparaison: true }));
-      }
-
-      try {
-        const trendsData = await getMonthlyTrends(selectedEmployee, params);
-        setMonthlyTrends(trendsData);
-      } catch (err) {
-        console.log('Endpoint tendances non disponible');
-        setApiErrors(prev => ({ ...prev, tendances: true }));
+      
+      if (statsData) {
+        console.log('📊 Données API reçues:', statsData);
+        setStats(statsData);
+      } else {
+        console.log('❌ Aucune donnée API');
+        setStats(null);
       }
 
     } catch (err) {
-      console.error('Erreur chargement stats:', err);
+      console.error('❌ Erreur chargement stats:', err);
       setError(err.message || 'Erreur lors du chargement des statistiques');
       setStats(null);
     } finally {
@@ -338,71 +188,50 @@ const EmployeeStatistics = () => {
   };
 
   const handleRefresh = () => {
-    loadAllStats(true);
+    loadStatistics(true);
   };
 
-  // Fonction pour obtenir l'icône et la couleur selon le statut
+  // ✅ CORRECTION: Fonction pour obtenir la configuration du statut
   const getStatusConfig = (statut) => {
-    const defaultConfig = {
-      icon: <ScheduleIcon />,
-      color: 'primary',
-      bgColor: `${theme.palette.primary.main}15`,
-      textColor: theme.palette.primary.main
-    };
-
-    if (!statut) return defaultConfig;
-
     switch (statut) {
       case 'INSUFFISANT':
         return {
-          icon: <WarningIcon />,
+          icon: '⚠️',
           color: 'warning',
           bgColor: `${theme.palette.warning.main}15`,
           textColor: theme.palette.warning.main
         };
       case 'NORMAL':
         return {
-          icon: <CheckCircleIcon />,
+          icon: '✅',
           color: 'success',
           bgColor: `${theme.palette.success.main}15`,
           textColor: theme.palette.success.main
         };
       case 'SURPLUS':
         return {
-          icon: <TrendingUpIcon />,
+          icon: '📈',
           color: 'info',
           bgColor: `${theme.palette.info.main}15`,
           textColor: theme.palette.info.main
         };
       default:
-        return defaultConfig;
+        return {
+          icon: '📊',
+          color: 'primary',
+          bgColor: `${theme.palette.primary.main}15`,
+          textColor: theme.palette.primary.main
+        };
     }
   };
 
-  // Fonction pour obtenir la couleur du taux de ponctualité
-  const getPonctualiteColor = (taux) => {
+  // ✅ CORRECTION: Fonction pour obtenir la couleur du taux
+  const getRateColor = (taux) => {
     const safeTaux = getSafeValue(taux, 0);
     if (safeTaux >= 90) return 'success';
     if (safeTaux >= 70) return 'warning';
     return 'error';
   };
-
-  // Générer des données de démonstration pour les sections non implémentées
-  const getDemoPonctualiteData = () => {
-    const tauxPonctualite = getSafeValue(stats?.taux_ponctualite, 0);
-    return {
-      taux_matin: Math.max(0, tauxPonctualite * 0.95),
-      taux_soir: Math.max(0, tauxPonctualite * 1.05)
-    };
-  };
-
-  const getDemoComparisonData = () => ({
-    mois_precedents: [
-      { mois: 'Oct 2025', taux_remplissage: 85 },
-      { mois: 'Sep 2025', taux_remplissage: 92 },
-      { mois: 'Aoû 2025', taux_remplissage: 78 }
-    ]
-  });
 
   const filteredEmployees = employees.filter((emp) => {
     const searchLower = searchTerm.toLowerCase();
@@ -417,120 +246,14 @@ const EmployeeStatistics = () => {
 
   const selectedEmployeeData = employees.find(emp => emp.matricule === selectedEmployee);
 
-  // Composant MetricCard uniforme
-  const MetricCard = ({ title, icon, children, color = 'primary', action }) => (
-    <Card
-      sx={{
-        height: '100%',
-        background: `linear-gradient(135deg, ${theme.palette.background.paper}, ${alpha(theme.palette[color].light, 0.05)})`,
-        border: `1px solid ${theme.palette.divider}`,
-        borderRadius: 3,
-        boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-        transition: 'all 0.3s ease',
-        '&:hover': {
-          transform: 'translateY(-2px)',
-          boxShadow: '0 8px 30px rgba(0,0,0,0.12)'
-        }
-      }}
-    >
-      <CardContent sx={{ p: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Box
-              sx={{
-                p: 1,
-                borderRadius: 2,
-                backgroundColor: `${theme.palette[color].main}15`,
-                color: theme.palette[color].main,
-                mr: 2
-              }}
-            >
-              {icon}
-            </Box>
-            <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
-              {title}
-            </Typography>
-          </Box>
-          {action}
-        </Box>
-        {children}
-      </CardContent>
-    </Card>
-  );
-
-  // Composant de ligne de métrique uniforme
-  const MetricRow = ({ label, value, color = 'primary', icon, progress }) => (
-    <TableRow>
-      <TableCell sx={{ border: 'none', py: 1.5 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {icon && (
-            <Box sx={{ color: theme.palette[color].main }}>
-              {icon}
-            </Box>
-          )}
-          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-            {label}
-          </Typography>
-        </Box>
-      </TableCell>
-      <TableCell sx={{ border: 'none', py: 1.5 }} align="right">
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'flex-end' }}>
-          {progress && (
-            <Box sx={{ width: '60px', mr: 1 }}>
-              <LinearProgress 
-                variant="determinate" 
-                value={progress} 
-                color={color}
-                sx={{ height: 6, borderRadius: 3 }}
-              />
-            </Box>
-          )}
-          <Chip
-            label={value}
-            size="small"
-            sx={{
-              backgroundColor: `${theme.palette[color].main}15`,
-              color: theme.palette[color].main,
-              fontWeight: 600,
-              minWidth: '80px'
-            }}
-          />
-        </Box>
-      </TableCell>
-    </TableRow>
-  );
-
-  // Composant pour afficher une barre de progression
-  const ProgressBar = ({ value, color = 'primary', label }) => (
-    <Box sx={{ mb: 2 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-          {label}
-        </Typography>
-        <Typography variant="body2" sx={{ fontWeight: 600, color: theme.palette[color].main }}>
-          {getSafeValue(value, 0)}%
-        </Typography>
-      </Box>
-      <LinearProgress 
-        variant="determinate" 
-        value={getSafeValue(value, 0)} 
-        color={color}
-        sx={{ height: 8, borderRadius: 4 }}
-      />
-    </Box>
-  );
-
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: theme.palette.background.default }}>
-      <Header user={currentUser} onMenuToggle={() => {}} />
+      <Header />
 
       {/* Barre de progression pendant le rafraîchissement */}
       {refreshing && (
         <Box sx={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999 }}>
-          <LinearProgress 
-            color="primary"
-            sx={{ height: 3 }}
-          />
+          <Box sx={{ height: 3, backgroundColor: theme.palette.primary.main }} />
         </Box>
       )}
 
@@ -558,10 +281,10 @@ const EmployeeStatistics = () => {
                     mb: 1
                   }}
                 >
-                  Statistiques par Employé
+                  Statistiques Employé
                 </Typography>
                 <Typography variant="h6" sx={{ color: 'text.secondary', mb: 3 }}>
-                  Analyse détaillée des performances, ponctualité et tendances d'un employé.
+                  Analyse des performances selon le modèle PDF
                 </Typography>
               </Box>
               <Tooltip title="Actualiser les données">
@@ -582,15 +305,6 @@ const EmployeeStatistics = () => {
               </Tooltip>
             </Box>
           </Box>
-
-          {/* Avertissement API manquants */}
-          {(apiErrors.ponctualite || apiErrors.comparaison || apiErrors.tendances) && (
-            <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
-              <Typography variant="body2">
-                Certaines fonctionnalités avancées utilisent des données de démonstration.
-              </Typography>
-            </Alert>
-          )}
 
           {/* Filters Section */}
           <Card
@@ -724,29 +438,6 @@ const EmployeeStatistics = () => {
             </Alert>
           )}
 
-          {/* Observation des heures */}
-          {stats && stats.observation_heures && (
-            <Alert
-              severity={stats.statut_heures === 'INSUFFISANT' ? 'warning' : 
-                       stats.statut_heures === 'SURPLUS' ? 'info' : 'success'}
-              icon={getStatusConfig(stats.statut_heures).icon}
-              sx={{
-                mb: 3,
-                borderRadius: 2,
-                background: getStatusConfig(stats.statut_heures).bgColor,
-                border: `1px solid ${getStatusConfig(stats.statut_heures).textColor}30`,
-                color: 'text.primary'
-              }}
-            >
-              <Typography variant="body1" sx={{ fontWeight: 600, mb: 0.5 }}>
-                Analyse des heures travaillées - {stats.statut_heures || 'NON_DEFINI'}
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                {stats.observation_heures}
-              </Typography>
-            </Alert>
-          )}
-
           {error && (
             <Alert
               severity="error"
@@ -767,466 +458,295 @@ const EmployeeStatistics = () => {
             </Box>
           )}
 
-          {/* Statistics Grid */}
+          {/* ✅ CORRECTION: AFFICHAGE SIMPLIFIÉ DES STATISTIQUES */}
           {stats && selectedEmployeeData && (
-            <>
-              {/* Première ligne : Informations de base */}
-              <Grid container spacing={3} sx={{ mb: 3 }}>
-                {/* Informations Employé */}
-                <Grid item xs={12} lg={4}>
-                  <MetricCard title="Informations Employé" icon={<PersonIcon />} color="primary">
+            <Grid container spacing={3}>
+              
+              {/* SECTION 1: STATISTIQUES DE POINTAGE */}
+              <Grid item xs={12} md={4}>
+                <Card
+                  sx={{
+                    height: '100%',
+                    background: `linear-gradient(135deg, ${theme.palette.primary.main}15, ${theme.palette.background.paper})`,
+                    border: `2px solid ${theme.palette.primary.main}30`,
+                    borderRadius: 3,
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+                  }}
+                >
+                  <CardHeader
+                    title={
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <ScheduleIcon sx={{ mr: 2, color: 'primary.main' }} />
+                        <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                          STATISTIQUES DE POINTAGE
+                        </Typography>
+                      </Box>
+                    }
+                    sx={{ pb: 1 }}
+                  />
+                  <CardContent>
                     <TableContainer>
                       <Table size="small">
                         <TableBody>
-                          <MetricRow
-                            label="Nom complet"
-                            value={`${selectedEmployeeData.nom} ${selectedEmployeeData.prenom}`}
-                            color="primary"
-                          />
-                          <MetricRow
-                            label="Matricule"
-                            value={selectedEmployeeData.matricule}
-                            color="primary"
-                          />
-                          <MetricRow
-                            label="Département"
-                            value={selectedEmployeeData.departement?.nom || 'Non assigné'}
-                            color="primary"
-                          />
-                          <MetricRow
-                            label="Poste"
-                            value={selectedEmployeeData.poste}
-                            color="primary"
-                          />
-                          <MetricRow
-                            label="Email"
-                            value={selectedEmployeeData.email || 'Non renseigné'}
-                            color="primary"
-                          />
+                          <TableRow>
+                            <TableCell sx={{ border: 'none', py: 1.5 }}>
+                              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                Heures totales travaillées
+                              </Typography>
+                            </TableCell>
+                            <TableCell sx={{ border: 'none', py: 1.5 }} align="right">
+                              <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                                {stats.heures_travail_total_str || StatisticsUtils.formatDuration(stats.heures_travail_total)}
+                              </Typography>
+                            </TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell sx={{ border: 'none', py: 1.5 }}>
+                              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                Jours travaillés
+                              </Typography>
+                            </TableCell>
+                            <TableCell sx={{ border: 'none', py: 1.5 }} align="right">
+                              <Typography variant="body2" sx={{ fontWeight: 600, color: 'success.main' }}>
+                                {getSafeValue(stats.jours_travailles)} jours
+                              </Typography>
+                            </TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell sx={{ border: 'none', py: 1.5 }}>
+                              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                Moyenne quotidienne
+                              </Typography>
+                            </TableCell>
+                            <TableCell sx={{ border: 'none', py: 1.5 }} align="right">
+                              <Typography variant="body2" sx={{ fontWeight: 600, color: 'info.main' }}>
+                                {stats.moyenne_heures_quotidiennes_str || StatisticsUtils.formatDuration(stats.moyenne_heures_quotidiennes)}
+                              </Typography>
+                            </TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell sx={{ border: 'none', py: 1.5 }}>
+                              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                Pointages réguliers
+                              </Typography>
+                            </TableCell>
+                            <TableCell sx={{ border: 'none', py: 1.5 }} align="right">
+                              <Typography variant="body2" sx={{ fontWeight: 600, color: 'success.main' }}>
+                                {getSafeValue(stats.pointages_reguliers)}
+                              </Typography>
+                            </TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell sx={{ border: 'none', py: 1.5 }}>
+                              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                Pointages irréguliers
+                              </Typography>
+                            </TableCell>
+                            <TableCell sx={{ border: 'none', py: 1.5 }} align="right">
+                              <Typography variant="body2" sx={{ fontWeight: 600, color: 'warning.main' }}>
+                                {getSafeValue(stats.pointages_irreguliers)}
+                              </Typography>
+                            </TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell sx={{ border: 'none', py: 1.5 }}>
+                              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                Taux de régularité
+                              </Typography>
+                            </TableCell>
+                            <TableCell sx={{ border: 'none', py: 1.5 }} align="right">
+                              <Typography variant="body2" sx={{ fontWeight: 600, color: 'success.main' }}>
+                                {getSafeValue(stats.taux_regularite)}%
+                              </Typography>
+                            </TableCell>
+                          </TableRow>
                         </TableBody>
                       </Table>
                     </TableContainer>
-                  </MetricCard>
-                </Grid>
-
-                {/* Pointages */}
-                <Grid item xs={12} lg={4}>
-                  <MetricCard title="Pointages" icon={<ScheduleIcon />} color="info">
-                    <TableContainer>
-                      <Table size="small">
-                        <TableBody>
-                          <MetricRow
-                            label="Heures totales"
-                            value={StatisticsUtils.formatDuration(stats.heures_travail_total)}
-                            color="primary"
-                          />
-                          <MetricRow
-                            label="Jours travaillés"
-                            value={getSafeValue(stats.jours_travailles)}
-                            color="success"
-                          />
-                          <MetricRow
-                            label="Moyenne quotidienne"
-                            value={StatisticsUtils.formatDuration(stats.moyenne_heures_quotidiennes)}
-                            color="info"
-                          />
-                          <MetricRow
-                            label="Pointages réguliers"
-                            value={getSafeValue(stats.pointages_reguliers)}
-                            color="success"
-                          />
-                          <MetricRow
-                            label="Pointages irréguliers"
-                            value={getSafeValue(stats.pointages_irreguliers)}
-                            color="warning"
-                          />
-                          {stats.jours_passes_mois && (
-                            <MetricRow
-                              label="Jours passés dans le mois"
-                              value={getSafeValue(stats.jours_passes_mois)}
-                              color="info"
-                            />
-                          )}
-                          {stats.heures_attendues_jours_passes && (
-                            <MetricRow
-                              label="Heures attendues"
-                              value={StatisticsUtils.formatDuration(stats.heures_attendues_jours_passes)}
-                              color="primary"
-                            />
-                          )}
-                          {stats.ecart_heures && (
-                            <MetricRow
-                              label="Écart"
-                              value={StatisticsUtils.formatDuration(stats.ecart_heures)}
-                              color={stats.statut_heures === 'INSUFFISANT' ? 'warning' : 
-                                     stats.statut_heures === 'SURPLUS' ? 'info' : 'success'}
-                            />
-                          )}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                  </MetricCard>
-                </Grid>
-
-                {/* Analyse Performance */}
-                <Grid item xs={12} lg={4}>
-                  <MetricCard 
-                    title="Analyse Performance" 
-                    icon={<TrendingUpIcon />} 
-                    color={stats.statut_heures === 'INSUFFISANT' ? 'warning' : 
-                           stats.statut_heures === 'SURPLUS' ? 'info' : 'success'}
-                  >
-                    <Box sx={{ textAlign: 'center', py: 3 }}>
-                      {/* Statut des heures */}
-                      <Box sx={{ mb: 3 }}>
-                        <Chip
-                          icon={getStatusConfig(stats.statut_heures).icon}
-                          label={stats.statut_heures || 'NON_DEFINI'}
-                          color={getStatusConfig(stats.statut_heures).color}
-                          sx={{
-                            fontSize: '1rem',
-                            py: 2,
-                            px: 2,
-                            mb: 2
-                          }}
-                        />
-                        {stats.pourcentage_ecart && (
-                          <Typography variant="h6" sx={{ 
-                            color: getStatusConfig(stats.statut_heures).textColor,
-                            fontWeight: 600
-                          }}>
-                            {stats.pourcentage_ecart > 0 ? '+' : ''}{getSafeValue(stats.pourcentage_ecart)}%
-                          </Typography>
-                        )}
-                      </Box>
-
-                      {/* Taux de régularité */}
-                      {stats.taux_regularite && (
-                        <Box sx={{ mb: 3 }}>
-                          <Typography variant="h4" sx={{
-                            fontWeight: 700,
-                            color: theme.palette.success.main,
-                            mb: 1
-                          }}>
-                            {getSafeValue(stats.taux_regularite)}%
-                          </Typography>
-                          <Typography variant="body2" sx={{
-                            color: 'text.secondary',
-                            opacity: 0.7
-                          }}>
-                            Taux de régularité
-                          </Typography>
-                        </Box>
-                      )}
-                    </Box>
-                  </MetricCard>
-                </Grid>
+                  </CardContent>
+                </Card>
               </Grid>
 
-              {/* Deuxième ligne : Ponctualité et Analyses Avancées */}
-              <Grid container spacing={3} sx={{ mb: 3 }}>
-                {/* Ponctualité */}
-                <Grid item xs={12} lg={6}>
-                  <MetricCard 
-                    title="Analyse de Ponctualité" 
-                    icon={<AccessTimeIcon />} 
-                    color="info"
-                    action={apiErrors.ponctualite && (
-                      <Chip label="Démo" size="small" color="info" variant="outlined" />
-                    )}
-                  >
-                    <Box sx={{ p: 2 }}>
-                      <Box sx={{ textAlign: 'center', mb: 3 }}>
-                        <AccessTimeIcon 
-                          sx={{ 
-                            fontSize: 48, 
-                            color: theme.palette.info.main,
-                            mb: 1 
-                          }} 
-                        />
-                        <Typography variant="h3" sx={{
-                          fontWeight: 700,
-                          color: theme.palette.info.main,
-                          mb: 1
-                        }}>
-                          {getSafeValue(stats?.taux_ponctualite, 0)}%
-                        </Typography>
-                        <Typography variant="body1" sx={{
-                          color: 'text.secondary',
-                          mb: 1
-                        }}>
-                          Taux de ponctualité
-                        </Typography>
-                        <Typography variant="caption" sx={{
-                          color: 'text.secondary',
-                          opacity: 0.6,
-                          fontStyle: 'italic'
-                        }}>
-                          Entrée 8h / Sortie 16h
+              {/* SECTION 2: OBSERVATION ET RECOMMANDATIONS */}
+              <Grid item xs={12} md={4}>
+                <Card
+                  sx={{
+                    height: '100%',
+                    background: `linear-gradient(135deg, ${getStatusConfig(stats.statut_heures).bgColor}, ${theme.palette.background.paper})`,
+                    border: `2px solid ${getStatusConfig(stats.statut_heures).textColor}30`,
+                    borderRadius: 3,
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+                  }}
+                >
+                  <CardHeader
+                    title={
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <TrendingUpIcon sx={{ mr: 2, color: getStatusConfig(stats.statut_heures).textColor }} />
+                        <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                          OBSERVATION ET RECOMMANDATIONS
                         </Typography>
                       </Box>
-
-                      <Grid container spacing={2} sx={{ mt: 2 }}>
-                        <Grid item xs={6}>
-                          <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'success.light', borderRadius: 2 }}>
-                            <Typography variant="h4" sx={{ color: 'success.dark', fontWeight: 700 }}>
-                              {getSafeValue(stats?.pointages_ponctuels, 0)}
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: 'success.dark' }}>
-                              Jours ponctuels
-                            </Typography>
-                          </Box>
-                        </Grid>
-                        <Grid item xs={6}>
-                          <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'warning.light', borderRadius: 2 }}>
-                            <Typography variant="h4" sx={{ color: 'warning.dark', fontWeight: 700 }}>
-                              {getSafeValue(stats?.pointages_non_ponctuels, 0)}
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: 'warning.dark' }}>
-                              Jours non ponctuels
-                            </Typography>
-                          </Box>
-                        </Grid>
-                      </Grid>
-
-                      {/* Détails de ponctualité */}
-                      <Box sx={{ mt: 3 }}>
-                        <Typography variant="body2" sx={{ fontWeight: 600, mb: 2 }}>
-                          Détails de ponctualité :
-                        </Typography>
-                        {apiErrors.ponctualite && (
-                          <Alert severity="info" sx={{ mb: 2 }}>
-                            Données de démonstration
-                          </Alert>
-                        )}
-                        <ProgressBar 
-                          value={ponctualiteAnalysis?.taux_matin || getDemoPonctualiteData().taux_matin} 
-                          color={getPonctualiteColor(ponctualiteAnalysis?.taux_matin || getDemoPonctualiteData().taux_matin)} 
-                          label="Ponctualité matin"
-                        />
-                        <ProgressBar 
-                          value={ponctualiteAnalysis?.taux_soir || getDemoPonctualiteData().taux_soir} 
-                          color={getPonctualiteColor(ponctualiteAnalysis?.taux_soir || getDemoPonctualiteData().taux_soir)} 
-                          label="Ponctualité soir"
-                        />
-                      </Box>
+                    }
+                    sx={{ pb: 1 }}
+                  />
+                  <CardContent>
+                    {/* Statut des heures */}
+                    <Box sx={{ mb: 3, textAlign: 'center' }}>
+                      <Chip
+                        icon={<span>{getStatusConfig(stats.statut_heures).icon}</span>}
+                        label={`STATUT: ${stats.statut_heures || 'NON_DEFINI'}`}
+                        color={getStatusConfig(stats.statut_heures).color}
+                        sx={{
+                          fontSize: '1rem',
+                          py: 2,
+                          px: 3,
+                          mb: 2,
+                          fontWeight: 700
+                        }}
+                      />
                     </Box>
-                  </MetricCard>
-                </Grid>
 
-                {/* Comparaison des Heures */}
-                <Grid item xs={12} lg={6}>
-                  <MetricCard 
-                    title="Comparaison des Heures" 
-                    icon={<CompareArrowsIcon />} 
-                    color="primary"
-                    action={apiErrors.comparaison && (
-                      <Chip label="Démo" size="small" color="info" variant="outlined" />
-                    )}
-                  >
-                    <Box sx={{ p: 2 }}>
-                      <Box sx={{ mb: 3 }}>
-                        <Typography variant="h6" sx={{ mb: 2, color: 'text.primary' }}>
-                          Heures travaillées vs attendues
-                        </Typography>
-                        
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                            Heures réelles :
-                          </Typography>
-                          <Chip 
-                            label={StatisticsUtils.formatDuration(stats.heures_travail_total)}
-                            color="primary"
-                            variant="outlined"
-                          />
-                        </Box>
-
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                            Heures attendues :
-                          </Typography>
-                          <Chip 
-                            label={StatisticsUtils.formatDuration(stats.heures_attendues_jours_passes)}
-                            color="info"
-                            variant="outlined"
-                          />
-                        </Box>
-
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                            Écart :
-                          </Typography>
-                          <Chip 
-                            label={StatisticsUtils.formatDuration(stats.ecart_heures)}
-                            color={stats.statut_heures === 'INSUFFISANT' ? 'error' : 'success'}
-                          />
-                        </Box>
-                      </Box>
-
-                      {/* Évolution mensuelle */}
-                      <Box>
-                        <Typography variant="body2" sx={{ fontWeight: 600, mb: 2 }}>
-                          Évolution mensuelle :
-                        </Typography>
-                        {apiErrors.comparaison && (
-                          <Alert severity="info" sx={{ mb: 2 }}>
-                            Données de démonstration
-                          </Alert>
-                        )}
-                        {(heuresComparison?.mois_precedents || getDemoComparisonData().mois_precedents).map((mois, index) => (
-                          <ProgressBar 
-                            key={index}
-                            value={mois.taux_remplissage || 0}
-                            color={mois.taux_remplissage >= 100 ? 'success' : mois.taux_remplissage >= 80 ? 'warning' : 'error'}
-                            label={`${mois.mois} - ${mois.taux_remplissage}%`}
-                          />
-                        ))}
-                      </Box>
-                    </Box>
-                  </MetricCard>
-                </Grid>
-              </Grid>
-
-              {/* Troisième ligne : Tendances et Résumé */}
-              <Grid container spacing={3}>
-                {/* Tendances Mensuelles */}
-                <Grid item xs={12} lg={8}>
-                  <MetricCard 
-                    title="Tendances et Performances" 
-                    icon={<TimelineIcon />} 
-                    color="secondary"
-                    action={apiErrors.tendances && (
-                      <Chip label="Démo" size="small" color="info" variant="outlined" />
-                    )}
-                  >
-                    <Box sx={{ p: 2 }}>
-                      <Grid container spacing={3}>
-                        <Grid item xs={12} md={6}>
-                          <Typography variant="h6" sx={{ mb: 2, color: 'text.primary' }}>
-                            Résumé des Performances
-                          </Typography>
-                          
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                            <Typography variant="body2">Régularité globale :</Typography>
-                            <Chip 
-                              label={`${getSafeValue(stats.taux_regularite, 0)}%`}
-                              color={StatisticsUtils.getRateColor(getSafeValue(stats.taux_regularite, 0))}
-                              size="small"
-                            />
-                          </Box>
-
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                            <Typography variant="body2">Ponctualité :</Typography>
-                            <Chip 
-                              label={`${getSafeValue(stats.taux_ponctualite, 0)}%`}
-                              color={getPonctualiteColor(getSafeValue(stats.taux_ponctualite, 0))}
-                              size="small"
-                            />
-                          </Box>
-
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                            <Typography variant="body2">Statut heures :</Typography>
-                            <Chip 
-                              label={stats.statut_heures || 'NON_DEFINI'}
-                              color={StatisticsUtils.getHeuresStatusColor(stats.statut_heures || 'NON_DEFINI')}
-                              size="small"
-                            />
-                          </Box>
-
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Typography variant="body2">Taux présence :</Typography>
-                            <Chip 
-                              label={`${calculateTauxPresence(stats)}%`}
-                              color={StatisticsUtils.getRateColor(calculateTauxPresence(stats))}
-                              size="small"
-                            />
-                          </Box>
-                        </Grid>
-
-                        <Grid item xs={12} md={6}>
-                          <Typography variant="h6" sx={{ mb: 2, color: 'text.primary' }}>
-                            Recommandations
-                          </Typography>
-                          
-                          <Box sx={{ p: 2, bgcolor: 'background.default', borderRadius: 2 }}>
-                            {getRecommandations(stats)}
-                          </Box>
-                        </Grid>
-                      </Grid>
-                    </Box>
-                  </MetricCard>
-                </Grid>
-
-                {/* Score Global */}
-                <Grid item xs={12} lg={4}>
-                  <MetricCard title="Score Global" icon={<BarChartIcon />} color="success">
-                    <Box sx={{ textAlign: 'center', py: 4 }}>
-                      <Typography variant="h1" sx={{
-                        fontWeight: 700,
-                        background: `linear-gradient(135deg, ${theme.palette.success.main}, ${theme.palette.info.main})`,
-                        backgroundClip: 'text',
-                        WebkitBackgroundClip: 'text',
-                        color: 'transparent',
-                        mb: 2
-                      }}>
-                        {calculateScoreGlobal(stats)}%
+                    {/* Observation */}
+                    <Box sx={{ p: 2, bgcolor: 'background.default', borderRadius: 2 }}>
+                      <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'text.secondary', lineHeight: 1.6 }}>
+                        {stats.observation_heures || 'Aucune observation disponible pour cette période.'}
                       </Typography>
-                      <Typography variant="h6" sx={{
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* SECTION 3: ANALYSE DE PONCTUALITÉ */}
+              <Grid item xs={12} md={4}>
+                <Card
+                  sx={{
+                    height: '100%',
+                    background: `linear-gradient(135deg, ${theme.palette.info.main}15, ${theme.palette.background.paper})`,
+                    border: `2px solid ${theme.palette.info.main}30`,
+                    borderRadius: 3,
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+                  }}
+                >
+                  <CardHeader
+                    title={
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <AccessTimeIcon sx={{ mr: 2, color: 'info.main' }} />
+                        <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                          ANALYSE DE PONCTUALITÉ
+                        </Typography>
+                      </Box>
+                    }
+                    sx={{ pb: 1 }}
+                  />
+                  <CardContent>
+                    {/* Taux de ponctualité global */}
+                    <Box sx={{ textAlign: 'center', mb: 3 }}>
+                      <Typography variant="h3" sx={{
+                        fontWeight: 700,
+                        color: theme.palette.info.main,
+                        mb: 1
+                      }}>
+                        {getSafeValue(stats.taux_ponctualite)}%
+                      </Typography>
+                      <Typography variant="body1" sx={{
                         color: 'text.secondary',
                         mb: 1
                       }}>
-                        Performance Globale
-                      </Typography>
-                      <Typography variant="body2" sx={{
-                        color: 'text.secondary',
-                        opacity: 0.7
-                      }}>
-                        Basé sur régularité, ponctualité et heures
+                        Taux de ponctualité global
                       </Typography>
                     </Box>
-                  </MetricCard>
-                </Grid>
+
+                    {/* Détails de ponctualité */}
+                    <TableContainer>
+                      <Table size="small">
+                        <TableBody>
+                          <TableRow>
+                            <TableCell sx={{ border: 'none', py: 1.5 }}>
+                              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                Jours ponctuels
+                              </Typography>
+                            </TableCell>
+                            <TableCell sx={{ border: 'none', py: 1.5 }} align="right">
+                              <Typography variant="body2" sx={{ fontWeight: 600, color: 'success.main' }}>
+                                {getSafeValue(stats.pointages_ponctuels)}
+                              </Typography>
+                            </TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell sx={{ border: 'none', py: 1.5 }}>
+                              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                Jours non ponctuels
+                              </Typography>
+                            </TableCell>
+                            <TableCell sx={{ border: 'none', py: 1.5 }} align="right">
+                              <Typography variant="body2" sx={{ fontWeight: 600, color: 'warning.main' }}>
+                                {getSafeValue(stats.pointages_non_ponctuels)}
+                              </Typography>
+                            </TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell sx={{ border: 'none', py: 1.5 }}>
+                              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                Total jours analysés
+                              </Typography>
+                            </TableCell>
+                            <TableCell sx={{ border: 'none', py: 1.5 }} align="right">
+                              <Typography variant="body2" sx={{ fontWeight: 600, color: 'info.main' }}>
+                                {getSafeValue(stats.jours_travailles)}
+                              </Typography>
+                            </TableCell>
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+
+                    {/* Recommandation ponctualité */}
+                    <Box sx={{ mt: 3, p: 2, bgcolor: 'background.default', borderRadius: 2 }}>
+                      <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'text.secondary' }}>
+                        {getSafeValue(stats.taux_ponctualite) >= 90 
+                          ? "✅ Excellente ponctualité, respect systématique des horaires."
+                          : getSafeValue(stats.taux_ponctualite) >= 80
+                          ? "🟡 Bonne ponctualité, horaires généralement respectés."
+                          : "⚠️ Ponctualité à améliorer, retards fréquents."}
+                      </Typography>
+                    </Box>
+                  </CardContent>
+                </Card>
               </Grid>
-            </>
+            </Grid>
           )}
 
-          {/* Empty States */}
-          {!selectedEmployee && !loading && (
-            <Paper
-              sx={{
-                textAlign: 'center',
-                py: 8,
-                borderRadius: 3,
-                background: `linear-gradient(135deg, ${theme.palette.background.paper}, ${alpha(theme.palette.primary.light, 0.05)})`
-              }}
-            >
-              <PersonIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2, opacity: 0.5 }} />
-              <Typography variant="h6" sx={{ color: 'text.secondary', mb: 1 }}>
-                Aucun employé sélectionné
-              </Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary', opacity: 0.7 }}>
-                Veuillez sélectionner un employé pour afficher ses statistiques détaillées
-              </Typography>
-            </Paper>
-          )}
-
-          {selectedEmployee && !stats && !loading && (
-            <Paper
-              sx={{
-                textAlign: 'center',
-                py: 8,
-                borderRadius: 3,
-                background: `linear-gradient(135deg, ${theme.palette.background.paper}, ${alpha(theme.palette.warning.light, 0.05)})`
-              }}
-            >
-              <TrendingUpIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2, opacity: 0.5 }} />
+          {/* Empty State */}
+          {!loading && !stats && selectedEmployee && (
+            <Box sx={{ textAlign: 'center', py: 8 }}>
+              <ScheduleIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
               <Typography variant="h6" sx={{ color: 'text.secondary', mb: 1 }}>
                 Aucune donnée disponible
               </Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary', opacity: 0.7 }}>
-                Aucune statistique n'est disponible pour cet employé sur la période sélectionnée
+              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>
+                Aucune statistique trouvée pour cet employé sur la période sélectionnée.
               </Typography>
-            </Paper>
+              <Button 
+                variant="outlined" 
+                onClick={handleRefresh}
+                startIcon={<RefreshIcon />}
+              >
+                Réessayer
+              </Button>
+            </Box>
+          )}
+
+          {/* No Employee Selected */}
+          {!loading && !selectedEmployee && (
+            <Box sx={{ textAlign: 'center', py: 8 }}>
+              <AccessTimeIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
+              <Typography variant="h6" sx={{ color: 'text.secondary', mb: 1 }}>
+                Aucun employé sélectionné
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                Veuillez sélectionner un employé pour afficher ses statistiques.
+              </Typography>
+            </Box>
           )}
         </Container>
       </Box>
