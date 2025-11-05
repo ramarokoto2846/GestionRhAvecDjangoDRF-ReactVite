@@ -284,7 +284,7 @@ const EmployeeStatistics = () => {
                   Statistiques Employé
                 </Typography>
                 <Typography variant="h6" sx={{ color: 'text.secondary', mb: 3 }}>
-                  Analyse des performances selon le modèle PDF
+                  Analyse des performances d'un Employé
                 </Typography>
               </Box>
               <Tooltip title="Actualiser les données">
@@ -567,55 +567,6 @@ const EmployeeStatistics = () => {
                 </Card>
               </Grid>
 
-              {/* SECTION 2: OBSERVATION ET RECOMMANDATIONS */}
-              <Grid item xs={12} md={4}>
-                <Card
-                  sx={{
-                    height: '100%',
-                    background: `linear-gradient(135deg, ${getStatusConfig(stats.statut_heures).bgColor}, ${theme.palette.background.paper})`,
-                    border: `2px solid ${getStatusConfig(stats.statut_heures).textColor}30`,
-                    borderRadius: 3,
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
-                  }}
-                >
-                  <CardHeader
-                    title={
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <TrendingUpIcon sx={{ mr: 2, color: getStatusConfig(stats.statut_heures).textColor }} />
-                        <Typography variant="h5" sx={{ fontWeight: 600 }}>
-                          OBSERVATION ET RECOMMANDATIONS
-                        </Typography>
-                      </Box>
-                    }
-                    sx={{ pb: 1 }}
-                  />
-                  <CardContent>
-                    {/* Statut des heures */}
-                    <Box sx={{ mb: 3, textAlign: 'center' }}>
-                      <Chip
-                        icon={<span>{getStatusConfig(stats.statut_heures).icon}</span>}
-                        label={`STATUT: ${stats.statut_heures || 'NON_DEFINI'}`}
-                        color={getStatusConfig(stats.statut_heures).color}
-                        sx={{
-                          fontSize: '1rem',
-                          py: 2,
-                          px: 3,
-                          mb: 2,
-                          fontWeight: 700
-                        }}
-                      />
-                    </Box>
-
-                    {/* Observation */}
-                    <Box sx={{ p: 2, bgcolor: 'background.default', borderRadius: 2 }}>
-                      <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'text.secondary', lineHeight: 1.6 }}>
-                        {stats.observation_heures || 'Aucune observation disponible pour cette période.'}
-                      </Typography>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-
               {/* SECTION 3: ANALYSE DE PONCTUALITÉ */}
               <Grid item xs={12} md={4}>
                 <Card
@@ -713,6 +664,56 @@ const EmployeeStatistics = () => {
                   </CardContent>
                 </Card>
               </Grid>
+
+              {/* SECTION 2: OBSERVATION ET RECOMMANDATIONS */}
+              <Grid item xs={12} md={4}>
+                <Card
+                  sx={{
+                    height: '100%',
+                    background: `linear-gradient(135deg, ${getStatusConfig(stats.statut_heures).bgColor}, ${theme.palette.background.paper})`,
+                    border: `2px solid ${getStatusConfig(stats.statut_heures).textColor}30`,
+                    borderRadius: 3,
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+                  }}
+                >
+                  <CardHeader
+                    title={
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <TrendingUpIcon sx={{ mr: 2, color: getStatusConfig(stats.statut_heures).textColor }} />
+                        <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                          OBSERVATION ET RECOMMANDATIONS
+                        </Typography>
+                      </Box>
+                    }
+                    sx={{ pb: 1 }}
+                  />
+                  <CardContent>
+                    {/* Statut des heures */}
+                    <Box sx={{ mb: 3, textAlign: 'center' }}>
+                      <Chip
+                        icon={<span>{getStatusConfig(stats.statut_heures).icon}</span>}
+                        label={`STATUT: ${stats.statut_heures || 'NON_DEFINI'}`}
+                        color={getStatusConfig(stats.statut_heures).color}
+                        sx={{
+                          fontSize: '1rem',
+                          py: 2,
+                          px: 3,
+                          mb: 2,
+                          fontWeight: 700
+                        }}
+                      />
+                    </Box>
+
+                    Observation
+                    <Box sx={{ p: 2, bgcolor: 'background.default', borderRadius: 2 }}>
+                      <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'text.secondary', lineHeight: 1.6 }}>
+                        {stats.observation_heures || 'Aucune observation disponible pour cette période.'}
+                      </Typography>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+
             </Grid>
           )}
 

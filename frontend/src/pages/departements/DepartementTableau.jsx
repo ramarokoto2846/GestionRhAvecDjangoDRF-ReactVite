@@ -341,29 +341,6 @@ const DepartementTableau = ({
                           }}
                         />
                       </Box>
-                      
-                      {/* Barre de progression */}
-                      {employeeCount > 0 && (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <LinearProgress 
-                            variant="determinate" 
-                            value={getProgressValue(employeeCount)}
-                            sx={{
-                              flex: 1,
-                              height: 6,
-                              borderRadius: 3,
-                              backgroundColor: alpha(ORTM_COLORS.primary, 0.1),
-                              '& .MuiLinearProgress-bar': {
-                                backgroundColor: ORTM_COLORS[getEmployeeCountColor(employeeCount)],
-                                borderRadius: 3,
-                              }
-                            }}
-                          />
-                          <Typography variant="caption" fontWeight="600" sx={{ minWidth: 35 }}>
-                            {getProgressValue(employeeCount)}%
-                          </Typography>
-                        </Box>
-                      )}
                     </Box>
                   </TableCell>
 

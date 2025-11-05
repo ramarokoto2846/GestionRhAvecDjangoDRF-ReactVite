@@ -325,28 +325,6 @@ const EvenementTable = ({
                         }}
                       />
                     </Badge>
-                    
-                    {/* Barre de progression pour les événements en cours */}
-                    {status === "en-cours" && progress > 0 && (
-                      <Box sx={{ mt: 1 }}>
-                        <LinearProgress 
-                          variant="determinate" 
-                          value={progress}
-                          sx={{
-                            height: 6,
-                            borderRadius: 3,
-                            backgroundColor: alpha(ORTM_COLORS.primary, 0.1),
-                            '& .MuiLinearProgress-bar': {
-                              backgroundColor: ORTM_COLORS.success,
-                              borderRadius: 3,
-                            }
-                          }}
-                        />
-                        <Typography variant="caption" fontWeight="600" sx={{ mt: 0.5, display: 'block' }}>
-                          {progress}% écoulé
-                        </Typography>
-                      </Box>
-                    )}
                   </TableCell>
 
                   {/* Informations de l'événement */}
