@@ -445,7 +445,7 @@ const Evenements = () => {
         {/* ✅ BARRE DE FILTRES - STYLE SIMILAIRE À EMPLOYÉS */}
         <Paper sx={{ p: 2, mb: 3, borderRadius: 3 }}>
           <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={4} width={530} ml={11}>
+            <Grid item xs={12} md={4} width={590}>
               <TextField
                 fullWidth
                 placeholder="Rechercher un événement..."
@@ -471,7 +471,7 @@ const Evenements = () => {
               />
             </Grid>
             
-            <Grid item xs={12} md={4} width={520}>
+            <Grid item xs={12} md={4} width={590}>
               <FormControl fullWidth>
                 <InputLabel id="status-filter-label">Statut</InputLabel>
                 <Select
@@ -488,7 +488,7 @@ const Evenements = () => {
               </FormControl>
             </Grid>
 
-            <Grid item xs={12} md={4} width={530}>
+            <Grid item xs={12} md={4} width={590}>
               <FormControl fullWidth>
                 <InputLabel id="month-filter-label">Mois</InputLabel>
                 <Select

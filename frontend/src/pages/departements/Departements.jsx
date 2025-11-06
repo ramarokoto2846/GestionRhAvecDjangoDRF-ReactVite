@@ -15,14 +15,28 @@ import {
   Snackbar,
   Alert,
   Button,
-  Stack
+  Stack,
+  alpha,
+  Chip,
+  Avatar,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Divider
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import {
   Add as AddIcon,
   Search as SearchIcon,
   Close as CloseIcon,
-  Print as PrintIcon
+  Print as PrintIcon,
+  Business as BusinessIcon,
+  People as PeopleIcon,
+  LocationOn as LocationOnIcon,
+  Person as PersonIcon,
+  Description as DescriptionIcon,
+  FilterList as FilterListIcon
 } from "@mui/icons-material";
 import Swal from "sweetalert2";
 import Header from "../../components/Header";
@@ -37,6 +51,69 @@ import {
   isSuperuser,
   getEmployes,
 } from "../../services/api";
+
+// Palette de couleurs ORTM (identique aux autres pages)
+const ORTM_COLORS = {
+  primary: "#1B5E20",
+  primaryLight: "#4CAF50",
+  primaryDark: "#0D3D12",
+  secondary: "#FFC107",
+  secondaryLight: "#FFD54F",
+  secondaryDark: "#FF8F00",
+  background: "#F8FDF9",
+  surface: "#FFFFFF",
+  text: "#1A331C",
+  error: "#D32F2F",
+  success: "#2E7D32",
+  warning: "#FF9800",
+  info: "#1976D2"
+};
+
+// Composant DetailItem identique aux autres pages
+const DetailItem = ({ icon, label, value, color = "text.primary", size = "medium" }) => (
+  <Box sx={{ 
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: 2, 
+    py: size === 'small' ? 0.5 : 1,
+    borderRadius: 2,
+    transition: 'all 0.3s ease',
+    '&:hover': {
+      backgroundColor: alpha(ORTM_COLORS.primary, 0.02),
+    }
+  }}>
+    <Box sx={{ 
+      color: ORTM_COLORS.primary, 
+      minWidth: 24,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }}>
+      {icon}
+    </Box>
+    <Box sx={{ flex: 1 }}>
+      <Typography 
+        variant={size === 'small' ? 'caption' : 'subtitle2'} 
+        color="text.secondary" 
+        fontSize={size === 'small' ? '0.75rem' : '0.8rem'}
+        fontWeight="500"
+      >
+        {label}
+      </Typography>
+      <Typography 
+        variant={size === 'small' ? 'body2' : 'body1'} 
+        color={color} 
+        fontWeight="600"
+        sx={{ 
+          wordBreak: 'break-word',
+          lineHeight: 1.2
+        }}
+      >
+        {value || "Non spécifié"}
+      </Typography>
+    </Box>
+  </Box>
+);
 
 const Departements = ({ isSuperuser: isSuperuserProp }) => {
   const theme = useTheme();
@@ -70,9 +147,8 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
   });
   const [usersMap, setUsersMap] = useState({});
   const [processing, setProcessing] = useState(false);
-  
-  // ✅ NOUVEAU ÉTAT POUR PDF
-  const [generatingPDF, setGeneratingPDF] = useState(false);
+  const [detailView, setDetailView] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
 
   // --- Récupération utilisateur et statut superutilisateur ---
   useEffect(() => {
@@ -217,6 +293,14 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
     setFormErrors({});
   };
 
+  const showDetails = (departement) => {
+    setDetailView(departement);
+  };
+
+  const closeDetails = () => {
+    setDetailView(null);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     console.log("🚀 Début de handleSubmit", { formData, editingDepartement });
@@ -333,6 +417,7 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
     
     if (result.isConfirmed) {
       try {
+        setDeletingId(id);
         const deleteResult = Swal.fire({
           title: 'Suppression en cours',
           text: 'Suppression du département...',
@@ -371,6 +456,8 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
         });
         
         showSnackbar(errorMessage, "error");
+      } finally {
+        setDeletingId(null);
       }
     }
   };
@@ -415,15 +502,12 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
         onMenuToggle={() => setOpen(!open)}
       />
 
-      {/* Sidebar */}
-      {/* <Sidebar open={open} setOpen={setOpen} /> */}
-
-      {/* Contenu principal */}
+      {/* ✅ CONTENU PRINCIPAL AVEC STYLE IDENTIQUE AUX AUTRES PAGES */}
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          bgcolor: "#f8fafc",
+          bgcolor: ORTM_COLORS.background,
           minHeight: "100vh",
           p: 3,
           mt: 8,
@@ -434,7 +518,13 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
           }),
         }}
       >
-        {/* Titre + boutons */}
+        {error && (
+          <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
+            {error}
+          </Alert>
+        )}
+
+        {/* ✅ TITRE + BOUTONS - STYLE IDENTIQUE */}
         <Box
           sx={{
             display: "flex",
@@ -446,7 +536,7 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
           }}
         >
           <Box>
-            <Typography variant="h4" sx={{ fontWeight: "bold", mb: 1 }}>
+            <Typography variant="h4" sx={{ fontWeight: "bold", mb: 1, color: ORTM_COLORS.text }}>
               Gestion des Départements
             </Typography>
             <Typography color="text.secondary">
@@ -454,7 +544,7 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
             </Typography>
           </Box>
           
-          {/* ✅ NOUVEAU : STACK AVEC BOUTON PDF ET NOUVEAU DÉPARTEMENT */}
+          {/* ✅ BOUTON AVEC STYLE IDENTIQUE */}
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>        
             <Fab
               color="primary"
@@ -467,7 +557,11 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
                 px: 3,
                 textTransform: "none",
                 fontWeight: "bold",
-                fontSize: '1rem'
+                fontSize: '1rem',
+                background: `linear-gradient(135deg, ${ORTM_COLORS.primary} 0%, ${ORTM_COLORS.primaryLight} 100%)`,
+                '&:hover': {
+                  background: `linear-gradient(135deg, ${ORTM_COLORS.primaryDark} 0%, ${ORTM_COLORS.primary} 100%)`,
+                }
               }}
             >
               <AddIcon sx={{ mr: 1 }} />
@@ -476,17 +570,21 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
           </Stack>
         </Box>
 
-        {/* Stats */}
+        {/* ✅ CARTES DE STATISTIQUES - STYLE IDENTIQUE */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid item xs={12} sm={6} md={3}>
-            <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
+            <Card sx={{ 
+              borderRadius: 3, 
+              boxShadow: `0 4px 20px ${alpha(ORTM_COLORS.primary, 0.1)}`,
+              background: `linear-gradient(135deg, ${ORTM_COLORS.surface} 0%, ${alpha(ORTM_COLORS.primary, 0.05)} 100%)`
+            }}>
               <CardContent>
-                <Typography color="text.secondary">
+                <Typography color="text.secondary" gutterBottom>
                   Total Départements
                 </Typography>
                 <Typography
                   variant="h4"
-                  sx={{ fontWeight: "bold", color: "primary.main" }}
+                  sx={{ fontWeight: "bold", color: ORTM_COLORS.primary }}
                 >
                   {departements.length}
                 </Typography>
@@ -494,12 +592,16 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
             </Card>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
-            <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
+            <Card sx={{ 
+              borderRadius: 3, 
+              boxShadow: `0 4px 20px ${alpha(ORTM_COLORS.secondary, 0.1)}`,
+              background: `linear-gradient(135deg, ${ORTM_COLORS.surface} 0%, ${alpha(ORTM_COLORS.secondary, 0.05)} 100%)`
+            }}>
               <CardContent>
-                <Typography color="text.secondary">Total Employés</Typography>
+                <Typography color="text.secondary" gutterBottom>Total Employés</Typography>
                 <Typography
                   variant="h4"
-                  sx={{ fontWeight: "bold", color: "secondary.main" }}
+                  sx={{ fontWeight: "bold", color: ORTM_COLORS.secondary }}
                 >
                   {departements.reduce((sum, d) => sum + (d.nbr_employe || 0), 0)}
                 </Typography>
@@ -508,8 +610,19 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
           </Grid>
         </Grid>
 
-        {/* Recherche */}
-        <Paper sx={{ p: 2, mb: 3, borderRadius: 3 }}>
+        {/* ✅ BARRE DE RECHERCHE - STYLE IDENTIQUE */}
+        <Paper sx={{ 
+          p: 3, 
+          mb: 3, 
+          borderRadius: 3,
+          background: `linear-gradient(135deg, ${ORTM_COLORS.surface} 0%, ${alpha(ORTM_COLORS.primary, 0.02)} 100%)`,
+          boxShadow: `0 4px 20px ${alpha(ORTM_COLORS.primary, 0.08)}`
+        }}>
+          <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1, color: ORTM_COLORS.primary }}>
+            <FilterListIcon />
+            Recherche Avancée
+          </Typography>
+          
           <TextField
             fullWidth
             placeholder="Rechercher par ID, nom, responsable ou créateur..."
@@ -518,12 +631,15 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchIcon />
+                  <SearchIcon color="primary" />
                 </InputAdornment>
               ),
               endAdornment: searchTerm && (
                 <InputAdornment position="end">
-                  <IconButton onClick={() => setSearchTerm("")} size="small">
+                  <IconButton 
+                    onClick={() => setSearchTerm("")} 
+                    size="small"
+                  >
                     <CloseIcon />
                   </IconButton>
                 </InputAdornment>
@@ -532,20 +648,266 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
           />
         </Paper>
 
-        {/* Tableau */}
-        <DepartementTableau
-          data={filteredData}
-          page={page}
-          rowsPerPage={rowsPerPage}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-          onEdit={handleOpenDialog}
-          onDelete={handleDelete}
-          currentUser={currentUser}
-          isSuperuser={isSuperuserState}
-          getCreatorName={getCreatorName}
-          processing={processing}
-        />
+        {/* ✅ TABLEAU - STYLE IDENTIQUE */}
+        <Paper sx={{ 
+          width: "100%", 
+          overflow: "hidden", 
+          borderRadius: 3,
+          background: `linear-gradient(135deg, ${ORTM_COLORS.surface} 0%, ${alpha(ORTM_COLORS.primary, 0.02)} 100%)`,
+          boxShadow: `0 4px 20px ${alpha(ORTM_COLORS.primary, 0.08)}`
+        }}>
+          <DepartementTableau
+            data={filteredData}
+            page={page}
+            rowsPerPage={rowsPerPage}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+            onEdit={handleOpenDialog}
+            onDelete={handleDelete}
+            onViewDetails={showDetails}
+            currentUser={currentUser}
+            isSuperuser={isSuperuserState}
+            getCreatorName={getCreatorName}
+            processing={processing}
+            deletingId={deletingId}
+          />
+        </Paper>
+
+        {/* ✅ DIALOG DES DÉTAILS - STYLE IDENTIQUE */}
+        <Dialog
+          open={!!detailView}
+          onClose={closeDetails}
+          maxWidth="md"
+          fullWidth
+          PaperProps={{ 
+            sx: { 
+              borderRadius: 3,
+              background: ORTM_COLORS.surface,
+              boxShadow: `0 20px 60px ${alpha(ORTM_COLORS.primary, 0.2)}`,
+              overflow: 'hidden'
+            }
+          }}
+        >
+          <DialogTitle sx={{ 
+            background: `linear-gradient(135deg, ${ORTM_COLORS.primary} 0%, ${ORTM_COLORS.primaryDark} 100%)`,
+            color: 'white',
+            py: 3,
+            position: 'relative'
+          }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Avatar sx={{ 
+                bgcolor: 'rgba(255,255,255,0.2)',
+                width: 56,
+                height: 56
+              }}>
+                <BusinessIcon fontSize="large" />
+              </Avatar>
+              <Box>
+                <Typography variant="h5" fontWeight="bold">
+                  Détails du Département
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                  ID: {detailView?.id_departement || "Inconnu"}
+                </Typography>
+              </Box>
+            </Box>
+          </DialogTitle>
+          
+          <DialogContent sx={{ pt: 4, pb: 2 }}>
+            {detailView && (
+              <Grid container spacing={3}>
+                {/* En-tête avec nombre d'employés */}
+                <Grid item xs={12}>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center', 
+                    mb: 3,
+                    p: 2,
+                    borderRadius: 2,
+                    background: alpha(ORTM_COLORS.primary, 0.05)
+                  }}>
+                    <Chip
+                      icon={<PeopleIcon />}
+                      label={`${detailView.nbr_employe || 0} employé(s)`}
+                      color="primary"
+                      variant="filled"
+                      sx={{ 
+                        fontWeight: 'bold', 
+                        fontSize: '0.9rem',
+                        px: 2,
+                        py: 1
+                      }}
+                    />
+                  </Box>
+                </Grid>
+
+                {/* Informations principales */}
+                <Grid item xs={12} md={6}>
+                  <Card sx={{ 
+                    borderRadius: 2, 
+                    boxShadow: `0 4px 12px ${alpha(ORTM_COLORS.primary, 0.1)}`,
+                    height: '100%',
+                    border: `1px solid ${alpha(ORTM_COLORS.primary, 0.1)}`
+                  }}>
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 1,
+                        color: ORTM_COLORS.primary,
+                        mb: 3
+                      }}>
+                        <BusinessIcon />
+                        Informations Principales
+                      </Typography>
+                      <Box sx={{ mt: 2 }}>
+                        <DetailItem 
+                          icon={<BusinessIcon />}
+                          label="ID Département"
+                          value={detailView.id_departement || "-"}
+                          color={ORTM_COLORS.primary}
+                        />
+                        <Divider sx={{ my: 1 }} />
+                        <DetailItem 
+                          icon={<DescriptionIcon />}
+                          label="Nom"
+                          value={detailView.nom || "-"}
+                          color={ORTM_COLORS.success}
+                        />
+                        <Divider sx={{ my: 1 }} />
+                        <DetailItem 
+                          icon={<PersonIcon />}
+                          label="Responsable"
+                          value={detailView.responsable || "-"}
+                          color={ORTM_COLORS.info}
+                        />
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+
+                {/* Informations supplémentaires */}
+                <Grid item xs={12} md={6}>
+                  <Card sx={{ 
+                    borderRadius: 2, 
+                    boxShadow: `0 4px 12px ${alpha(ORTM_COLORS.primary, 0.1)}`,
+                    height: '100%',
+                    border: `1px solid ${alpha(ORTM_COLORS.primary, 0.1)}`
+                  }}>
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 1,
+                        color: ORTM_COLORS.primary,
+                        mb: 3
+                      }}>
+                        <LocationOnIcon />
+                        Informations Supplémentaires
+                      </Typography>
+                      <Box sx={{ mt: 2 }}>
+                        <DetailItem 
+                          icon={<LocationOnIcon />}
+                          label="Localisation"
+                          value={detailView.localisation || "Non spécifiée"}
+                          color={ORTM_COLORS.warning}
+                        />
+                        <Divider sx={{ my: 1 }} />
+                        <DetailItem 
+                          icon={<PeopleIcon />}
+                          label="Nombre d'Employés"
+                          value={detailView.nbr_employe || 0}
+                          color={ORTM_COLORS.secondary}
+                        />
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+
+                {/* Description */}
+                {detailView.description && (
+                  <Grid item xs={12}>
+                    <Card sx={{ 
+                      borderRadius: 2, 
+                      boxShadow: `0 4px 12px ${alpha(ORTM_COLORS.primary, 0.1)}`,
+                      border: `1px solid ${alpha(ORTM_COLORS.primary, 0.1)}`
+                    }}>
+                      <CardContent>
+                        <Typography variant="h6" gutterBottom sx={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: 1,
+                          color: ORTM_COLORS.primary
+                        }}>
+                          <DescriptionIcon />
+                          Description
+                        </Typography>
+                        <Paper 
+                          variant="outlined" 
+                          sx={{ 
+                            p: 2, 
+                            mt: 2,
+                            bgcolor: alpha(ORTM_COLORS.primary, 0.03),
+                            borderColor: alpha(ORTM_COLORS.primary, 0.2),
+                            borderRadius: 2
+                          }}
+                        >
+                          <Typography variant="body1" color="text.primary" sx={{ lineHeight: 1.6 }}>
+                            {detailView.description}
+                          </Typography>
+                        </Paper>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                )}
+              </Grid>
+            )}
+          </DialogContent>
+          
+          <DialogActions sx={{ 
+            px: 3, 
+            py: 2, 
+            background: alpha(ORTM_COLORS.primary, 0.02),
+            borderTop: `1px solid ${alpha(ORTM_COLORS.primary, 0.1)}`
+          }}>
+            <Button 
+              onClick={closeDetails}
+              variant="outlined"
+              startIcon={<CloseIcon />}
+              sx={{ 
+                borderRadius: 2,
+                textTransform: 'none',
+                fontWeight: 'bold',
+                px: 3
+              }}
+            >
+              Fermer
+            </Button>
+            {detailView && (
+              <Button 
+                onClick={() => {
+                  handleOpenDialog(detailView);
+                  closeDetails();
+                }}
+                variant="contained"
+                startIcon={<BusinessIcon />}
+                sx={{ 
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 'bold',
+                  px: 3,
+                  background: `linear-gradient(135deg, ${ORTM_COLORS.primary} 0%, ${ORTM_COLORS.primaryLight} 100%)`,
+                  '&:hover': {
+                    background: `linear-gradient(135deg, ${ORTM_COLORS.primaryDark} 0%, ${ORTM_COLORS.primary} 100%)`,
+                  }
+                }}
+              >
+                Modifier le Département
+              </Button>
+            )}
+          </DialogActions>
+        </Dialog>
 
         {/* Modal */}
         <DepartementModal
@@ -559,7 +921,7 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
           processing={processing}
         />
 
-        {/* Snackbar */}
+        {/* ✅ SNACKBAR - STYLE IDENTIQUE */}
         <Snackbar
           open={snackbar.open}
           autoHideDuration={4000}
@@ -569,12 +931,59 @@ const Departements = ({ isSuperuser: isSuperuserProp }) => {
           <Alert
             onClose={handleCloseSnackbar}
             severity={snackbar.severity}
-            sx={{ width: "100%" }}
             variant="filled"
+            sx={{ 
+              borderRadius: 2,
+              fontWeight: 'medium',
+              alignItems: 'center'
+            }}
           >
             {snackbar.message}
           </Alert>
         </Snackbar>
+
+        {/* ✅ LOADING OVERLAY - STYLE IDENTIQUE */}
+        {(processing || deletingId) && (
+          <Box
+            sx={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              zIndex: 9999
+            }}
+          >
+            <Box
+              sx={{
+                background: ORTM_COLORS.surface,
+                borderRadius: 3,
+                p: 4,
+                boxShadow: `0 8px 32px ${alpha(ORTM_COLORS.primary, 0.2)}`,
+                textAlign: 'center'
+              }}
+            >
+              <CircularProgress 
+                size={60} 
+                thickness={4}
+                sx={{ 
+                  color: ORTM_COLORS.primary,
+                  mb: 2
+                }} 
+              />
+              <Typography variant="h6" color={ORTM_COLORS.text} fontWeight="bold">
+                {deletingId ? "Suppression en cours..." : "Traitement en cours..."}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                Veuillez patienter...
+              </Typography>
+            </Box>
+          </Box>
+        )}
       </Box>
     </Box>
   );

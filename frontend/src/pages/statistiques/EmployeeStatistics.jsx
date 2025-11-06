@@ -247,27 +247,19 @@ const EmployeeStatistics = () => {
   const selectedEmployeeData = employees.find(emp => emp.matricule === selectedEmployee);
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: theme.palette.background.default }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', backgroundColor: theme.palette.background.default }}>
       <Header />
-
-      {/* Barre de progression pendant le rafraîchissement */}
-      {refreshing && (
-        <Box sx={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999 }}>
-          <Box sx={{ height: 3, backgroundColor: theme.palette.primary.main }} />
-        </Box>
-      )}
-
       <Box
         component="main"
         sx={{
           flexGrow: 1,
           p: 3,
-          mt: 8
+          mt: 8,
         }}
       >
         <Container maxWidth="xl">
           {/* Header Section */}
-          <Box sx={{ mb: 4 }}>
+          <Box sx={{ mb: 4 }} >
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
               <Box>
                 <Typography
@@ -318,32 +310,7 @@ const EmployeeStatistics = () => {
           >
             <CardContent sx={{ p: 3 }}>
               <Grid container spacing={3} alignItems="center">
-                {/* Barre de recherche */}
-                <Grid item xs={12} sm={6} md={3}>
-                  <TextField
-                    fullWidth
-                    placeholder="Rechercher un employé..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <SearchIcon color="action" />
-                        </InputAdornment>
-                      ),
-                      endAdornment: searchTerm && (
-                        <InputAdornment position="end">
-                          <IconButton size="small" onClick={() => setSearchTerm('')}>
-                            <CloseIcon fontSize="small" />
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                    sx={{ borderRadius: 2 }}
-                  />
-                </Grid>
-
-                <Grid item xs={12} sm={6} md={2}>
+                <Grid item xs={12} sm={6} md={2} width={350}>
                   <FormControl fullWidth>
                     <InputLabel>Employé</InputLabel>
                     <Select
@@ -361,7 +328,7 @@ const EmployeeStatistics = () => {
                   </FormControl>
                 </Grid>
 
-                <Grid item xs={12} sm={6} md={2}>
+                <Grid item xs={12} sm={6} md={2} width={350}>
                   <FormControl fullWidth>
                     <InputLabel>Mois</InputLabel>
                     <Select
@@ -379,7 +346,7 @@ const EmployeeStatistics = () => {
                   </FormControl>
                 </Grid>
 
-                <Grid item xs={12} sm={6} md={2}>
+                <Grid item xs={12} sm={6} md={2} width={350}>
                   <FormControl fullWidth>
                     <InputLabel>Année</InputLabel>
                     <Select
@@ -397,7 +364,7 @@ const EmployeeStatistics = () => {
                   </FormControl>
                 </Grid>
 
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid item xs={12} sm={6} md={3} width={315}>
                   <Button
                     fullWidth
                     variant="contained"
@@ -463,7 +430,7 @@ const EmployeeStatistics = () => {
             <Grid container spacing={3}>
               
               {/* SECTION 1: STATISTIQUES DE POINTAGE */}
-              <Grid item xs={12} md={4}>
+              <Grid item xs={12} md={4} width={480}>
                 <Card
                   sx={{
                     height: '100%',
@@ -568,7 +535,7 @@ const EmployeeStatistics = () => {
               </Grid>
 
               {/* SECTION 3: ANALYSE DE PONCTUALITÉ */}
-              <Grid item xs={12} md={4}>
+              <Grid item xs={12} md={4} width={480}>
                 <Card
                   sx={{
                     height: '100%',
@@ -666,7 +633,7 @@ const EmployeeStatistics = () => {
               </Grid>
 
               {/* SECTION 2: OBSERVATION ET RECOMMANDATIONS */}
-              <Grid item xs={12} md={4}>
+              <Grid item xs={12} md={4} width={480}>
                 <Card
                   sx={{
                     height: '100%',

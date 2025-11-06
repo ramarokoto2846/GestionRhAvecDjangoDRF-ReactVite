@@ -19,7 +19,12 @@ import {
   LinearProgress,
   CardHeader,
   IconButton,
-  Tooltip
+  Tooltip,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableRow
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -33,7 +38,10 @@ import {
   Refresh as RefreshIcon,
   BarChart as BarChartIcon,
   Timeline as TimelineIcon,
-  PieChart as PieChartIcon
+  PieChart as PieChartIcon,
+  Work as WorkIcon,
+  Analytics as AnalyticsIcon,
+  Dashboard as DashboardIcon
 } from '@mui/icons-material';
 import { getGlobalStatistics, exportStatisticsPDF, StatisticsUtils, getCurrentUser } from '../../services/api';
 import Header from '../../components/Header';
@@ -61,7 +69,6 @@ const StatisticsOverview = () => {
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 6 }, (_, i) => currentYear - i);
 
-  // Fonction utilitaire pour les valeurs sécurisées
   const getSafeValue = (value, defaultValue = 0) => {
     if (value === null || value === undefined || value === 'undefined' || value === '') {
       return defaultValue;
@@ -75,12 +82,9 @@ const StatisticsOverview = () => {
     return value;
   };
 
-  // ✅ CORRECTION: Fonction pour calculer les pourcentages correctement
   const calculateHoursPercentage = () => {
     if (!stats || !stats.heures_travail_total) return 0;
-    
-    // Estimation des heures attendues : 22 jours × 8h × nombre d'employés
-    const heuresAttenduesEstimees = getSafeValue(stats.total_employes) * 22 * 8; // 176h par employé
+    const heuresAttenduesEstimees = getSafeValue(stats.total_employes) * 22 * 8;
     const heuresReelles = parseDurationToHours(stats.heures_travail_total);
     
     if (heuresAttenduesEstimees === 0) return 0;
@@ -89,11 +93,9 @@ const StatisticsOverview = () => {
     return percentage;
   };
 
-  // ✅ CORRECTION: Fonction pour parser les durées en heures
   const parseDurationToHours = (duration) => {
     if (!duration) return 0;
     
-    // Si c'est une string formatée "Xh YYmin"
     if (typeof duration === 'string') {
       if (duration.includes('h')) {
         const parts = duration.split('h');
@@ -101,7 +103,6 @@ const StatisticsOverview = () => {
         const minutes = parseInt(parts[1]) || 0;
         return hours + (minutes / 60);
       }
-      // Si c'est un format "HH:MM:SS"
       if (duration.includes(':')) {
         const parts = duration.split(':');
         const hours = parseInt(parts[0]) || 0;
@@ -110,7 +111,6 @@ const StatisticsOverview = () => {
       }
     }
     
-    // Si c'est un timedelta (objet)
     if (typeof duration === 'object' && duration.total_seconds) {
       return duration.total_seconds() / 3600;
     }
@@ -118,7 +118,6 @@ const StatisticsOverview = () => {
     return 0;
   };
 
-  // ✅ CORRECTION: Calcul du pourcentage de pointages réguliers
   const calculateRegularPointagesPercentage = () => {
     if (!stats || !stats.total_pointages || stats.total_pointages === 0) return 0;
     return Math.round((getSafeValue(stats.pointages_reguliers) / getSafeValue(stats.total_pointages)) * 100);
@@ -198,196 +197,43 @@ const StatisticsOverview = () => {
     loadStats(true);
   };
 
-  // ✅ CORRECTION: Métriques de performance avec calculs corrects
-  const performanceMetrics = [
-    { 
-      label: "Heures travaillées", 
-      value: stats?.heures_travail_total_str || StatisticsUtils.formatDuration(stats?.heures_travail_total),
-      percentage: calculateHoursPercentage(),
-      color: "success"
+  // Métriques regroupées pour les 3 cartes principales
+  const mainMetrics = [
+    {
+      title: "RESSOURCES HUMAINES",
+      icon: <PeopleIcon />,
+      color: "primary",
+      items: [
+        { label: "Effectif Total", value: getSafeValue(stats?.total_employes), color: "primary" },
+        { label: "Employés Actifs", value: getSafeValue(stats?.employes_actifs), color: "success" },
+        { label: "Départements", value: getSafeValue(stats?.total_departements), color: "secondary" },
+        { label: "Unités Opérationnelles", value: getSafeValue(stats?.departements_actifs), color: "info" }
+      ]
     },
-    { 
-      label: "Taux de présence", 
-      value: StatisticsUtils.formatPercentage(getSafeValue(stats?.taux_presence)),
-      percentage: Math.min(getSafeValue(stats?.taux_presence), 100), // S'assurer que c'est ≤ 100%
-      color: "primary"
+    {
+      title: "PERFORMANCE GLOBALE",
+      icon: <TrendingUpIcon />,
+      color: "success",
+      items: [
+        { label: "Taux d'Activité", value: StatisticsUtils.formatPercentage(getSafeValue(stats?.taux_activite_global)), color: "success" },
+        { label: "Taux de Régularité", value: StatisticsUtils.formatPercentage(getSafeValue(stats?.taux_regularite_global)), color: "primary" },
+        { label: "Heures Travaillées", value: stats?.heures_travail_total_str || StatisticsUtils.formatDuration(stats?.heures_travail_total), color: "info" },
+        { label: "Moyenne Quotidienne", value: stats?.moyenne_heures_quotidiennes_str || StatisticsUtils.formatDuration(stats?.moyenne_heures_quotidiennes), color: "secondary" }
+      ]
     },
-    { 
-      label: "Pointages réguliers", 
-      value: `${getSafeValue(stats?.pointages_reguliers)} / ${getSafeValue(stats?.total_pointages)}`,
-      percentage: calculateRegularPointagesPercentage(),
-      color: "secondary"
-    },
+    {
+      title: "ACTIVITÉS & POINTAGES",
+      icon: <AccessTimeIcon />,
+      color: "info",
+      items: [
+        { label: "Pointages Totaux", value: getSafeValue(stats?.total_pointages), color: "info" },
+        { label: "Pointages Réguliers", value: getSafeValue(stats?.pointages_reguliers), color: "success" },
+        { label: "Événements", value: getSafeValue(stats?.total_evenements), color: "warning" },
+        { label: "Taux Ponctualité", value: StatisticsUtils.formatPercentage(getSafeValue(stats?.taux_ponctualite_global)), color: "primary" }
+      ]
+    }
   ];
 
-  // Composant StatCard avec interaction
-  const StatCard = ({ title, value, subtitle, icon, trend, color = 'primary', onClick }) => (
-    <Card 
-      sx={{ 
-        height: '100%',
-        background: `linear-gradient(135deg, ${alpha(theme.palette[color].main, 0.1)} 0%, ${alpha(theme.palette[color].light, 0.05)} 100%)`,
-        border: `1px solid ${alpha(theme.palette[color].main, 0.1)}`,
-        transition: 'all 0.3s ease',
-        cursor: onClick ? 'pointer' : 'default',
-        '&:hover': {
-          transform: onClick ? 'translateY(-4px)' : 'none',
-          boxShadow: onClick ? `0 8px 25px ${alpha(theme.palette[color].main, 0.15)}` : 'none',
-          border: `1px solid ${alpha(theme.palette[color].main, 0.2)}`
-        }
-      }}
-      onClick={onClick}
-    >
-      <CardContent>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-          <Box>
-            <Typography 
-              variant="h6" 
-              color="text.secondary" 
-              sx={{ 
-                fontWeight: 600,
-                fontSize: '0.9rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px'
-              }}
-            >
-              {title}
-            </Typography>
-            <Typography 
-              variant="h3" 
-              sx={{ 
-                fontWeight: 700,
-                background: `linear-gradient(45deg, ${theme.palette[color].main}, ${theme.palette[color].dark})`,
-                backgroundClip: 'text',
-                WebkitBackgroundClip: 'text',
-                color: 'transparent',
-                my: 1
-              }}
-            >
-              {value || 0}
-            </Typography>
-            {subtitle && (
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  color: 'text.secondary',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 0.5
-                }}
-              >
-                {subtitle}
-              </Typography>
-            )}
-          </Box>
-          <Box
-            sx={{
-              p: 1.5,
-              borderRadius: 3,
-              background: `linear-gradient(135deg, ${theme.palette[color].main} 0%, ${theme.palette[color].dark} 100%)`,
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            {icon}
-          </Box>
-        </Box>
-        {trend && (
-          <Chip 
-            label={trend} 
-            size="small"
-            sx={{ 
-              backgroundColor: alpha(theme.palette[color].main, 0.1),
-              color: theme.palette[color].dark,
-              fontWeight: 600
-            }}
-          />
-        )}
-      </CardContent>
-    </Card>
-  );
-
-  // Composant MetricCard
-  const MetricCard = ({ title, icon, children, color = 'primary' }) => (
-    <Card 
-      sx={{ 
-        height: '100%',
-        background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.8)} 0%, ${alpha(theme.palette.background.default, 0.4)} 100%)`,
-        backdropFilter: 'blur(10px)',
-        border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-        transition: 'all 0.3s ease',
-        '&:hover': {
-          transform: 'translateY(-2px)',
-          boxShadow: `0 6px 20px ${alpha(theme.palette[color].main, 0.1)}`
-        }
-      }}
-    >
-      <CardHeader
-        title={
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box
-              sx={{
-                p: 1,
-                borderRadius: 2,
-                background: `linear-gradient(135deg, ${theme.palette[color].main} 0%, ${theme.palette[color].dark} 100%)`,
-                color: 'white',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              {icon}
-            </Box>
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              {title}
-            </Typography>
-          </Box>
-        }
-        sx={{ pb: 1 }}
-      />
-      <CardContent>
-        {children}
-      </CardContent>
-    </Card>
-  );
-
-  // Composant ProgressMetric
-  const ProgressMetric = ({ label, value, percentage, color = 'primary' }) => (
-    <Box sx={{ mb: 2 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-        <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
-          {label}
-        </Typography>
-        <Typography variant="body2" sx={{ fontWeight: 700, color: theme.palette[color].main }}>
-          {value}
-        </Typography>
-      </Box>
-      <LinearProgress 
-        variant="determinate" 
-        value={Math.min(percentage, 100)} // ✅ CORRECTION: S'assurer que c'est ≤ 100%
-        sx={{
-          height: 6,
-          borderRadius: 3,
-          backgroundColor: alpha(theme.palette[color].main, 0.1),
-          '& .MuiLinearProgress-bar': {
-            backgroundColor: theme.palette[color].main,
-            borderRadius: 3
-          }
-        }}
-      />
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
-        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-          Progression
-        </Typography>
-        <Typography variant="caption" sx={{ fontWeight: 600, color: theme.palette[color].main }}>
-          {Math.min(percentage, 100)}%
-        </Typography>
-      </Box>
-    </Box>
-  );
-
-  // Le reste du composant reste identique...
   if (loading) {
     return (
       <Box sx={{ minHeight: '100vh', background: `linear-gradient(135deg, ${theme.palette.background.default} 0%, ${theme.palette.background.paper} 100%)` }}>
@@ -414,54 +260,11 @@ const StatisticsOverview = () => {
     );
   }
 
-  if (error) {
-    return (
-      <Box sx={{ minHeight: '100vh', background: `linear-gradient(135deg, ${theme.palette.background.default} 0%, ${theme.palette.background.paper} 100%)` }}>
-        <Header user={currentUser} onMenuToggle={() => {}} />
-        <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
-          <Container maxWidth="xl">
-            <Alert 
-              severity="error" 
-              sx={{ 
-                borderRadius: 3,
-                border: `1px solid ${alpha(theme.palette.error.main, 0.2)}`,
-                '& .MuiAlert-message': {
-                  fontWeight: 500
-                }
-              }}
-            >
-              {error}
-            </Alert>
-            <Box sx={{ textAlign: 'center', mt: 2 }}>
-              <Button 
-                variant="outlined" 
-                onClick={handleRefresh}
-                startIcon={<RefreshIcon />}
-              >
-                Réessayer
-              </Button>
-            </Box>
-          </Container>
-        </Box>
-      </Box>
-    );
-  }
-
   return (
-    <Box sx={{ minHeight: '100vh', background: `linear-gradient(135deg, ${theme.palette.background.default} 0%, ${theme.palette.background.paper} 100%)` }}>
+    <Box sx={{ background: `linear-gradient(135deg, ${theme.palette.background.default} 0%, ${theme.palette.background.paper} 100%)` }}>
       <Header user={currentUser} onMenuToggle={() => {}} />
       
-      {/* Barre de progression pendant le rafraîchissement */}
-      {refreshing && (
-        <Box sx={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999 }}>
-          <LinearProgress 
-            color="primary"
-            sx={{ height: 3 }}
-          />
-        </Box>
-      )}
-
-      <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
+      <Box component="main" sx={{ flexGrow: 1, height: '820px', mt: 13 }}>
         <Container maxWidth="xl">
           {/* Header */}
           <Box sx={{ mb: 4 }}>
@@ -470,8 +273,8 @@ const StatisticsOverview = () => {
                 <Typography 
                   variant="h3" 
                   sx={{ 
-                    fontWeight: 800,
-                    background: `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${theme.palette.secondary.main} 90%)`,
+                    fontWeight: 700,
+                    background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
                     backgroundClip: 'text',
                     WebkitBackgroundClip: 'text',
                     color: 'transparent',
@@ -480,8 +283,8 @@ const StatisticsOverview = () => {
                 >
                   Tableau de Bord Global
                 </Typography>
-                <Typography variant="h6" sx={{ color: 'text.secondary', fontWeight: 400 }}>
-                  Vue d'ensemble des indicateurs clés de performance de l'entreprise
+                <Typography variant="h6" sx={{ color: 'text.secondary', mb: 3 }}>
+                  Vue d'ensemble des performances de la société 
                 </Typography>
               </Box>
               <Tooltip title="Actualiser les données">
@@ -501,32 +304,21 @@ const StatisticsOverview = () => {
                 </IconButton>
               </Tooltip>
             </Box>
-
-            <Chip 
-              icon={<BarChartIcon />} 
-              label={`Données pour ${months.find(m => m.value === selectedMonth)?.label} ${selectedYear}`}
-              variant="outlined"
-              sx={{ 
-                backgroundColor: alpha(theme.palette.primary.main, 0.05),
-                borderColor: alpha(theme.palette.primary.main, 0.2),
-                color: theme.palette.primary.main,
-                fontWeight: 600
-              }}
-            />
           </Box>
 
           {/* Filtres */}
-          <Card 
-            sx={{ 
-              mb: 4,
-              background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.8)} 0%, ${alpha(theme.palette.background.default, 0.4)} 100%)`,
-              backdropFilter: 'blur(10px)',
-              border: `1px solid ${alpha(theme.palette.divider, 0.1)}`
+          <Card
+            sx={{
+              mb: 3,
+              background: `linear-gradient(135deg, ${theme.palette.background.paper}, ${alpha(theme.palette.primary.light, 0.03)})`,
+              border: `1px solid ${theme.palette.divider}`,
+              borderRadius: 3,
+              boxShadow: '0 4px 20px rgba(0,0,0,0.06)'
             }}
           >
-            <CardContent>
+            <CardContent sx={{ p: 3 }}>
               <Grid container spacing={3} alignItems="center">
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid item xs={12} sm={6} md={3} width={405}>
                   <FormControl fullWidth>
                     <InputLabel>Mois</InputLabel>
                     <Select
@@ -544,7 +336,7 @@ const StatisticsOverview = () => {
                   </FormControl>
                 </Grid>
 
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid item xs={12} sm={6} md={3} width={405}>
                   <FormControl fullWidth>
                     <InputLabel>Année</InputLabel>
                     <Select
@@ -565,16 +357,15 @@ const StatisticsOverview = () => {
                 <Grid item xs={12} sm={6} md={3}>
                   <Box sx={{ textAlign: 'center' }}>
                     <Chip 
-                      icon={<TimelineIcon />}
+                      icon={<BarChartIcon />}
                       label={`${months.find(m => m.value === selectedMonth)?.label} ${selectedYear}`}
                       color="primary"
-                      variant="filled"
-                      sx={{ fontWeight: 600, fontSize: '0.9rem' }}
+                      sx={{ fontWeight: 600 }}
                     />
                   </Box>
                 </Grid>
 
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid item xs={12} sm={6} md={3} width={405}>
                   <Button
                     fullWidth
                     variant="contained"
@@ -582,17 +373,12 @@ const StatisticsOverview = () => {
                     onClick={handleExportPDF}
                     disabled={loadingPDF || !stats}
                     sx={{
-                      py: 1.5,
                       borderRadius: 2,
-                      fontWeight: 600,
-                      textTransform: 'none',
-                      background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
-                      boxShadow: `0 4px 15px ${alpha(theme.palette.primary.main, 0.3)}`,
+                      py: 1.5,
+                      background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
                       '&:hover': {
-                        transform: 'translateY(-2px)',
-                        boxShadow: `0 8px 25px ${alpha(theme.palette.primary.main, 0.4)}`
-                      },
-                      transition: 'all 0.3s ease'
+                        background: `linear-gradient(135deg, ${theme.palette.primary.dark}, ${theme.palette.secondary.dark})`,
+                      }
                     }}
                   >
                     {loadingPDF ? 'Génération...' : 'Exporter PDF'}
@@ -602,190 +388,134 @@ const StatisticsOverview = () => {
             </CardContent>
           </Card>
 
-          {/* ✅ CORRECTION: Affichage conditionnel si pas de données */}
-          {!stats && (
-            <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
-              <Typography variant="body1">
-                Aucune donnée disponible pour {months.find(m => m.value === selectedMonth)?.label} {selectedYear}.
-              </Typography>
+          {error && (
+            <Alert
+              severity="error"
+              onClose={() => setError('')}
+              sx={{ mb: 3, borderRadius: 2 }}
+            >
+              {error}
             </Alert>
           )}
 
-          {/* Cartes principales */}
+          {!stats && !loading && (
+            <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
+              Aucune donnée disponible pour {months.find(m => m.value === selectedMonth)?.label} {selectedYear}.
+            </Alert>
+          )}
+
+          {/* ✅ 3 CARTES PRINCIPALES DANS LE MÊME STYLE */}
           {stats && (
-            <>
-              <Grid container spacing={3} sx={{ mb: 4 }}>
-                <Tooltip title="Nombre total d'employés dans l'entreprise" arrow>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <StatCard
-                      title="Effectif Total"
-                      value={getSafeValue(stats.total_employes)}
-                      subtitle={`${getSafeValue(stats.employes_actifs)} employés actifs`}
-                      icon={<PeopleIcon />}
-                      color="primary"
-                      onClick={() => navigate('/employes')}
-                    />
-                  </Grid>
-                </Tooltip>
-
-                <Tooltip title="Nombre de départements opérationnels" arrow>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <StatCard
-                      title="Départements"
-                      value={getSafeValue(stats.total_departements)}
-                      subtitle="Unités opérationnelles"
-                      icon={<ApartmentIcon />}
-                      color="secondary"
-                    />
-                  </Grid>
-                </Tooltip>
-
-                <Tooltip title="Taux d'activité moyen des employés" arrow>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <StatCard
-                      title="Taux d'Activité"
-                      value={StatisticsUtils.formatPercentage(getSafeValue(stats.taux_activite_global))}
-                      subtitle="Performance globale"
-                      icon={<TrendingUpIcon />}
-                      color="success"
-                    />
-                  </Grid>
-                </Tooltip>
-
-                <Tooltip title="Nombre total de pointages enregistrés ce mois" arrow>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <StatCard
-                      title="Pointages"
-                      value={getSafeValue(stats.total_pointages)}
-                      subtitle="Enregistrements ce mois"
-                      icon={<AccessTimeIcon />}
-                      color="info"
-                    />
-                  </Grid>
-                </Tooltip>
-              </Grid>
-
-              {/* Cartes détaillées */}
-              <Grid container spacing={3}>
-                {/* Événements & Activités */}
-                <Grid item xs={12} md={6} lg={4}>
-                  <MetricCard title="Événements & Activités" icon={<EventIcon />} color="warning">
-                    <Box sx={{ textAlign: 'center', py: 2 }}>
-                      <Typography 
-                        variant="h2" 
-                        sx={{ 
-                          fontWeight: 800,
-                          background: `linear-gradient(45deg, ${theme.palette.warning.main} 30%, ${theme.palette.warning.dark} 90%)`,
-                          backgroundClip: 'text',
-                          WebkitBackgroundClip: 'text',
-                          color: 'transparent',
-                          mb: 1
-                        }}
-                      >
-                        {getSafeValue(stats.total_evenements)}
-                      </Typography>
-                      <Typography variant="body1" sx={{ color: 'text.secondary', fontWeight: 500 }}>
-                        Événements planifiés ce mois
-                      </Typography>
-                    </Box>
-                  </MetricCard>
-                </Grid>
-
-                {/* ✅ CORRECTION: Indicateurs de Performance avec barres corrigées */}
-                <Grid item xs={12} md={6} lg={4}>
-                  <MetricCard title="Indicateurs de Performance" icon={<TrendingUpIcon />} color="success">
-                    <Box sx={{ py: 1 }}>
-                      {performanceMetrics.map((metric, index) => (
-                        <ProgressMetric 
-                          key={index}
-                          label={metric.label} 
-                          value={metric.value}
-                          percentage={metric.percentage}
-                          color={metric.color}
-                        />
-                      ))}
-                    </Box>
-                  </MetricCard>
-                </Grid>
-
-                {/* Résumé de la Période */}
-                <Grid item xs={12} lg={4}>
-                  <MetricCard title="Résumé de la Période" icon={<ScheduleIcon />} color="info">
-                    <Grid container spacing={2}>
-                      {[
-                        { label: 'Employés au total', value: getSafeValue(stats.total_employes), color: 'primary' },
-                        { label: 'Jours travaillés', value: getSafeValue(stats.total_pointages), color: 'secondary' },
-                        { label: 'Événements organisés', value: getSafeValue(stats.total_evenements), color: 'warning' },
-                        { label: 'Heures productives', value: stats.heures_travail_total_str || StatisticsUtils.formatDuration(stats.heures_travail_total), color: 'success' },
-                      ].map((item, index) => (
-                        <Grid item xs={6} key={index}>
-                          <Box sx={{ textAlign: 'center', p: 1 }}>
-                            <Typography 
-                              variant="h4" 
-                              sx={{ 
-                                fontWeight: 700,
-                                color: theme.palette[item.color].main,
-                                mb: 0.5
-                              }}
-                            >
-                              {item.value || 0}
-                            </Typography>
-                            <Typography 
-                              variant="body2" 
-                              sx={{ 
-                                color: 'text.secondary',
-                                fontWeight: 500,
-                                fontSize: '0.75rem'
-                              }}
-                            >
-                              {item.label}
-                            </Typography>
+            <Grid container spacing={3}>
+              {mainMetrics.map((category, index) => (
+                <Grid item xs={12} p={2} width={480} height={400} textAlign={'center'} display={'flex'} justifyContent={'center'} key={index}>
+                  <Card
+                    sx={{
+                      height: '100%',
+                      
+                      background: `linear-gradient(135deg, ${theme.palette[category.color].main}15, ${theme.palette.background.paper})`,
+                      border: `2px solid ${theme.palette[category.color].main}30`,
+                      borderRadius: 3,
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        transform: 'translateY(-4px)',
+                        boxShadow: `0 8px 30px ${alpha(theme.palette[category.color].main, 0.15)}`
+                      }
+                    }}
+                  >
+                    <CardHeader
+                      
+                      title={
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Box
+                            sx={{
+                              p: 1,
+                              borderRadius: 2,
+                              background: `linear-gradient(135deg, ${theme.palette[category.color].main}, ${theme.palette[category.color].dark})`,
+                              color: 'white',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              mr: 2
+                            }}
+                          >
+                            {category.icon}
                           </Box>
-                        </Grid>
-                      ))}
-                    </Grid>
-                  </MetricCard>
+                          <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                            {category.title}
+                          </Typography>
+                        </Box>
+                      }
+                      sx={{ pb: 1 }}
+                    />
+                    <CardContent>
+                      <TableContainer>
+                        <Table size="small">
+                          <TableBody>
+                            {category.items.map((item, itemIndex) => (
+                              <TableRow key={itemIndex}>
+                                <TableCell sx={{ border: 'none', py: 1.5 }}>
+                                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                    {item.label}
+                                  </Typography>
+                                </TableCell>
+                                <TableCell sx={{ border: 'none', py: 1.5 }} align="right">
+                                  <Typography 
+                                    variant="body2" 
+                                    sx={{ 
+                                      fontWeight: 600, 
+                                      color: theme.palette[item.color].main 
+                                    }}
+                                  >
+                                    {item.value || 0}
+                                  </Typography>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </CardContent>
+                  </Card>
                 </Grid>
+              ))}
+            </Grid>
+          )}
 
-                {/* Statistiques Avancées */}
-                <Grid item xs={12} lg={6}>
-                  <MetricCard title="Statistiques Avancées" icon={<PieChartIcon />} color="secondary">
-                    <Grid container spacing={3}>
-                      {[
-                        { label: 'Taux de régularité', value: StatisticsUtils.formatPercentage(getSafeValue(stats.taux_regularite_global)), color: 'primary' },
-                        { label: 'Moyenne heures/jour', value: stats.moyenne_heures_quotidiennes_str || StatisticsUtils.formatDuration(stats.moyenne_heures_quotidiennes), color: 'success' },
-                        { label: 'Départements actifs', value: getSafeValue(stats.departements_actifs), color: 'warning' },
-                      ].map((item, index) => (
-                        <Grid item xs={4} key={index}>
-                          <Box sx={{ textAlign: 'center' }}>
-                            <Typography 
-                              variant="h4" 
-                              sx={{ 
-                                fontWeight: 700,
-                                color: theme.palette[item.color].main,
-                                mb: 1
-                              }}
-                            >
-                              {item.value || 0}
-                            </Typography>
-                            <Typography 
-                              variant="body2" 
-                              sx={{ 
-                                color: 'text.secondary',
-                                fontWeight: 500,
-                                lineHeight: 1.2
-                              }}
-                            >
-                              {item.label}
-                            </Typography>
-                          </Box>
-                        </Grid>
-                      ))}
-                    </Grid>
-                  </MetricCard>
-                </Grid>
+          {/* Indicateurs de Performance Additionnels */}
+          {stats && (
+            <Grid container spacing={3} sx={{ mt: 1 }}>
+              <Grid item xs={12} md={4} width={1500}>
+                <Card
+                  sx={{
+                    background: `linear-gradient(135deg, ${theme.palette.success.main}15, ${theme.palette.background.paper})`,
+                    border: `2px solid ${theme.palette.success.main}30`,
+                    borderRadius: 3,
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+                  }}
+                >
+                  <CardHeader
+                    title={
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <DashboardIcon sx={{ mr: 2, color: 'success.main' }} />
+                        <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                          SYNTHÈSE MENSILELLE
+                        </Typography>
+                      </Box>
+                    }
+                    sx={{ pb: 1 }}
+                  />
+                  <CardContent>
+                    <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic', lineHeight: 1.6 }}>
+                      {getSafeValue(stats.total_employes)} employés ont généré {stats?.heures_travail_total_str || '0h'} 
+                      de travail sur {getSafeValue(stats.total_pointages)} jours cette période, 
+                      avec un taux d'activité global de {StatisticsUtils.formatPercentage(getSafeValue(stats.taux_activite_global))}.
+                    </Typography>
+                  </CardContent>
+                </Card>
               </Grid>
-            </>
+            </Grid>
           )}
         </Container>
       </Box>

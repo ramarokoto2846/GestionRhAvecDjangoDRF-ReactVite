@@ -57,50 +57,74 @@ const ORTM_COLORS = {
 };
 
 // Composant pour afficher les éléments de détail
-const DetailItem = ({ icon, label, value, color = "text.primary", size = "medium" }) => (
-  <Box sx={{ 
-    display: 'flex', 
-    alignItems: 'center', 
-    gap: 2, 
-    py: size === 'small' ? 0.5 : 1,
-    borderRadius: 2,
-    transition: 'all 0.3s ease',
-    '&:hover': {
-      backgroundColor: alpha(ORTM_COLORS.primary, 0.02),
+const DetailItem = ({ icon, label, value, color = "text.primary", size = "medium" }) => {
+  // Fonction pour formater la valeur
+  const formatValue = (val) => {
+    if (val === null || val === undefined || val === "") {
+      return "Non spécifié";
     }
-  }}>
+    
+    // Si c'est un objet, essayez de l'afficher proprement
+    if (typeof val === 'object') {
+      // Si c'est un objet département avec des propriétés spécifiques
+      if (val.nom) {
+        return val.nom;
+      }
+      if (val.id_departement) {
+        return val.nom || `Département ${val.id_departement}`;
+      }
+      // Pour d'autres objets, retourne un message d'erreur
+      return "Donnée non disponible";
+    }
+    
+    return String(val);
+  };
+
+  return (
     <Box sx={{ 
-      color: ORTM_COLORS.primary, 
-      minWidth: 24,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
+      display: 'flex', 
+      alignItems: 'center', 
+      gap: 2, 
+      py: size === 'small' ? 0.5 : 1,
+      borderRadius: 2,
+      transition: 'all 0.3s ease',
+      '&:hover': {
+        backgroundColor: alpha(ORTM_COLORS.primary, 0.02),
+      }
     }}>
-      {icon}
+      <Box sx={{ 
+        color: ORTM_COLORS.primary, 
+        minWidth: 24,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        {icon}
+      </Box>
+      <Box sx={{ flex: 1 }}>
+        <Typography 
+          variant={size === 'small' ? 'caption' : 'subtitle2'} 
+          color="text.secondary" 
+          fontSize={size === 'small' ? '0.75rem' : '0.8rem'}
+          fontWeight="500"
+        >
+          {label}
+        </Typography>
+        <Typography 
+          variant={size === 'small' ? 'body2' : 'body1'} 
+          color={color} 
+          fontWeight="600"
+          sx={{ 
+            wordBreak: 'break-word',
+            lineHeight: 1.2
+          }}
+        >
+          {formatValue(value)}
+        </Typography>
+      </Box>
     </Box>
-    <Box sx={{ flex: 1 }}>
-      <Typography 
-        variant={size === 'small' ? 'caption' : 'subtitle2'} 
-        color="text.secondary" 
-        fontSize={size === 'small' ? '0.75rem' : '0.8rem'}
-        fontWeight="500"
-      >
-        {label}
-      </Typography>
-      <Typography 
-        variant={size === 'small' ? 'body2' : 'body1'} 
-        color={color} 
-        fontWeight="600"
-        sx={{ 
-          wordBreak: 'break-word',
-          lineHeight: 1.2
-        }}
-      >
-        {value || "Non spécifié"}
-      </Typography>
-    </Box>
-  </Box>
-);
+  );
+};
 
 const Pointages = () => {
   const theme = useTheme();
@@ -120,7 +144,7 @@ const Pointages = () => {
   const [detailView, setDetailView] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [exitFilter, setExitFilter] = useState("all");
-  const [searchType, setSearchType] = useState("all"); // Type de recherche
+  const [searchType, setSearchType] = useState("all");
   const [generatingPDF, setGeneratingPDF] = useState(false);
 
   // ✅ FONCTION POUR GÉNÉRER L'ID AUTOMATIQUE AU FORMAT PTG0025
@@ -622,7 +646,7 @@ const Pointages = () => {
           
           <Grid container spacing={2} alignItems="center">
             {/* Type de recherche */}
-            <Grid item xs={12} sm={3}>
+            <Grid item xs={12} sm={3} width={585}>
               <FormControl fullWidth>
                 <InputLabel>Type de recherche</InputLabel>
                 <Select
@@ -640,7 +664,7 @@ const Pointages = () => {
             </Grid>
 
             {/* Champ de recherche */}
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} sm={6} width={585}>
               <TextField
                 fullWidth
                 placeholder={
@@ -673,7 +697,7 @@ const Pointages = () => {
             </Grid>
 
             {/* Filtre par statut */}
-            <Grid item xs={12} sm={3}>
+            <Grid item xs={12} sm={3} width={585}>
               <FormControl fullWidth>
                 <InputLabel>Statut</InputLabel>
                 <Select
@@ -766,9 +790,9 @@ const Pointages = () => {
           
           <DialogContent sx={{ pt: 4, pb: 2 }}>
             {detailView && (
-              <Grid container spacing={3}>
+              <Grid container mt={3}>
                 {/* En-tête avec statut et durée */}
-                <Grid item xs={12}>
+                <Grid item xs={12} ml={38}>
                   <Box sx={{ 
                     display: 'flex', 
                     justifyContent: 'space-between', 
@@ -803,8 +827,73 @@ const Pointages = () => {
                   </Box>
                 </Grid>
 
+                {/* Informations détaillées de l'employé */}
+                {detailView.employe_details && Object.keys(detailView.employe_details).length > 0 && (
+                  <Grid item xs={12} mb={3} width={900}>
+                    <Card sx={{ 
+                      borderRadius: 2, 
+                      boxShadow: `0 4px 12px ${alpha(ORTM_COLORS.primary, 0.1)}`,
+                      border: `1px solid ${alpha(ORTM_COLORS.primary, 0.1)}`
+                    }}>
+                      <CardContent>
+                        <Typography variant="h6" gutterBottom sx={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: 1,
+                          color: ORTM_COLORS.primary
+                        }}>
+                          <WorkIcon />
+                          Détails de l'Employé
+                        </Typography>
+                        <Grid container spacing={2} sx={{ mt: 1 }}>
+                          {detailView.employe_details.email && (
+                            <Grid item xs={12} sm={6}>
+                              <DetailItem 
+                                icon={<EmailIcon />}
+                                label="Email"
+                                value={detailView.employe_details.email}
+                                size="small"
+                              />
+                            </Grid>
+                          )}
+                          {detailView.employe_details.telephone && (
+                            <Grid item xs={12} sm={6}>
+                              <DetailItem 
+                                icon={<PhoneIcon />}
+                                label="Téléphone"
+                                value={detailView.employe_details.telephone}
+                                size="small"
+                              />
+                            </Grid>
+                          )}
+                          {detailView.employe_details.departement && (
+                            <Grid item xs={12} sm={6}>
+                              <DetailItem 
+                                icon={<BusinessIcon />}
+                                label="Département"
+                                value={detailView.employe_details.departement}
+                                size="small"
+                              />
+                            </Grid>
+                          )}
+                          {detailView.employe_details.poste && (
+                            <Grid item xs={12} sm={6}>
+                              <DetailItem 
+                                icon={<WorkIcon />}
+                                label="Poste"
+                                value={detailView.employe_details.poste}
+                                size="small"
+                              />
+                            </Grid>
+                          )}
+                        </Grid>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                )}
+
                 {/* Informations du pointage */}
-                <Grid item xs={12} md={6}>
+                <Grid item xs={12} m={3} width={350}>
                   <Card sx={{ 
                     borderRadius: 2, 
                     boxShadow: `0 4px 12px ${alpha(ORTM_COLORS.primary, 0.1)}`,
@@ -852,7 +941,7 @@ const Pointages = () => {
                 </Grid>
 
                 {/* Informations de l'employé */}
-                <Grid item xs={12} md={6}>
+                <Grid item xs={12} m={3} width={350}>
                   <Card sx={{ 
                     borderRadius: 2, 
                     boxShadow: `0 4px 12px ${alpha(ORTM_COLORS.primary, 0.1)}`,
@@ -924,70 +1013,7 @@ const Pointages = () => {
                   </Grid>
                 )}
 
-                {/* Informations détaillées de l'employé */}
-                {detailView.employe_details && Object.keys(detailView.employe_details).length > 0 && (
-                  <Grid item xs={12}>
-                    <Card sx={{ 
-                      borderRadius: 2, 
-                      boxShadow: `0 4px 12px ${alpha(ORTM_COLORS.primary, 0.1)}`,
-                      border: `1px solid ${alpha(ORTM_COLORS.primary, 0.1)}`
-                    }}>
-                      <CardContent>
-                        <Typography variant="h6" gutterBottom sx={{ 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          gap: 1,
-                          color: ORTM_COLORS.primary
-                        }}>
-                          <WorkIcon />
-                          Détails de l'Employé
-                        </Typography>
-                        <Grid container spacing={2} sx={{ mt: 1 }}>
-                          {detailView.employe_details.email && (
-                            <Grid item xs={12} sm={6}>
-                              <DetailItem 
-                                icon={<EmailIcon />}
-                                label="Email"
-                                value={detailView.employe_details.email}
-                                size="small"
-                              />
-                            </Grid>
-                          )}
-                          {detailView.employe_details.telephone && (
-                            <Grid item xs={12} sm={6}>
-                              <DetailItem 
-                                icon={<PhoneIcon />}
-                                label="Téléphone"
-                                value={detailView.employe_details.telephone}
-                                size="small"
-                              />
-                            </Grid>
-                          )}
-                          {detailView.employe_details.departement && (
-                            <Grid item xs={12} sm={6}>
-                              <DetailItem 
-                                icon={<BusinessIcon />}
-                                label="Département"
-                                value={detailView.employe_details.departement}
-                                size="small"
-                              />
-                            </Grid>
-                          )}
-                          {detailView.employe_details.poste && (
-                            <Grid item xs={12} sm={6}>
-                              <DetailItem 
-                                icon={<WorkIcon />}
-                                label="Poste"
-                                value={detailView.employe_details.poste}
-                                size="small"
-                              />
-                            </Grid>
-                          )}
-                        </Grid>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                )}
+                
               </Grid>
             )}
           </DialogContent>

@@ -420,8 +420,8 @@ const Employes = ({ isSuperuser: isSuperuserProp }) => {
 
         {/* ✅ MODIFICATION DE LA BARRE DE FILTRES POUR AJOUTER LE FILTRE STATUT */}
         <Paper sx={{ p: 2, mb: 3, borderRadius: 3 }}>
-          <Grid container spacing={2} alignItems="center" ml={14}>
-            <Grid item xs={12} md={4} width={500}>
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} md={4} width={590}>
               <TextField
                 fullWidth
                 placeholder="Rechercher un employé..."
@@ -446,7 +446,7 @@ const Employes = ({ isSuperuser: isSuperuserProp }) => {
                 }}
               />
             </Grid>
-            <Grid item xs={12} md={4} width={500}>
+            <Grid item xs={12} md={4} width={590}>
               <FormControl fullWidth>
                 <InputLabel id="departement-filter-label">
                   Filtrer par département
@@ -477,7 +477,7 @@ const Employes = ({ isSuperuser: isSuperuserProp }) => {
               </FormControl>
             </Grid>
             {/* ✅ NOUVEAU FILTRE STATUT */}
-            <Grid item xs={12} md={4} width={500}>
+            <Grid item xs={12} md={4} width={590}>
               <FormControl fullWidth>
                 <InputLabel id="statut-filter-label">
                   Filtrer par statut
