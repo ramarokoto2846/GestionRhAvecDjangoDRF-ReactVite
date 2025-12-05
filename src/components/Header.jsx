@@ -833,3 +833,293 @@ const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
 };
 
 export default Header;
+
+
+
+// import React, { useState, useEffect } from "react";
+// import {
+//   AppBar,
+//   Toolbar,
+//   Box,
+//   Typography,
+//   IconButton,
+//   Badge,
+//   Avatar,
+//   Button,
+//   Menu,
+//   MenuItem,
+//   ListItemIcon,
+//   ListItemText,
+//   Drawer,
+//   List,
+//   ListItem,
+//   ListItemButton,
+//   ListItemText as ListItemTextDrawer,
+//   Divider,
+// } from "@mui/material";
+// import {
+//   Notifications as NotificationsIcon,
+//   Settings as SettingsIcon,
+//   Logout as LogoutIcon,
+//   Menu as MenuIcon,
+//   Warning as WarningIcon,
+//   AccessTime as AccessTimeIcon,
+//   Person as PersonIcon,
+//   BarChart as BarChartIcon,
+//   TrendingUp as TrendingUpIcon,
+//   People as PeopleIcon,
+//   Apartment as ApartmentIcon,
+// } from "@mui/icons-material";
+// import { useNavigate, useLocation } from "react-router-dom";
+// import Swal from "sweetalert2";
+// import { getEmployes, getPointages } from "../services/api";
+// import ortmLogo from "./ortm.webp";
+
+// // Global refresh
+// let refreshNotificationsCallback = null;
+// export const triggerNotificationsRefresh = () => {
+//   if (refreshNotificationsCallback) refreshNotificationsCallback();
+// };
+
+// const Header = ({ user, onMenuToggle, onLogoutCheck }) => {
+//   const navigate = useNavigate();
+//   const location = useLocation();
+//   const [anchorEl, setAnchorEl] = useState(null);
+//   const [settingsAnchorEl, setSettingsAnchorEl] = useState(null);
+//   const [statsAnchorEl, setStatsAnchorEl] = useState(null);
+//   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+//   const [notifications, setNotifications] = useState([]);
+//   const [notificationsCount, setNotificationsCount] = useState(0);
+//   const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+//   useEffect(() => {
+//     refreshNotificationsCallback = () => setRefreshTrigger((p) => p + 1);
+//     return () => { refreshNotificationsCallback = null; };
+//   }, []);
+
+//   const handleLogout = async () => {
+//     try {
+//       const pointagesData = await getPointages();
+//       const pointagesEnCours = pointagesData.filter(p => !p.heure_sortie);
+
+//       if (pointagesEnCours.length > 0) {
+//         const result = await Swal.fire({
+//           title: 'Pointages en cours détectés',
+//           html: `<strong>${pointagesEnCours.length} pointage(s) en cours</strong><p>Voulez-vous vraiment vous déconnecter ?</p>`,
+//           icon: 'warning',
+//           showCancelButton: true,
+//           confirmButtonText: 'Oui, déconnecter',
+//           cancelButtonText: 'Annuler',
+//         });
+//         if (!result.isConfirmed) {
+//           navigate("/pointages");
+//           return;
+//         }
+//       }
+
+//       const confirm = await Swal.fire({
+//         title: "Déconnexion",
+//         text: "Voulez-vous vraiment vous déconnecter ?",
+//         icon: "question",
+//         showCancelButton: true,
+//         confirmButtonText: "Oui",
+//         cancelButtonText: "Annuler",
+//       });
+
+//       if (confirm.isConfirmed) {
+//         localStorage.removeItem("access_token");
+//         localStorage.removeItem("refresh_token");
+//         navigate("/");
+//       }
+//     } catch (error) {
+//       const confirm = await Swal.fire({
+//         title: "Déconnexion",
+//         text: "Voulez-vous vraiment vous déconnecter ?",
+//         icon: "question",
+//         showCancelButton: true,
+//       });
+//       if (confirm.isConfirmed) {
+//         localStorage.removeItem("access_token");
+//         localStorage.removeItem("refresh_token");
+//         navigate("/");
+//       }
+//     }
+//   };
+
+//   const openMenu = (setter) => (e) => setter(e.currentTarget);
+//   const closeMenu = (setter) => () => setter(null);
+
+//   const handleMobileDrawerToggle = () => setMobileDrawerOpen(!mobileDrawerOpen);
+//   const handleNavigation = (path) => {
+//     navigate(path);
+//     setMobileDrawerOpen(false);
+//     closeMenu(setStatsAnchorEl)();
+//   };
+
+//   const handleNotificationClick = (type) => {
+//     closeMenu(setAnchorEl)();
+//     if (type === "employes_inactifs") navigate("/employes");
+//     if (type === "pointages") navigate("/pointages");
+//   };
+
+//   useEffect(() => {
+//     const fetchNotifications = async () => {
+//       if (!localStorage.getItem("access_token")) {
+//         setNotifications([]);
+//         setNotificationsCount(0);
+//         return;
+//       }
+
+//       try {
+//         const [employesData, pointagesData] = await Promise.all([
+//           getEmployes().catch(() => []),
+//           getPointages().catch(() => []),
+//         ]);
+
+//         const employesInactifs = employesData.filter(emp => emp.statut === 'inactif');
+//         const pointagesEnCours = pointagesData.filter(p => !p.heure_sortie);
+
+//         const notifs = [];
+//         if (employesInactifs.length > 0)
+//           notifs.push({ type: "employes_inactifs", message: `${employesInactifs.length} employé(s) inactif(s)`, count: employesInactifs.length });
+//         if (pointagesEnCours.length > 0)
+//           notifs.push({ type: "pointages", message: `${pointagesEnCours.length} pointage(s) en cours`, count: pointagesEnCours.length });
+
+//         setNotifications(notifs);
+//         setNotificationsCount(notifs.length);
+//       } catch (err) {
+//         setNotifications([]);
+//         setNotificationsCount(0);
+//       }
+//     };
+
+//     fetchNotifications();
+//   }, [refreshTrigger]);
+
+//   const getNotificationIcon = (type) => {
+//     return type === "employes_inactifs" ? <WarningIcon /> : <AccessTimeIcon />;
+//   };
+
+//   const navItems = [
+//     { label: "Employés", path: "/employes", icon: <PeopleIcon /> },
+//     { label: "Départements", path: "/departements", icon: <ApartmentIcon /> },
+//     { label: "Pointages", path: "/pointages", icon: <AccessTimeIcon /> },
+//   ];
+
+//   const drawerContent = (
+//     <Box onClick={handleMobileDrawerToggle}>
+//       <Box>
+//         <img src={ortmLogo} alt="ORTM Logo" />
+//         <Typography>ORTM Madagascar</Typography>
+//         <Typography>Système de Gestion RH</Typography>
+//       </Box>
+//       <List>
+//         {navItems.map((item) => (
+//           <ListItem key={item.path} disablePadding>
+//             <ListItemButton onClick={() => handleNavigation(item.path)}>
+//               <ListItemIcon>{item.icon}</ListItemIcon>
+//               <ListItemTextDrawer primary={item.label} />
+//             </ListItemButton>
+//           </ListItem>
+//         ))}
+//         <ListItem disablePadding>
+//           <ListItemButton onClick={openMenu(setStatsAnchorEl)}>
+//             <ListItemIcon><BarChartIcon /></ListItemIcon>
+//             <ListItemTextDrawer primary="Statistiques" />
+//           </ListItemButton>
+//         </ListItem>
+//       </List>
+//     </Box>
+//   );
+
+//   return (
+//     <>
+//       <AppBar position="fixed">
+//         <Toolbar>
+//           <IconButton color="inherit" onClick={handleMobileDrawerToggle}>
+//             <MenuIcon />
+//           </IconButton>
+
+//           <Box onClick={() => navigate("/statistiques/overview")}>
+//             <img src={ortmLogo} alt="ORTM Logo" />
+//             <Typography>ORTM</Typography>
+//             <Typography>Système de Gestion RH</Typography>
+//           </Box>
+
+//           <Box>
+//             {navItems.map((item) => (
+//               <Button key={item.path} color="inherit" onClick={() => handleNavigation(item.path)}>
+//                 {item.label}
+//               </Button>
+//             ))}
+//             <Button color="inherit" onClick={openMenu(setStatsAnchorEl)}>
+//               Statistiques
+//             </Button>
+//           </Box>
+
+//           <Box>
+//             <IconButton color="inherit" onClick={openMenu(setAnchorEl)}>
+//               <Badge badgeContent={notificationsCount} color="error">
+//                 <NotificationsIcon />
+//               </Badge>
+//             </IconButton>
+
+//             <IconButton color="inherit" onClick={openMenu(setSettingsAnchorEl)}>
+//               <SettingsIcon />
+//             </IconButton>
+
+//             <Button color="inherit" startIcon={<LogoutIcon />} onClick={handleLogout}>
+//               Déconnexion
+//             </Button>
+//           </Box>
+//         </Toolbar>
+//       </AppBar>
+
+//       {/* Menus */}
+//       <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={closeMenu(setAnchorEl)}>
+//         {notifications.length === 0 ? (
+//           <MenuItem>Aucune notification</MenuItem>
+//         ) : (
+//           notifications.map((n, i) => (
+//             <MenuItem key={i} onClick={() => handleNotificationClick(n.type)}>
+//               <ListItemIcon>{getNotificationIcon(n.type)}</ListItemIcon>
+//               <ListItemText primary={n.message} />
+//               <Badge badgeContent={n.count} color="primary" />
+//             </MenuItem>
+//           ))
+//         )}
+//       </Menu>
+
+//       <Menu anchorEl={settingsAnchorEl} open={Boolean(settingsAnchorEl)} onClose={closeMenu(setSettingsAnchorEl)}>
+//         <MenuItem>
+//           <Avatar><PersonIcon /></Avatar>
+//           <Box>
+//             <Typography>
+//               {user?.prenom || user?.nom ? `${user.prenom || ""} ${user.nom || ""}`.trim() : "Utilisateur"}
+//             </Typography>
+//             <Typography>{user?.role === "admin" ? "Administrateur" : "Utilisateur"}</Typography>
+//           </Box>
+//         </MenuItem>
+//       </Menu>
+
+//       <Menu anchorEl={statsAnchorEl} open={Boolean(statsAnchorEl)} onClose={closeMenu(setStatsAnchorEl)}>
+//         <MenuItem onClick={() => handleNavigation("/statistiques/overview")}>
+//           <ListItemIcon><TrendingUpIcon /></ListItemIcon>
+//           <ListItemText primary="Vue Globale" />
+//         </MenuItem>
+//         <MenuItem onClick={() => handleNavigation("/statistiques/employes")}>
+//           <ListItemIcon><PeopleIcon /></ListItemIcon>
+//           <ListItemText primary="Vue par Employé" />
+//         </MenuItem>
+//       </Menu>
+
+//       <Drawer open={mobileDrawerOpen} onClose={handleMobileDrawerToggle}>
+//         {drawerContent}
+//       </Drawer>
+
+//       <Toolbar />
+//     </>
+//   );
+// };
+
+// export default Header;

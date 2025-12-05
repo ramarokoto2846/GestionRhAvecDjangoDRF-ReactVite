@@ -1,4 +1,3 @@
-// src/services/api.js
 import axios from "axios";
 
 const BASE_URL = "http://localhost:8000/api";
@@ -304,7 +303,7 @@ export const deleteDepartement = departementsCrud.deleteOne;
 export const searchDepartements = departementsCrud.search;
 
 // ========================
-// EMPLOYÉS
+// EMPLOYÉS (AVEC HORAIRES)
 // ========================
 const employesCrud = createCrudFunctions("employes", "cin");
 export const getEmployes = employesCrud.getAll;
@@ -324,7 +323,7 @@ export const getEmployesStats = async () => {
 };
 
 // ========================
-// POINTAGES
+// POINTAGES (AVEC PONCTUALITÉ)
 // ========================
 const pointagesCrud = createCrudFunctions("pointages", "id_pointage");
 export const getPointages = pointagesCrud.getAll;
@@ -346,14 +345,14 @@ export const getPointagesStatsMensuelles = async (mois, annee) => {
 };
 
 // ========================
-// STATISTIQUES EMPLOYÉS
+// STATISTIQUES EMPLOYÉS (SAUVEGARDÉES AVEC NOUVEAU SYSTÈME)
 // ========================
 const statistiquesEmployeCrud = createCrudFunctions("statistiques-employe", "id");
 export const getStatistiquesEmploye = statistiquesEmployeCrud.getAll;
 export const getStatistiqueEmploye = statistiquesEmployeCrud.getOne;
 
 // ========================
-// STATISTIQUES GLOBALES
+// STATISTIQUES GLOBALES (SAUVEGARDÉES AVEC NOUVEAU SYSTÈME)
 // ========================
 const statistiquesGlobalesCrud = createCrudFunctions("statistiques-globales", "id");
 export const getStatistiquesGlobales = statistiquesGlobalesCrud.getAll;
@@ -387,7 +386,7 @@ export const getHeuresComparison = async (cin, params = {}) => {
 
 export const getMonthlyTrends = async (cin, params = {}) => {
   try {
-    const url = cin ? `${BASE_URL}/statistiques/tendances-mensuelles/${cin}/` : `${BASE_URL}/statistiques/tendances-mensuelles/`;
+    const url = cin ? `${BASE_URL}/statistiques/tendances/${cin}/` : `${BASE_URL}/statistiques/tendances/`;
     const response = await api.get(url, { params });
     return response.data;
   } catch (error) {
@@ -397,15 +396,15 @@ export const getMonthlyTrends = async (cin, params = {}) => {
 };
 
 // ========================
-// AUTRES FONCTIONS
+// FONCTIONS DE STATISTIQUES PRINCIPALES AVEC NOUVEAU SYSTÈME
 // ========================
 
 export const getEmployeeStatistics = async (cin, params = {}) => {
   try {
-    // ✅ CORRECTION : URL avec CIN
+    // URL avec CIN
     const url = `${BASE_URL}/statistiques/employe/${cin}/`;
     
-    // ✅ CORRECTION : Nettoyer les params - supprimer 'cin' et 'matricule'
+    // Nettoyer les params
     const filteredParams = { ...params };
     delete filteredParams.cin;
     delete filteredParams.matricule;
@@ -419,23 +418,35 @@ export const getEmployeeStatistics = async (cin, params = {}) => {
   } catch (error) {
     if (error.response?.status === 500) {
       console.log("Erreur serveur statistiques employé:", error.message);
-      // Données par défaut
+      // Données par défaut avec nouvelles métriques
       return {
         heures_travail_total: "0h 00min",
         jours_travailles: 0,
         jours_absents: 0,
-        taux_ponctualite: 0,
+        moyenne_heures_quotidiennes: "0h 00min",
+        
+        // NOUVELLES MÉTRIQUES DE RÉGULARITÉ
+        ponctualite_parfaite: 0,
+        ponctualite_acceptable: 0,
+        ponctualite_inacceptable: 0,
+        retard_moyen_minutes: 0,
+        depart_avance_moyen_minutes: 0,
+        regularite_statut: 'acceptable',
         taux_regularite: 0,
+        
+        // Compatibilité avec ancien système
         pointages_reguliers: 0,
         pointages_irreguliers: 0,
-        taux_presence: 0,
-        taux_absence: 0,
-        statut_heures: 'NORMAL',
-        observation_heures: 'Données temporairement indisponibles',
-        // ✅ Ajouter les champs manquants
         pointages_ponctuels: 0,
         pointages_non_ponctuels: 0,
-        moyenne_heures_quotidiennes: "0h 00min"
+        
+        // Taux
+        taux_ponctualite: 0,
+        taux_presence: 0,
+        taux_absence: 0,
+        
+        statut_heures: 'NORMAL',
+        observation_heures: 'Données temporairement indisponibles',
       };
     }
     handleError(error, "Erreur lors de la récupération des statistiques employé.");
@@ -443,6 +454,7 @@ export const getEmployeeStatistics = async (cin, params = {}) => {
   }
 };
 
+// api.js - Modifier les données par défaut de getGlobalStatistics
 export const getGlobalStatistics = async (params = {}) => {
   try {
     const response = await api.get(`${BASE_URL}/statistiques/global/`, { params });
@@ -450,15 +462,47 @@ export const getGlobalStatistics = async (params = {}) => {
   } catch (error) {
     if (error.response?.status === 500) {
       console.log("Erreur serveur statistiques globales:", error.message);
+      // Données par défaut avec nouvelles métriques
       return {
         total_employes: 0,
         employes_actifs: 0,
+        total_departements: 0,
+        departements_actifs: 0,
+        taux_activite_global: 0,
+        
+        // Jours analysés
+        jours_passes_mois: 0,
+        // SUPPRIMER: jours_total_attendus: 0,
+        
         total_pointages: 0,
         heures_travail_total: "0h 00min",
+        moyenne_heures_quotidiennes: "0h 00min",
+        
+        // NOUVELLES MÉTRIQUES DE RÉGULARITÉ GLOBALE
+        ponctualite_parfaite: 0,
+        ponctualite_acceptable: 0,
+        ponctualite_inacceptable: 0,
+        taux_regularite_parfaite: 0,
+        taux_regularite_acceptable: 0,
+        taux_regularite_inacceptable: 0,
+        
+        // Analyse des heures globales
+        heures_attendues_total: "0h 00min",
+        statut_heures_global: 'NORMAL',
+        ecart_heures_global: "0h 00min",
+        pourcentage_ecart_global: 0,
+        observation_globale: "Aucune donnée disponible",
+        
+        // Taux
         taux_presence: 0,
+        total_absences: 0,
+        taux_absence_global: 0,
+        
+        // Compatibilité
+        pointages_reguliers: 0,
+        pointages_ponctuels: 0,
         taux_regularite_global: 0,
-        total_absences: 0,  // NOUVEAU
-        taux_absence_global: 0,  // NOUVEAU
+        taux_ponctualite_global: 0,
       };
     }
     handleError(error, "Erreur lors de la récupération des statistiques globales.");
@@ -509,7 +553,7 @@ export const exportStatisticsPDF = async (exportType, params = {}) => {
 };
 
 // ========================
-// UTILITAIRES STATISTIQUES
+// UTILITAIRES STATISTIQUES (ADAPTÉS AU NOUVEAU SYSTÈME)
 // ========================
 
 export const StatisticsUtils = {
@@ -585,18 +629,11 @@ export const StatisticsUtils = {
   getHeuresStatusColor: (statut) => {
     if (!statut) return 'default';
     
-    switch (statut.toLowerCase()) {
-      case 'insuffisant':
-      case 'en_retard':
-        return 'warning';
-      case 'normal':
-        return 'success';
-      case 'surplus':
-      case 'en_avance':
-        return 'info';
-      default:
-        return 'default';
-    }
+    const statutLower = statut.toLowerCase();
+    if (statutLower === 'insuffisant') return 'error';
+    if (statutLower === 'normal') return 'success';
+    if (statutLower === 'surplus') return 'info';
+    return 'default';
   },
 
   // Obtenir la couleur pour le taux d'absence
@@ -605,8 +642,8 @@ export const StatisticsUtils = {
     
     const safeTaux = typeof taux === 'string' ? parseFloat(taux) : taux;
     if (safeTaux === 0) return 'success';
-    if (safeTaux <= 10) return 'warning';
-    if (safeTaux <= 20) return 'error';
+    if (safeTaux <= 5) return 'warning';
+    if (safeTaux <= 10) return 'error';
     return 'error';
   },
 
@@ -620,38 +657,127 @@ export const StatisticsUtils = {
     return 'error';
   },
 
-  // Générer une observation basée sur les statistiques
+  // Obtenir la couleur pour la régularité (nouveau système)
+  getRegulariteColor: (regularite) => {
+    if (!regularite) return 'default';
+    
+    const regulariteLower = regularite.toLowerCase();
+    if (regulariteLower === 'parfait') return 'success';
+    if (regulariteLower === 'acceptable') return 'warning';
+    if (regulariteLower === 'inacceptable') return 'error';
+    return 'default';
+  },
+
+  // Obtenir la couleur pour les catégories de pointage (nouveau système)
+  getPointageCategoryColor: (category) => {
+    if (!category) return 'default';
+    
+    const categoryLower = category.toLowerCase();
+    switch(categoryLower) {
+      case 'parfait':
+      case 'ponctualite_parfaite':
+        return '#4CAF50'; // Vert
+      case 'acceptable':
+      case 'ponctualite_acceptable':
+        return '#FFC107'; // Orange
+      case 'inacceptable':
+      case 'ponctualite_inacceptable':
+        return '#F44336'; // Rouge
+      default:
+        return '#2196F3'; // Bleu par défaut
+    }
+  },
+
+  // Obtenir l'icône pour le statut de régularité
+  getRegulariteIcon: (regularite) => {
+    if (!regularite) return 'help_outline';
+    
+    const regulariteLower = regularite.toLowerCase();
+    switch(regulariteLower) {
+      case 'parfait':
+        return 'check_circle';
+      case 'acceptable':
+        return 'warning';
+      case 'inacceptable':
+        return 'error';
+      default:
+        return 'help_outline';
+    }
+  },
+
+  // Obtenir le label pour le statut de régularité
+  getRegulariteLabel: (regularite) => {
+    if (!regularite) return 'Non évalué';
+    
+    const regulariteLower = regularite.toLowerCase();
+    switch(regulariteLower) {
+      case 'parfait':
+        return 'Parfait';
+      case 'acceptable':
+        return 'Acceptable';
+      case 'inacceptable':
+        return 'Inacceptable';
+      default:
+        return 'Non évalué';
+    }
+  },
+
+  // Générer une observation basée sur les statistiques (adapté au nouveau système)
   generateObservation: (stats) => {
     if (!stats) return "Aucune donnée disponible";
     
-    const statut = stats.statut_performance || stats.statut_heures;
+    const statut = stats.statut_heures || 'NORMAL';
     const heuresReelles = StatisticsUtils.formatDuration(stats.heures_travail_total);
-    const heuresAttendues = StatisticsUtils.formatDuration(stats.heures_attendues_jours_passes || stats.heures_attendues_mois);
+    const heuresAttendues = StatisticsUtils.formatDuration(stats.heures_attendues_jours_passes);
     const ecart = StatisticsUtils.formatDuration(stats.ecart_heures);
+    const pourcentageEcart = stats.pourcentage_ecart || 0;
     const tauxPonctualite = stats.taux_ponctualite || 0;
-    const tauxAbsence = stats.taux_absence || 0;  // NOUVEAU
-    const joursAbsents = stats.jours_absents || 0;  // NOUVEAU
+    const tauxAbsence = stats.taux_absence || 0;
+    const joursAbsents = stats.jours_absents || 0;
     const joursTravailles = stats.jours_travailles || 0;
     
-    const absencesText = joursAbsents > 0 ? `${joursAbsents} jour(s) d'absence (${StatisticsUtils.formatPercentage(tauxAbsence)}). ` : '';
-    const travailText = joursTravailles > 0 ? `${joursTravailles} jour(s) travaillé(s). ` : '';
-    const ponctualiteText = tauxPonctualite > 0 ? `Ponctualité: ${StatisticsUtils.formatPercentage(tauxPonctualite)}. ` : '';
+    // NOUVELLES MÉTRIQUES DE RÉGULARITÉ
+    const regulariteStatut = stats.regularite_statut || 'acceptable';
+    const ponctualiteParfaite = stats.ponctualite_parfaite || 0;
+    const ponctualiteAcceptable = stats.ponctualite_acceptable || 0;
+    const ponctualiteInacceptable = stats.ponctualite_inacceptable || 0;
+    const retardMoyen = stats.retard_moyen_minutes || 0;
+    const departAvanceMoyen = stats.depart_avance_moyen_minutes || 0;
+    
+    // Textes pour les différentes sections
+    const absencesText = joursAbsents > 0 ? 
+      `⚠️ **${joursAbsents} jour(s) d'absence** (${StatisticsUtils.formatPercentage(tauxAbsence)}). ` : 
+      '';
+    
+    const travailText = joursTravailles > 0 ? 
+      `📊 ${joursTravailles} jour(s) travaillé(s). ` : 
+      '';
+    
+    const ponctualiteText = tauxPonctualite > 0 ? 
+      `🕒 **Ponctualité**: ${StatisticsUtils.formatPercentage(tauxPonctualite)}. ` : 
+      '';
+    
+    // TEXTE DE RÉGULARITÉ (NOUVEAU)
+    const regulariteText = `
+📅 **Régularité**: ${StatisticsUtils.getRegulariteLabel(regulariteStatut)}
+• Parfait: ${ponctualiteParfaite} jour(s) 
+• Acceptable: ${ponctualiteAcceptable} jour(s) 
+• Inacceptable: ${ponctualiteInacceptable} jour(s)
+• Retard moyen: ${retardMoyen.toFixed(1)} min
+• Départ moyen anticipé: ${departAvanceMoyen.toFixed(1)} min
+`.trim();
 
-    if (!statut) {
-      return `${absencesText}${travailText}${ponctualiteText}`;
+    if (!statut || statut === 'NORMAL') {
+      return `${absencesText}${travailText}${ponctualiteText}\n${regulariteText}`;
     }
 
     switch (statut.toLowerCase()) {
       case 'insuffisant':
-      case 'en_retard':
-        return `⚠️ Heures INSUFFISANTES. ${absencesText}${heuresReelles} sur ${heuresAttendues}. Déficit: ${ecart}. ${ponctualiteText}`;
-      case 'normal':
-        return `✅ Performances CONFORMES. ${absencesText}${heuresReelles} travaillées. ${ponctualiteText}`;
+        return `⚠️ **Heures INSUFFISANTES**. ${absencesText}${heuresReelles} sur ${heuresAttendues}. Déficit: ${ecart} (${pourcentageEcart.toFixed(1)}%).\n${regulariteText}`;
       case 'surplus':
-      case 'en_avance':
-        return `📈 Heures en SURPLUS. ${absencesText}${heuresReelles} (excédent: ${ecart}). ${ponctualiteText}`;
+        return `📈 **Heures en SURPLUS**. ${absencesText}${heuresReelles} (excédent: ${ecart}).\n${regulariteText}`;
       default:
-        return `📊 ${absencesText}${travailText}${ponctualiteText}`;
+        return `${absencesText}${travailText}${ponctualiteText}\n${regulariteText}`;
     }
   },
 
@@ -679,39 +805,57 @@ export const StatisticsUtils = {
     return Math.round((joursAbsents / joursTotal) * 100);
   },
 
-  // Formater les détails de ponctualité
-  formatPonctualiteDetails: (stats) => {
+  // Formater les détails de régularité (nouveau système)
+  formatRegulariteDetails: (stats) => {
     if (!stats) return "Aucun pointage analysé";
     
-    const parfaits = stats.pointages_parfaits || 0;
-    const valides = stats.pointages_valides || 0;
-    const retardsEntree = stats.pointages_entree_retard || 0;
-    const sortiesAvance = stats.pointages_sortie_avance || 0;
-    const retardsSorties = stats.pointages_entree_retard_sortie_avance || 0;
+    const parfaits = stats.ponctualite_parfaite || 0;
+    const acceptables = stats.ponctualite_acceptable || 0;
+    const inacceptables = stats.ponctualite_inacceptable || 0;
     
-    const total = parfaits + valides + retardsEntree + sortiesAvance + retardsSorties;
+    const total = parfaits + acceptables + inacceptables;
     
     if (total === 0) return "Aucun pointage analysé";
     
     const details = [];
     if (parfaits > 0) details.push(`${parfaits} parfaits`);
-    if (valides > 0) details.push(`${valides} valides`);
-    if (retardsEntree > 0) details.push(`${retardsEntree} retards d'entrée`);
-    if (sortiesAvance > 0) details.push(`${sortiesAvance} sorties anticipées`);
-    if (retardsSorties > 0) details.push(`${retardsSorties} retards et sorties anticipées`);
+    if (acceptables > 0) details.push(`${acceptables} acceptables`);
+    if (inacceptables > 0) details.push(`${inacceptables} inacceptables`);
     
     return details.join(', ');
   },
 
-  // Analyser les tendances de ponctualité
-  analyzePonctualiteTrend: (currentStats, previousStats) => {
+  // Calculer le taux de régularité (basé sur parfaits + acceptables)
+  calculateRegulariteRate: (stats) => {
+    if (!stats) return 0;
+    
+    const parfaits = stats.ponctualite_parfaite || 0;
+    const acceptables = stats.ponctualite_acceptable || 0;
+    const inacceptables = stats.ponctualite_inacceptable || 0;
+    
+    const total = parfaits + acceptables + inacceptables;
+    
+    if (total === 0) return 0;
+    
+    return Math.round(((parfaits + acceptables) / total) * 100);
+  },
+
+  // Analyser les tendances de régularité
+  analyzeRegulariteTrend: (currentStats, previousStats) => {
     if (!currentStats || !previousStats) return 'stable';
     
-    const currentTaux = currentStats.taux_ponctualite || 0;
-    const previousTaux = previousStats.taux_ponctualite || 0;
+    const currentTauxParfait = currentStats.ponctualite_parfaite || 0;
+    const previousTauxParfait = previousStats.ponctualite_parfaite || 0;
     
-    if (currentTaux > previousTaux + 5) return 'en_amelioration';
-    if (currentTaux < previousTaux - 5) return 'en_baisse';
+    if (currentTauxParfait > previousTauxParfait + 5) return 'en_amelioration';
+    if (currentTauxParfait < previousTauxParfait - 5) return 'en_baisse';
+    
+    const currentTauxInacceptable = currentStats.ponctualite_inacceptable || 0;
+    const previousTauxInacceptable = previousStats.ponctualite_inacceptable || 0;
+    
+    if (currentTauxInacceptable < previousTauxInacceptable - 5) return 'en_amelioration';
+    if (currentTauxInacceptable > previousTauxInacceptable + 5) return 'en_baisse';
+    
     return 'stable';
   },
 
@@ -720,7 +864,7 @@ export const StatisticsUtils = {
     if (!stats) return 0;
     
     const heuresReelles = StatisticsUtils.parseDurationToHours(stats.heures_travail_total);
-    const heuresAttendues = StatisticsUtils.parseDurationToHours(stats.heures_attendues_jours_passes || stats.heures_attendues_mois);
+    const heuresAttendues = StatisticsUtils.parseDurationToHours(stats.heures_attendues_jours_passes);
     
     if (!heuresReelles || !heuresAttendues || heuresAttendues === 0) return 0;
     
@@ -797,6 +941,271 @@ export const StatisticsUtils = {
       'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
     ];
     return months[monthNumber - 1] || '';
+  },
+
+  // Générer des données pour le graphique de régularité (nouveau système)
+  generateRegulariteChartData: (stats) => {
+    if (!stats) return null;
+    
+    const parfaits = stats.ponctualite_parfaite || 0;
+    const acceptables = stats.ponctualite_acceptable || 0;
+    const inacceptables = stats.ponctualite_inacceptable || 0;
+    
+    const total = parfaits + acceptables + inacceptables;
+    if (total === 0) return null;
+    
+    return {
+      labels: ['Parfaits', 'Acceptables', 'Inacceptables'],
+      datasets: [
+        {
+          data: [parfaits, acceptables, inacceptables],
+          backgroundColor: ['#4CAF50', '#FFC107', '#F44336'],
+          borderColor: ['#388E3C', '#FFA000', '#D32F2F'],
+          borderWidth: 1
+        }
+      ]
+    };
+  },
+
+  // Générer des données pour le graphique de régularité globale
+  generateGlobalRegulariteChartData: (stats) => {
+    if (!stats) return null;
+    
+    const parfaits = stats.ponctualite_parfaite || 0;
+    const acceptables = stats.ponctualite_acceptable || 0;
+    const inacceptables = stats.ponctualite_inacceptable || 0;
+    
+    const total = parfaits + acceptables + inacceptables;
+    if (total === 0) return null;
+    
+    return {
+      labels: ['Parfaits', 'Acceptables', 'Inacceptables'],
+      datasets: [
+        {
+          data: [parfaits, acceptables, inacceptables],
+          backgroundColor: ['#4CAF50', '#FFC107', '#F44336'],
+          borderColor: ['#388E3C', '#FFA000', '#D32F2F'],
+          borderWidth: 1
+        }
+      ]
+    };
+  },
+
+  // Obtenir une description textuelle de la régularité (nouveau système)
+  getRegulariteDescription: (regulariteStatut, stats) => {
+    if (!regulariteStatut) return "Non évaluée";
+    
+    const parfaits = stats?.ponctualite_parfaite || 0;
+    const acceptables = stats?.ponctualite_acceptable || 0;
+    const inacceptables = stats?.ponctualite_inacceptable || 0;
+    const total = parfaits + acceptables + inacceptables;
+    
+    if (total === 0) return "Aucun pointage analysé";
+    
+    const tauxParfait = Math.round((parfaits / total) * 100);
+    
+    switch(regulariteStatut.toLowerCase()) {
+      case 'parfait':
+        return `Excellent! ${tauxParfait}% des pointages sont parfaits (arrivée ≤ 8h10 et départ ≥ 15h50).`;
+      case 'acceptable':
+        return `Satisfaisant. ${tauxParfait}% des pointages sont parfaits. La majorité des pointages sont dans les marges acceptables.`;
+      case 'inacceptable':
+        return `À améliorer. Seulement ${tauxParfait}% des pointages sont parfaits. Trop de retards ou départs anticipés.`;
+      default:
+        return "Non évaluée";
+    }
+  },
+
+  // Analyser les horaires d'un employé
+  analyzeEmployeeSchedule: (employe) => {
+    if (!employe) return null;
+    
+    const heureEntree = employe.heure_entree_attendue || '08:00';
+    const heureSortie = employe.heure_sortie_attendue || '16:00';
+    const marge = employe.marge_tolerance_minutes || 10;
+    
+    return {
+      heureEntree,
+      heureSortie,
+      marge,
+      description: `Horaires attendus: ${heureEntree} - ${heureSortie} (marge: ${marge} minutes)`,
+      details: {
+        entreeParfaiteMax: `Arrivée ≤ ${heureEntree}:${marge.toString().padStart(2, '0')}`,
+        sortieParfaiteMin: `Départ ≥ ${heureSortie.substring(0, 3)}${parseInt(heureSortie.substring(3)) - marge}`,
+        acceptableLimit: `Retard ou départ anticipé ≤ 30 minutes`,
+        inacceptableLimit: `Retard ou départ anticipé > 30 minutes`
+      }
+    };
+  },
+
+  // Calculer les seuils de régularité
+  calculateRegulariteThresholds: (stats) => {
+    if (!stats) return null;
+    
+    const totalJours = stats.jours_travailles || 0;
+    const parfaits = stats.ponctualite_parfaite || 0;
+    const acceptables = stats.ponctualite_acceptable || 0;
+    const inacceptables = stats.ponctualite_inacceptable || 0;
+    
+    if (totalJours === 0) return null;
+    
+    const tauxParfait = Math.round((parfaits / totalJours) * 100);
+    const tauxAcceptable = Math.round(((parfaits + acceptables) / totalJours) * 100);
+    
+    return {
+      tauxParfait,
+      tauxAcceptable,
+      seuilParfait: tauxParfait >= 80 ? 'Atteint' : 'Non atteint',
+      seuilAcceptable: tauxAcceptable >= 90 ? 'Atteint' : 'Non atteint',
+      recommandation: tauxParfait >= 80 ? 'Maintenir' : tauxParfait >= 60 ? 'Améliorer légèrement' : 'Améliorer significativement'
+    };
+  },
+
+  // Formater les métriques de retard
+  formatRetardMetrics: (stats) => {
+    if (!stats) return "Aucune donnée";
+    
+    const retardMoyen = stats.retard_moyen_minutes || 0;
+    const departAvanceMoyen = stats.depart_avance_moyen_minutes || 0;
+    
+    if (retardMoyen === 0 && departAvanceMoyen === 0) {
+      return "Aucun retard ou départ anticipé";
+    }
+    
+    const parts = [];
+    if (retardMoyen > 0) parts.push(`Retard moyen: ${retardMoyen.toFixed(1)} min`);
+    if (departAvanceMoyen > 0) parts.push(`Départ anticipé moyen: ${departAvanceMoyen.toFixed(1)} min`);
+    
+    return parts.join(' • ');
+  },
+
+  // Comparer les statistiques de deux périodes
+  comparePeriods: (currentStats, previousStats) => {
+    if (!currentStats || !previousStats) return null;
+    
+    const currentParfait = currentStats.ponctualite_parfaite || 0;
+    const previousParfait = previousStats.ponctualite_parfaite || 0;
+    const currentInacceptable = currentStats.ponctualite_inacceptable || 0;
+    const previousInacceptable = previousStats.ponctualite_inacceptable || 0;
+    
+    const deltaParfait = currentParfait - previousParfait;
+    const deltaInacceptable = currentInacceptable - previousInacceptable;
+    
+    let evolution = 'stable';
+    let message = 'Stabilité dans les performances';
+    
+    if (deltaParfait > 0 && deltaInacceptable < 0) {
+      evolution = 'amelioration';
+      message = `Amélioration: +${deltaParfait} pointage(s) parfait(s), -${Math.abs(deltaInacceptable)} pointage(s) inacceptable(s)`;
+    } else if (deltaParfait < 0 && deltaInacceptable > 0) {
+      evolution = 'deterioration';
+      message = `Détérioration: -${Math.abs(deltaParfait)} pointage(s) parfait(s), +${deltaInacceptable} pointage(s) inacceptable(s)`;
+    } else if (deltaParfait > 0) {
+      evolution = 'legere_amelioration';
+      message = `Légère amélioration: +${deltaParfait} pointage(s) parfait(s)`;
+    } else if (deltaInacceptable < 0) {
+      evolution = 'legere_amelioration';
+      message = `Légère amélioration: -${Math.abs(deltaInacceptable)} pointage(s) inacceptable(s)`;
+    } else if (deltaParfait < 0) {
+      evolution = 'legere_deterioration';
+      message = `Légère détérioration: -${Math.abs(deltaParfait)} pointage(s) parfait(s)`;
+    } else if (deltaInacceptable > 0) {
+      evolution = 'legere_deterioration';
+      message = `Légère détérioration: +${deltaInacceptable} pointage(s) inacceptable(s)`;
+    }
+    
+    return {
+      evolution,
+      message,
+      deltaParfait,
+      deltaInacceptable,
+      color: evolution.includes('amelioration') ? 'success' : evolution.includes('deterioration') ? 'error' : 'warning'
+    };
+  }
+};
+
+// ========================
+// FONCTIONS SPÉCIFIQUES POUR LE NOUVEAU SYSTÈME
+// ========================
+
+export const getEmployeeRegulariteStats = async (cin, params = {}) => {
+  try {
+    const stats = await getEmployeeStatistics(cin, params);
+    
+    if (!stats) {
+      return {
+        regularite_statut: 'acceptable',
+        ponctualite_parfaite: 0,
+        ponctualite_acceptable: 0,
+        ponctualite_inacceptable: 0,
+        taux_regularite: 0,
+        analyse: 'Aucune donnée disponible'
+      };
+    }
+    
+    return {
+      regularite_statut: stats.regularite_statut || 'acceptable',
+      ponctualite_parfaite: stats.ponctualite_parfaite || 0,
+      ponctualite_acceptable: stats.ponctualite_acceptable || 0,
+      ponctualite_inacceptable: stats.ponctualite_inacceptable || 0,
+      taux_regularite: stats.taux_regularite || 0,
+      retard_moyen_minutes: stats.retard_moyen_minutes || 0,
+      depart_avance_moyen_minutes: stats.depart_avance_moyen_minutes || 0,
+      analyse: StatisticsUtils.getRegulariteDescription(stats.regularite_statut, stats)
+    };
+  } catch (error) {
+    console.error("Erreur récupération stats régularité:", error);
+    return null;
+  }
+};
+
+export const getGlobalRegulariteStats = async (params = {}) => {
+  try {
+    const stats = await getGlobalStatistics(params);
+    
+    if (!stats) {
+      return {
+        ponctualite_parfaite: 0,
+        ponctualite_acceptable: 0,
+        ponctualite_inacceptable: 0,
+        taux_regularite_parfaite: 0,
+        taux_regularite_acceptable: 0,
+        taux_regularite_inacceptable: 0,
+        analyse: 'Aucune donnée disponible'
+      };
+    }
+    
+    const total = (stats.ponctualite_parfaite || 0) + 
+                  (stats.ponctualite_acceptable || 0) + 
+                  (stats.ponctualite_inacceptable || 0);
+    
+    let regulariteGlobale = 'acceptable';
+    if (total > 0) {
+      const tauxParfait = ((stats.ponctualite_parfaite || 0) / total) * 100;
+      const tauxAcceptable = (((stats.ponctualite_parfaite || 0) + (stats.ponctualite_acceptable || 0)) / total) * 100;
+      
+      if (tauxParfait >= 80) {
+        regulariteGlobale = 'parfait';
+      } else if (tauxParfait >= 60 || tauxAcceptable >= 90) {
+        regulariteGlobale = 'acceptable';
+      } else {
+        regulariteGlobale = 'inacceptable';
+      }
+    }
+    
+    return {
+      ponctualite_parfaite: stats.ponctualite_parfaite || 0,
+      ponctualite_acceptable: stats.ponctualite_acceptable || 0,
+      ponctualite_inacceptable: stats.ponctualite_inacceptable || 0,
+      taux_regularite_parfaite: stats.taux_regularite_parfaite || 0,
+      taux_regularite_acceptable: stats.taux_regularite_acceptable || 0,
+      taux_regularite_inacceptable: stats.taux_regularite_inacceptable || 0,
+      regularite_globale: regulariteGlobale,
+      analyse: `Régularité globale: ${StatisticsUtils.getRegulariteLabel(regulariteGlobale)}`
+    };
+  } catch (error) {
+    console.error("Erreur récupération stats régularité globale:", error);
+    return null;
   }
 };
 
@@ -849,6 +1258,10 @@ export default {
   getEmployeeStatistics,
   getGlobalStatistics,
   exportStatisticsPDF,
+
+  // Statistiques de régularité
+  getEmployeeRegulariteStats,
+  getGlobalRegulariteStats,
 
   // Analyses avancées
   getPonctualiteAnalysis,

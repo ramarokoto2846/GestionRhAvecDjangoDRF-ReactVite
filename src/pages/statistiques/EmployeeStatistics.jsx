@@ -18,25 +18,35 @@ import {
   TableContainer,
   TableRow,
   Chip,
-  TextField,
-  InputAdornment,
-  IconButton,
+  LinearProgress,
   useTheme,
   alpha,
   Container,
   CardHeader,
-  Tooltip
+  Tooltip,
+  IconButton,
+  Paper,
+  Divider
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import {
   Download as DownloadIcon,
-  Search as SearchIcon,
-  Close as CloseIcon,
   Refresh as RefreshIcon,
   Schedule as ScheduleIcon,
   AccessTime as AccessTimeIcon,
-  TrendingUp as TrendingUpIcon
+  TrendingUp as TrendingUpIcon,
+  CheckCircle as CheckCircleIcon,
+  Warning as WarningIcon,
+  Error as ErrorIcon,
+  People as PeopleIcon,
+  ArrowUpward,
+  ArrowDownward
 } from '@mui/icons-material';
+import {
+  PieChart, Pie, Cell, ResponsiveContainer, Sector,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
+  Legend
+} from 'recharts';
 import {
   getEmployeeStatistics,
   getEmployes,
@@ -55,9 +65,9 @@ const EmployeeStatistics = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
   const [loadingPDF, setLoadingPDF] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [activePieIndex, setActivePieIndex] = useState(0);
 
   const months = [
     { value: 1, label: 'Janvier' }, { value: 2, label: 'Février' }, { value: 3, label: 'Mars' },
@@ -81,6 +91,28 @@ const EmployeeStatistics = () => {
     }
     
     return value;
+  };
+
+  // Fonction pour convertir les durées en heures
+  const formatDurationToHours = (duration) => {
+    if (!duration) return 0;
+    
+    // Si c'est déjà un nombre (secondes)
+    if (typeof duration === 'number') {
+      return Math.round((duration / 3600) * 10) / 10; // Arrondir à 1 décimale
+    }
+    
+    // Si c'est une chaîne formatée "Xh YYmin"
+    if (typeof duration === 'string') {
+      const match = duration.match(/(\d+)h\s*(\d*)min?/);
+      if (match) {
+        const hours = parseInt(match[1]) || 0;
+        const minutes = parseInt(match[2]) || 0;
+        return hours + (minutes / 60);
+      }
+    }
+    
+    return 0;
   };
 
   useEffect(() => {
@@ -128,16 +160,14 @@ const EmployeeStatistics = () => {
       const params = { 
         periode: 'mois', 
         date: formattedDate 
-        // Pas de 'cin' dans les params car il est dans l'URL
       };
 
       console.log('🔄 Chargement des statistiques pour CIN:', selectedEmployee, params);
 
-      // Appel API corrigé
       const statsData = await getEmployeeStatistics(selectedEmployee, params);
       
       if (statsData) {
-        console.log('📊 Données API reçues:', statsData);
+        console.log('📊 Données API reçues (nouveau système):', statsData);
         setStats(statsData);
       } else {
         console.log('❌ Aucune donnée API');
@@ -170,7 +200,7 @@ const EmployeeStatistics = () => {
       }
 
       await exportStatisticsPDF('employe', {
-        cin: selectedEmployee,  // ✅ CORRECTION : utiliser cin au lieu de matricule
+        cin: selectedEmployee,
         periode: 'mois',
         date: formattedDate,
         nom_employe: `${employeeData.nom}_${employeeData.prenom}`
@@ -187,68 +217,314 @@ const EmployeeStatistics = () => {
     loadStatistics(true);
   };
 
-  // ✅ CORRECTION : Fonction pour obtenir la configuration du statut
-  const getStatusConfig = (statut) => {
+  // Fonction pour obtenir la configuration du statut de régularité
+  const getRegulariteConfig = (statut) => {
+    if (!statut) {
+      return {
+        icon: <ScheduleIcon />,
+        color: 'primary',
+        bgColor: `${theme.palette.primary.main}15`,
+        textColor: theme.palette.primary.main,
+        label: 'En cours'
+      };
+    }
+    
+    switch (statut.toLowerCase()) {
+      case 'parfait':
+        return {
+          icon: <CheckCircleIcon />,
+          color: 'success',
+          bgColor: `${theme.palette.success.main}15`,
+          textColor: theme.palette.success.main,
+          label: 'Parfait'
+        };
+      case 'acceptable':
+        return {
+          icon: <WarningIcon />,
+          color: 'warning',
+          bgColor: `${theme.palette.warning.main}15`,
+          textColor: theme.palette.warning.main,
+          label: 'Acceptable'
+        };
+      case 'inacceptable':
+        return {
+          icon: <ErrorIcon />,
+          color: 'error',
+          bgColor: `${theme.palette.error.main}15`,
+          textColor: theme.palette.error.main,
+          label: 'Inacceptable'
+        };
+      default:
+        return {
+          icon: <ScheduleIcon />,
+          color: 'primary',
+          bgColor: `${theme.palette.primary.main}15`,
+          textColor: theme.palette.primary.main,
+          label: 'Non évalué'
+        };
+    }
+  };
+
+  // Fonction pour obtenir la configuration du statut des heures
+  const getHeuresStatusConfig = (statut) => {
     if (!statut) {
       return {
         icon: '📊',
         color: 'primary',
         bgColor: `${theme.palette.primary.main}15`,
-        textColor: theme.palette.primary.main
+        textColor: theme.palette.primary.main,
+        label: 'Non défini'
       };
     }
     
-    switch (statut.toUpperCase()) {
-      case 'INSUFFISANT':
+    switch (statut.toLowerCase()) {
+      case 'insuffisant':
         return {
           icon: '⚠️',
-          color: 'warning',
-          bgColor: `${theme.palette.warning.main}15`,
-          textColor: theme.palette.warning.main
+          color: 'error',
+          bgColor: `${theme.palette.error.main}15`,
+          textColor: theme.palette.error.main,
+          label: 'Insuffisant'
         };
-      case 'NORMAL':
+      case 'normal':
         return {
           icon: '✅',
           color: 'success',
           bgColor: `${theme.palette.success.main}15`,
-          textColor: theme.palette.success.main
+          textColor: theme.palette.success.main,
+          label: 'Normal'
         };
-      case 'SURPLUS':
+      case 'surplus':
         return {
           icon: '📈',
           color: 'info',
           bgColor: `${theme.palette.info.main}15`,
-          textColor: theme.palette.info.main
+          textColor: theme.palette.info.main,
+          label: 'Surplus'
         };
       default:
         return {
           icon: '📊',
           color: 'primary',
           bgColor: `${theme.palette.primary.main}15`,
-          textColor: theme.palette.primary.main
+          textColor: theme.palette.primary.main,
+          label: 'Non défini'
         };
     }
   };
 
-  // ✅ CORRECTION : Fonction pour obtenir la couleur du taux
-  const getRateColor = (taux) => {
-    const safeTaux = getSafeValue(taux, 0);
-    if (safeTaux >= 90) return 'success';
-    if (safeTaux >= 70) return 'warning';
-    return 'error';
+  // Données pour le diagramme circulaire de régularité
+  const getRegulariteChartData = () => {
+    if (!stats) return [];
+    
+    const parfait = getSafeValue(stats.ponctualite_parfaite);
+    const acceptable = getSafeValue(stats.ponctualite_acceptable);
+    const inacceptable = getSafeValue(stats.ponctualite_inacceptable);
+    
+    // Calculer les pourcentages
+    const total = parfait + acceptable + inacceptable;
+    const pourcentageParfait = total > 0 ? (parfait / total) * 100 : 0;
+    const pourcentageAcceptable = total > 0 ? (acceptable / total) * 100 : 0;
+    const pourcentageInacceptable = total > 0 ? (inacceptable / total) * 100 : 0;
+    
+    return [
+      { 
+        name: 'Parfait', 
+        value: parfait,
+        pourcentage: Math.round(pourcentageParfait),
+        color: theme.palette.success.main
+      },
+      { 
+        name: 'Acceptable', 
+        value: acceptable,
+        pourcentage: Math.round(pourcentageAcceptable),
+        color: theme.palette.warning.main
+      },
+      { 
+        name: 'Inacceptable', 
+        value: inacceptable,
+        pourcentage: Math.round(pourcentageInacceptable),
+        color: theme.palette.error.main
+      }
+    ];
   };
 
-  const filteredEmployees = employees.filter((emp) => {
-    const searchLower = searchTerm.toLowerCase();
+  // Données pour l'histogramme des heures (Statistiques de Travail)
+  const getHeuresHistogramData = () => {
+    if (!stats) return [];
+    
+    // Convertir les heures totales en heures décimales
+    const heuresTravaillees = formatDurationToHours(stats.heures_travail_total);
+    const heuresAttendues = formatDurationToHours(stats.heures_attendues_jours_passes);
+    
+    // Calculer la répartition sur les 4 semaines (basé sur les jours travaillés)
+    const joursTravailles = getSafeValue(stats.jours_travailles, 0);
+    const moyenneHeuresParJour = joursTravailles > 0 ? heuresTravaillees / joursTravailles : 0;
+    
+    // Estimation réaliste : 5 jours par semaine max
+    const joursParSemaine = Math.min(joursTravailles / 4, 5);
+    const heuresParSemaine = moyenneHeuresParJour * joursParSemaine;
+    
+    return [
+      { 
+        semaine: 'Semaine 1', 
+        'Heures Travaillées': parseFloat(heuresParSemaine.toFixed(1)),
+        'Heures Attendues': parseFloat((heuresAttendues / 4).toFixed(1))
+      },
+      { 
+        semaine: 'Semaine 2', 
+        'Heures Travaillées': parseFloat(heuresParSemaine.toFixed(1)),
+        'Heures Attendues': parseFloat((heuresAttendues / 4).toFixed(1))
+      },
+      { 
+        semaine: 'Semaine 3', 
+        'Heures Travaillées': parseFloat(heuresParSemaine.toFixed(1)),
+        'Heures Attendues': parseFloat((heuresAttendues / 4).toFixed(1))
+      },
+      { 
+        semaine: 'Semaine 4', 
+        'Heures Travaillées': parseFloat(heuresParSemaine.toFixed(1)),
+        'Heures Attendues': parseFloat((heuresAttendues / 4).toFixed(1))
+      }
+    ];
+  };
+
+  // Données pour le diagramme circulaire de performance
+  const getPerformancePieChartData = () => {
+    if (!stats) return [];
+    
+    const tauxPresence = getSafeValue(stats.taux_presence, 0);
+    const tauxRegularite = getSafeValue(stats.taux_regularite, 0);
+    
+    // Calculer le score des heures (basé sur le statut)
+    let scoreHeures = 80; // Valeur par défaut
+    const statutHeures = stats.statut_heures?.toLowerCase();
+    
+    if (statutHeures === 'normal') {
+      scoreHeures = 95;
+    } else if (statutHeures === 'insuffisant') {
+      scoreHeures = 60;
+    } else if (statutHeures === 'surplus') {
+      scoreHeures = 85;
+    }
+    
+    return [
+      { 
+        name: 'Présence', 
+        value: Math.round(tauxPresence),
+        color: theme.palette.success.main
+      },
+      { 
+        name: 'Régularité', 
+        value: Math.round(tauxRegularite),
+        color: theme.palette.primary.main
+      },
+      { 
+        name: 'Heures', 
+        value: scoreHeures,
+        color: theme.palette.info.main
+      }
+    ];
+  };
+
+  const calculateRegularitePercentages = () => {
+    if (!stats) return { parfait: 0, acceptable: 0, inacceptable: 0 };
+    
+    const parfait = getSafeValue(stats.ponctualite_parfaite);
+    const acceptable = getSafeValue(stats.ponctualite_acceptable);
+    const inacceptable = getSafeValue(stats.ponctualite_inacceptable);
+    const total = parfait + acceptable + inacceptable;
+    
+    if (total === 0) return { parfait: 0, acceptable: 0, inacceptable: 0 };
+    
+    return {
+      parfait: Math.round((parfait / total) * 100),
+      acceptable: Math.round((acceptable / total) * 100),
+      inacceptable: Math.round((inacceptable / total) * 100)
+    };
+  };
+
+  // Fonction pour formater les détails de retard
+  const formatRetardDetails = () => {
+    if (!stats) return 'Aucune donnée';
+    
+    const retardMoyen = getSafeValue(stats.retard_moyen_minutes);
+    const departAvance = getSafeValue(stats.depart_avance_moyen_minutes);
+    
+    const parts = [];
+    if (retardMoyen > 0) parts.push(`Retard moyen: ${retardMoyen.toFixed(1)} min`);
+    if (departAvance > 0) parts.push(`Départ anticipé: ${departAvance.toFixed(1)} min`);
+    
+    return parts.length > 0 ? parts.join(' • ') : 'Aucun retard ou départ anticipé';
+  };
+
+  // Fonction pour obtenir la description de la régularité
+  const getRegulariteDescription = () => {
+    if (!stats) return 'Non évaluée';
+    
+    const regulariteStatut = stats.regularite_statut || 'acceptable';
+    const tauxParfait = calculateRegularitePercentages().parfait;
+    
+    switch (regulariteStatut.toLowerCase()) {
+      case 'parfait':
+        return `Excellent! ${tauxParfait}% des pointages sont parfaits (arrivée ≤ 8h10 et départ ≥ 15h50).`;
+      case 'acceptable':
+        return `Satisfaisant. ${tauxParfait}% des pointages sont parfaits. La majorité des pointages sont dans les marges acceptables.`;
+      case 'inacceptable':
+        return `À améliorer. Seulement ${tauxParfait}% des pointages sont parfaits. Trop de retards ou départs anticipés.`;
+      default:
+        return 'Non évaluée';
+    }
+  };
+
+  // Composant personnalisé pour le graphique circulaire actif
+  const renderActiveShape = (props) => {
+    const RADIAN = Math.PI / 180;
+    const { cx, cy, midAngle, innerRadius, outerRadius, startAngle, endAngle, fill, payload, percent, value } = props;
+    const sin = Math.sin(-RADIAN * midAngle);
+    const cos = Math.cos(-RADIAN * midAngle);
+    const sx = cx + (outerRadius + 10) * cos;
+    const sy = cy + (outerRadius + 10) * sin;
+    const mx = cx + (outerRadius + 30) * cos;
+    const my = cy + (outerRadius + 30) * sin;
+    const ex = mx + (cos >= 0 ? 1 : -1) * 22;
+    const ey = my;
+    const textAnchor = cos >= 0 ? 'start' : 'end';
+
     return (
-      (emp.nom || "").toLowerCase().includes(searchLower) ||
-      (emp.prenom || "").toLowerCase().includes(searchLower) ||
-      (emp.matricule || "").includes(searchTerm) ||
-      (emp.cin || "").includes(searchTerm) || // ✅ Ajout de la recherche par CIN
-      (emp.email || "").toLowerCase().includes(searchLower) ||
-      (emp.poste || "").toLowerCase().includes(searchLower)
+      <g>
+        <text x={cx} y={cy} dy={8} textAnchor="middle" fill={fill} fontWeight="bold">
+          {payload.name}
+        </text>
+        <Sector
+          cx={cx}
+          cy={cy}
+          innerRadius={innerRadius}
+          outerRadius={outerRadius}
+          startAngle={startAngle}
+          endAngle={endAngle}
+          fill={fill}
+        />
+        <Sector
+          cx={cx}
+          cy={cy}
+          startAngle={startAngle}
+          endAngle={endAngle}
+          innerRadius={outerRadius + 6}
+          outerRadius={outerRadius + 10}
+          fill={fill}
+        />
+        <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke={fill} fill="none" />
+        <circle cx={ex} cy={ey} r={2} fill={fill} stroke="none" />
+        <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} textAnchor={textAnchor} fill="#333" fontWeight="bold">
+          {`${payload.name}`}
+        </text>
+        <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} dy={18} textAnchor={textAnchor} fill="#999">
+          {`${value} ${payload.name === 'Parfait' || payload.name === 'Acceptable' || payload.name === 'Inacceptable' ? 'jours' : '%'} (${(percent * 100).toFixed(0)}%)`}
+        </text>
+      </g>
     );
-  });
+  };
 
   const selectedEmployeeData = employees.find(emp => emp.cin === selectedEmployee);
 
@@ -265,7 +541,7 @@ const EmployeeStatistics = () => {
       >
         <Container maxWidth="xl">
           {/* Header Section */}
-          <Box sx={{ mb: 4 }} >
+          <Box sx={{ mb: 4 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
               <Box>
                 <Typography
@@ -282,7 +558,7 @@ const EmployeeStatistics = () => {
                   Statistiques Employé
                 </Typography>
                 <Typography variant="h6" sx={{ color: 'text.secondary', mb: 3 }}>
-                  Analyse des performances d'un Employé
+                  Analyse des performances d'un Employé - Nouveau système de ponctualité
                 </Typography>
               </Box>
               <Tooltip title="Actualiser les données">
@@ -325,9 +601,9 @@ const EmployeeStatistics = () => {
                       onChange={(e) => setSelectedEmployee(e.target.value)}
                       sx={{ borderRadius: 2 }}
                     >
-                      {filteredEmployees.map((emp) => (
+                      {employees.map((emp) => (
                         <MenuItem key={emp.cin} value={emp.cin}>
-                          {emp.nom} {emp.prenom} ({emp.titre === 'employe' ? emp.matricule : `Stag - ${emp.cin}`})
+                          {emp.nom} {emp.prenom} ({emp.titre === 'employe' ? `Mat: ${emp.matricule}` : `Stag - ${emp.cin}`})
                         </MenuItem>
                       ))}
                     </Select>
@@ -429,272 +705,657 @@ const EmployeeStatistics = () => {
             </Box>
           )}
 
-          {/* AFFICHAGE DES STATISTIQUES */}
+          {/* AFFICHAGE DES STATISTIQUES - NOUVEAU SYSTÈME */}
           {stats && selectedEmployeeData && (
             <Grid container spacing={3}>
               
-              {/* SECTION 1: STATISTIQUES DE POINTAGE */}
-              <Grid item xs={12} md={4}>
+              {/* SECTION 1: RÉGULARITÉ GLOBALE AVEC GRAPHIQUE CIRCULAIRE */}
+              <Grid item xs={12} md={6} lg={4}>
                 <Card
                   sx={{
                     height: '100%',
-                    background: `linear-gradient(135deg, ${theme.palette.primary.main}15, ${theme.palette.background.paper})`,
-                    border: `2px solid ${theme.palette.primary.main}30`,
-                    borderRadius: 3,
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+                    background: `linear-gradient(145deg, ${theme.palette.background.paper}, ${alpha(theme.palette.primary.light, 0.05)})`,
+                    border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+                    borderRadius: 4,
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+                    transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: '0 12px 48px rgba(0,0,0,0.12)'
+                    }
                   }}
                 >
                   <CardHeader
                     title={
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <ScheduleIcon sx={{ mr: 2, color: 'primary.main' }} />
-                        <Typography variant="h5" sx={{ fontWeight: 600 }}>
-                          STATISTIQUES DE POINTAGE
-                        </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <CheckCircleIcon sx={{ mr: 1.5, color: theme.palette.success.main }} />
+                          <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                            Régularité Globale
+                          </Typography>
+                        </Box>
+                        <Chip
+                          label={getRegulariteConfig(stats.regularite_statut).label}
+                          color={getRegulariteConfig(stats.regularite_statut).color}
+                          size="small"
+                          sx={{ fontWeight: 600 }}
+                        />
                       </Box>
                     }
-                    sx={{ pb: 1 }}
+                    sx={{ 
+                      pb: 2,
+                      borderBottom: `1px solid ${theme.palette.divider}`
+                    }}
                   />
                   <CardContent>
-                    <TableContainer>
-                      <Table size="small">
-                        <TableBody>
-                          <TableRow>
-                            <TableCell sx={{ border: 'none', py: 1.5 }}>
-                              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                Heures totales travaillées
+                    <Grid container spacing={2}>
+                      {/* Graphique circulaire principal */}
+                      <Grid item xs={12}>
+                        <Box sx={{ height: 200, position: 'relative' }}>
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                activeIndex={activePieIndex}
+                                activeShape={renderActiveShape}
+                                data={getRegulariteChartData()}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={40}
+                                outerRadius={70}
+                                paddingAngle={2}
+                                dataKey="value"
+                                onMouseEnter={(_, index) => setActivePieIndex(index)}
+                              >
+                                {getRegulariteChartData().map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={entry.color} />
+                                ))}
+                              </Pie>
+                            </PieChart>
+                          </ResponsiveContainer>
+                          
+                          {/* Indicateur central */}
+                          <Box
+                            sx={{
+                              position: 'absolute',
+                              top: '50%',
+                              left: '50%',
+                              transform: 'translate(-50%, -50%)',
+                              textAlign: 'center'
+                            }}
+                          >
+                            <Typography variant="h2" sx={{ 
+                              fontWeight: 800,
+                              background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                              backgroundClip: 'text',
+                              WebkitBackgroundClip: 'text',
+                              color: 'transparent',
+                              lineHeight: 1
+                            }}>
+                              {getSafeValue(stats.taux_regularite)}%
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              Taux de régularité
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </Grid>
+
+                      {/* Légende du graphique */}
+                      <Grid item xs={12}>
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, color: 'text.secondary' }}>
+                            RÉPARTITION DES POINTAGES
+                          </Typography>
+                          {getRegulariteChartData().map((item, index) => (
+                            <Box 
+                              key={index} 
+                              sx={{ 
+                                display: 'flex', 
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                mb: 1,
+                                p: 1,
+                                borderRadius: 1,
+                                bgcolor: alpha(item.color, 0.05),
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                '&:hover': {
+                                  bgcolor: alpha(item.color, 0.1),
+                                  transform: 'translateX(4px)'
+                                }
+                              }}
+                              onMouseEnter={() => setActivePieIndex(index)}
+                            >
+                              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                <Box sx={{ 
+                                  width: 12, 
+                                  height: 12, 
+                                  borderRadius: '50%', 
+                                  bgcolor: item.color,
+                                  mr: 1.5 
+                                }} />
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                  {item.name}
+                                </Typography>
+                              </Box>
+                              <Box sx={{ textAlign: 'right' }}>
+                                <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                                  {item.value} jours
+                                </Typography>
+                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                  {item.pourcentage}%
+                                </Typography>
+                              </Box>
+                            </Box>
+                          ))}
+                        </Box>
+
+                        {/* Statistiques de retard */}
+                        <Paper 
+                          variant="outlined" 
+                          sx={{ 
+                            p: 2, 
+                            borderRadius: 2,
+                            background: `linear-gradient(135deg, ${alpha(theme.palette.info.light, 0.05)}, transparent)`
+                          }}
+                        >
+                          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, color: 'text.secondary' }}>
+                            TEMPS MOYEN
+                          </Typography>
+                          <Grid container spacing={1}>
+                            <Grid item xs={6}>
+                              <Box sx={{ textAlign: 'center' }}>
+                                <Box sx={{ 
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  width: 36,
+                                  height: 36,
+                                  borderRadius: '50%',
+                                  bgcolor: getSafeValue(stats.retard_moyen_minutes) > 10 ? 
+                                           alpha(theme.palette.error.main, 0.1) : 
+                                           alpha(theme.palette.success.main, 0.1),
+                                  mb: 1
+                                }}>
+                                  <AccessTimeIcon sx={{ 
+                                    fontSize: 20,
+                                    color: getSafeValue(stats.retard_moyen_minutes) > 10 ? 
+                                           theme.palette.error.main : 
+                                           theme.palette.success.main
+                                  }} />
+                                </Box>
+                                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                                  {getSafeValue(stats.retard_moyen_minutes, 0)} min
+                                </Typography>
+                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                  Retard moyen
+                                </Typography>
+                              </Box>
+                            </Grid>
+                            <Grid item xs={6}>
+                              <Box sx={{ textAlign: 'center' }}>
+                                <Box sx={{ 
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  width: 36,
+                                  height: 36,
+                                  borderRadius: '50%',
+                                  bgcolor: getSafeValue(stats.depart_avance_moyen_minutes) > 10 ? 
+                                           alpha(theme.palette.error.main, 0.1) : 
+                                           alpha(theme.palette.success.main, 0.1),
+                                  mb: 1
+                                }}>
+                                  <ScheduleIcon sx={{ 
+                                    fontSize: 20,
+                                    color: getSafeValue(stats.depart_avance_moyen_minutes) > 10 ? 
+                                           theme.palette.error.main : 
+                                           theme.palette.success.main
+                                  }} />
+                                </Box>
+                                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                                  {getSafeValue(stats.depart_avance_moyen_minutes, 0)} min
+                                </Typography>
+                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                  Départ anticipé
+                                </Typography>
+                              </Box>
+                            </Grid>
+                          </Grid>
+                        </Paper>
+                      </Grid>
+                    </Grid>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* SECTION 2: STATISTIQUES DE TRAVAIL AVEC HISTOGRAMME */}
+              <Grid item xs={12} md={6} lg={4}>
+                <Card
+                  sx={{
+                    height: '100%',
+                    background: `linear-gradient(145deg, ${theme.palette.background.paper}, ${alpha(theme.palette.info.light, 0.05)})`,
+                    border: `1px solid ${alpha(theme.palette.info.main, 0.1)}`,
+                    borderRadius: 4,
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+                    transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: '0 12px 48px rgba(0,0,0,0.12)'
+                    }
+                  }}
+                >
+                  <CardHeader
+                    title={
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <TrendingUpIcon sx={{ mr: 1.5, color: theme.palette.info.main }} />
+                          <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                            Statistiques de Travail
+                          </Typography>
+                        </Box>
+                        <Chip
+                          icon={<span>{getHeuresStatusConfig(stats.statut_heures).icon}</span>}
+                          label={getHeuresStatusConfig(stats.statut_heures).label}
+                          color={getHeuresStatusConfig(stats.statut_heures).color}
+                          size="small"
+                          sx={{ fontWeight: 600 }}
+                        />
+                      </Box>
+                    }
+                    sx={{ 
+                      pb: 2,
+                      borderBottom: `1px solid ${theme.palette.divider}`
+                    }}
+                  />
+                  <CardContent>
+                    <Grid container spacing={2}>
+                      {/* Histogramme des heures travaillées */}
+                      <Grid item xs={12}>
+                        <Box sx={{ height: 180, mb: 2 }}>
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={getHeuresHistogramData()}>
+                              <CartesianGrid strokeDasharray="3 3" stroke={alpha(theme.palette.divider, 0.5)} />
+                              <XAxis 
+                                dataKey="semaine" 
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{ fill: theme.palette.text.secondary }}
+                              />
+                              <YAxis 
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{ fill: theme.palette.text.secondary }}
+                                label={{ 
+                                  value: 'Heures', 
+                                  angle: -90, 
+                                  position: 'insideLeft',
+                                  style: { fill: theme.palette.text.secondary }
+                                }}
+                              />
+                              <RechartsTooltip
+                                contentStyle={{ 
+                                  borderRadius: 8,
+                                  border: `1px solid ${theme.palette.divider}`,
+                                  background: theme.palette.background.paper
+                                }}
+                                formatter={(value, name) => [`${value}h`, name]}
+                              />
+                              <Legend />
+                              <Bar 
+                                dataKey="Heures Travaillées" 
+                                fill={theme.palette.primary.main}
+                                radius={[4, 4, 0, 0]}
+                                animationDuration={1500}
+                              />
+                              <Bar 
+                                dataKey="Heures Attendues" 
+                                fill={theme.palette.info.main}
+                                radius={[4, 4, 0, 0]}
+                                animationDuration={1500}
+                              />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </Box>
+                      </Grid>
+
+                      {/* Statistiques détaillées */}
+                      <Grid item xs={12}>
+                        <Grid container spacing={1}>
+                          <Grid item xs={6}>
+                            <Paper
+                              sx={{
+                                p: 2,
+                                height: '100%',
+                                background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)}, transparent)`,
+                                borderRadius: 2,
+                                border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`
+                              }}
+                            >
+                              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 0.5 }}>
+                                Heures totales
                               </Typography>
-                            </TableCell>
-                            <TableCell sx={{ border: 'none', py: 1.5 }} align="right">
-                              <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main' }}>
-                                {stats.heures_travail_total_str || StatisticsUtils.formatDuration(stats.heures_travail_total) || "0h 00min"}
+                              <Typography variant="h5" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                                {stats.heures_travail_total_str || StatisticsUtils.formatDuration(stats.heures_travail_total) || "0h"}
                               </Typography>
-                            </TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell sx={{ border: 'none', py: 1.5 }}>
-                              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
+                                {getSafeValue(stats.pourcentage_ecart) >= 0 ? (
+                                  <>
+                                    <ArrowUpward sx={{ fontSize: 16, color: 'success.main', mr: 0.5 }} />
+                                    <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 600 }}>
+                                      +{getSafeValue(stats.pourcentage_ecart, 0)}%
+                                    </Typography>
+                                  </>
+                                ) : (
+                                  <>
+                                    <ArrowDownward sx={{ fontSize: 16, color: 'error.main', mr: 0.5 }} />
+                                    <Typography variant="caption" sx={{ color: 'error.main', fontWeight: 600 }}>
+                                      {getSafeValue(stats.pourcentage_ecart, 0)}%
+                                    </Typography>
+                                  </>
+                                )}
+                              </Box>
+                            </Paper>
+                          </Grid>
+                          
+                          <Grid item xs={6}>
+                            <Paper
+                              sx={{
+                                p: 2,
+                                height: '100%',
+                                background: `linear-gradient(135deg, ${alpha(theme.palette.success.main, 0.05)}, transparent)`,
+                                borderRadius: 2,
+                                border: `1px solid ${alpha(theme.palette.success.main, 0.1)}`
+                              }}
+                            >
+                              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 0.5 }}>
                                 Jours travaillés
                               </Typography>
-                            </TableCell>
-                            <TableCell sx={{ border: 'none', py: 1.5 }} align="right">
-                              <Typography variant="body2" sx={{ fontWeight: 600, color: 'success.main' }}>
+                              <Typography variant="h5" sx={{ fontWeight: 700, color: 'success.main' }}>
                                 {getSafeValue(stats.jours_travailles)} jours
                               </Typography>
-                            </TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell sx={{ border: 'none', py: 1.5 }}>
-                              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                Moyenne quotidienne
+                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                Moyenne/jour: {stats.moyenne_heures_quotidiennes_str || "0h"}
                               </Typography>
-                            </TableCell>
-                            <TableCell sx={{ border: 'none', py: 1.5 }} align="right">
-                              <Typography variant="body2" sx={{ fontWeight: 600, color: 'info.main' }}>
-                                {stats.moyenne_heures_quotidiennes_str || StatisticsUtils.formatDuration(stats.moyenne_heures_quotidiennes) || "0h 00min"}
-                              </Typography>
-                            </TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell sx={{ border: 'none', py: 1.5 }}>
-                              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                Pointages réguliers
-                              </Typography>
-                            </TableCell>
-                            <TableCell sx={{ border: 'none', py: 1.5 }} align="right">
-                              <Typography variant="body2" sx={{ fontWeight: 600, color: 'success.main' }}>
-                                {getSafeValue(stats.pointages_reguliers)}
-                              </Typography>
-                            </TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell sx={{ border: 'none', py: 1.5 }}>
-                              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                Pointages irréguliers
-                              </Typography>
-                            </TableCell>
-                            <TableCell sx={{ border: 'none', py: 1.5 }} align="right">
-                              <Typography variant="body2" sx={{ fontWeight: 600, color: 'warning.main' }}>
-                                {getSafeValue(stats.pointages_irreguliers)}
-                              </Typography>
-                            </TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell sx={{ border: 'none', py: 1.5 }}>
-                              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                Taux de régularité
-                              </Typography>
-                            </TableCell>
-                            <TableCell sx={{ border: 'none', py: 1.5 }} align="right">
-                              <Typography variant="body2" sx={{ fontWeight: 600, color: getRateColor(stats.taux_regularite) }}>
-                                {getSafeValue(stats.taux_regularite)}%
-                              </Typography>
-                            </TableCell>
-                          </TableRow>
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
+                            </Paper>
+                          </Grid>
+
+                          <Grid item xs={12}>
+                            <Paper
+                              sx={{
+                                p: 2,
+                                mt: 1,
+                                background: `linear-gradient(135deg, ${alpha(theme.palette.warning.main, 0.05)}, transparent)`,
+                                borderRadius: 2,
+                                border: `1px solid ${alpha(theme.palette.warning.main, 0.1)}`
+                              }}
+                            >
+                              <Grid container spacing={2}>
+                                <Grid item xs={6}>
+                                  <Box sx={{ textAlign: 'center' }}>
+                                    <Box sx={{ 
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      width: 40,
+                                      height: 40,
+                                      borderRadius: '50%',
+                                      bgcolor: alpha(theme.palette.success.main, 0.1),
+                                      mb: 1
+                                    }}>
+                                      <CheckCircleIcon sx={{ color: theme.palette.success.main }} />
+                                    </Box>
+                                    <Typography variant="h4" sx={{ fontWeight: 800, color: 'success.main' }}>
+                                      {getSafeValue(stats.taux_presence)}%
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                      Présence
+                                    </Typography>
+                                  </Box>
+                                </Grid>
+                                <Grid item xs={6}>
+                                  <Box sx={{ textAlign: 'center' }}>
+                                    <Box sx={{ 
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      width: 40,
+                                      height: 40,
+                                      borderRadius: '50%',
+                                      bgcolor: getSafeValue(stats.taux_absence) > 10 ? 
+                                               alpha(theme.palette.error.main, 0.1) : 
+                                               alpha(theme.palette.warning.main, 0.1),
+                                      mb: 1
+                                    }}>
+                                      <WarningIcon sx={{ 
+                                        color: getSafeValue(stats.taux_absence) > 10 ? 
+                                               theme.palette.error.main : 
+                                               theme.palette.warning.main
+                                      }} />
+                                    </Box>
+                                    <Typography variant="h4" sx={{ 
+                                      fontWeight: 800, 
+                                      color: getSafeValue(stats.taux_absence) > 10 ? 
+                                             'error.main' : 
+                                             getSafeValue(stats.taux_absence) > 5 ? 
+                                             'warning.main' : 'text.secondary'
+                                    }}>
+                                      {getSafeValue(stats.taux_absence)}%
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                      Absence
+                                    </Typography>
+                                  </Box>
+                                </Grid>
+                              </Grid>
+                              {stats.jours_absents > 0 && (
+                                <Alert 
+                                  severity="warning" 
+                                  icon={<WarningIcon />}
+                                  sx={{ 
+                                    mt: 2, 
+                                    borderRadius: 1,
+                                    bgcolor: alpha(theme.palette.warning.main, 0.05)
+                                  }}
+                                >
+                                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                    ⚠️ {stats.jours_absents} jour(s) d'absence cette période
+                                  </Typography>
+                                </Alert>
+                              )}
+                            </Paper>
+                          </Grid>
+                        </Grid>
+                      </Grid>
+                    </Grid>
                   </CardContent>
                 </Card>
               </Grid>
 
-              {/* SECTION 3: ANALYSE DE PONCTUALITÉ */}
-              <Grid item xs={12} md={4}>
+              {/* SECTION 3: ANALYSE DE PERFORMANCE AVEC DIAGRAMME CIRCULAIRE */}
+              <Grid item xs={12} md={6} lg={4}>
                 <Card
                   sx={{
                     height: '100%',
-                    background: `linear-gradient(135deg, ${theme.palette.info.main}15, ${theme.palette.background.paper})`,
-                    border: `2px solid ${theme.palette.info.main}30`,
-                    borderRadius: 3,
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+                    background: `linear-gradient(145deg, ${theme.palette.background.paper}, ${alpha(theme.palette.secondary.light, 0.05)})`,
+                    border: `1px solid ${alpha(theme.palette.secondary.main, 0.1)}`,
+                    borderRadius: 4,
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+                    transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: '0 12px 48px rgba(0,0,0,0.12)'
+                    }
                   }}
                 >
                   <CardHeader
                     title={
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <AccessTimeIcon sx={{ mr: 2, color: 'info.main' }} />
-                        <Typography variant="h5" sx={{ fontWeight: 600 }}>
-                          ANALYSE DE PONCTUALITÉ
-                        </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <AccessTimeIcon sx={{ mr: 1.5, color: theme.palette.secondary.main }} />
+                          <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                            Analyse de Performance
+                          </Typography>
+                        </Box>
+                        <Chip
+                          label="PERFORMANCE"
+                          color="secondary"
+                          size="small"
+                          sx={{ fontWeight: 600 }}
+                        />
                       </Box>
                     }
-                    sx={{ pb: 1 }}
+                    sx={{ 
+                      pb: 2,
+                      borderBottom: `1px solid ${theme.palette.divider}`
+                    }}
                   />
                   <CardContent>
-                    {/* Taux de ponctualité global */}
-                    <Box sx={{ textAlign: 'center', mb: 3 }}>
-                      <Typography variant="h3" sx={{
-                        fontWeight: 700,
-                        color: getRateColor(stats.taux_ponctualite) === 'success' ? theme.palette.success.main : 
-                               getRateColor(stats.taux_ponctualite) === 'warning' ? theme.palette.warning.main : 
-                               theme.palette.error.main,
-                        mb: 1
-                      }}>
-                        {getSafeValue(stats.taux_ponctualite)}%
-                      </Typography>
-                      <Typography variant="body1" sx={{
-                        color: 'text.secondary',
-                        mb: 1
-                      }}>
-                        Taux de ponctualité global
-                      </Typography>
-                    </Box>
-
-                    {/* Détails de ponctualité */}
-                    <TableContainer>
-                      <Table size="small">
-                        <TableBody>
-                          <TableRow>
-                            <TableCell sx={{ border: 'none', py: 1.5 }}>
-                              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                Pointages ponctuels
-                              </Typography>
-                            </TableCell>
-                            <TableCell sx={{ border: 'none', py: 1.5 }} align="right">
-                              <Typography variant="body2" sx={{ fontWeight: 600, color: 'success.main' }}>
-                                {getSafeValue(stats.pointages_ponctuels)}
-                              </Typography>
-                            </TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell sx={{ border: 'none', py: 1.5 }}>
-                              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                Pointages non ponctuels
-                              </Typography>
-                            </TableCell>
-                            <TableCell sx={{ border: 'none', py: 1.5 }} align="right">
-                              <Typography variant="body2" sx={{ fontWeight: 600, color: 'warning.main' }}>
-                                {getSafeValue(stats.pointages_non_ponctuels)}
-                              </Typography>
-                            </TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell sx={{ border: 'none', py: 1.5 }}>
-                              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                Total pointages analysés
-                              </Typography>
-                            </TableCell>
-                            <TableCell sx={{ border: 'none', py: 1.5 }} align="right">
-                              <Typography variant="body2" sx={{ fontWeight: 600, color: 'info.main' }}>
-                                {getSafeValue(stats.pointages_ponctuels) + getSafeValue(stats.pointages_non_ponctuels)}
-                              </Typography>
-                            </TableCell>
-                          </TableRow>
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-
-                    {/* Recommandation ponctualité */}
-                    <Box sx={{ mt: 3, p: 2, bgcolor: 'background.default', borderRadius: 2 }}>
-                      <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'text.secondary' }}>
-                        {getSafeValue(stats.taux_ponctualite) >= 90 
-                          ? "✅ Excellente ponctualité, respect systématique des horaires."
-                          : getSafeValue(stats.taux_ponctualite) >= 70
-                          ? "🟡 Bonne ponctualité, horaires généralement respectés."
-                          : "⚠️ Ponctualité à améliorer, retards fréquents."}
-                      </Typography>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-
-              {/* SECTION 2: OBSERVATION ET RECOMMANDATIONS */}
-              <Grid item xs={12} md={4}>
-                <Card
-                  sx={{
-                    height: '100%',
-                    background: `linear-gradient(135deg, ${getStatusConfig(stats.statut_heures).bgColor}, ${theme.palette.background.paper})`,
-                    border: `2px solid ${getStatusConfig(stats.statut_heures).textColor}30`,
-                    borderRadius: 3,
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
-                  }}
-                >
-                  <CardHeader
-                    title={
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <TrendingUpIcon sx={{ mr: 2, color: getStatusConfig(stats.statut_heures).textColor }} />
-                        <Typography variant="h5" sx={{ fontWeight: 600 }}>
-                          OBSERVATION ET RECOMMANDATIONS
-                        </Typography>
-                      </Box>
-                    }
-                    sx={{ pb: 1 }}
-                  />
-                  <CardContent>
-                    {/* Statut des heures */}
-                    <Box sx={{ mb: 3, textAlign: 'center' }}>
-                      <Chip
-                        icon={<span>{getStatusConfig(stats.statut_heures).icon}</span>}
-                        label={`STATUT: ${stats.statut_heures || 'NON_DEFINI'}`}
-                        color={getStatusConfig(stats.statut_heures).color}
+                    {/* Diagramme circulaire des performances */}
+                    <Box sx={{ height: 250, position: 'relative', mb: 2 }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            activeIndex={activePieIndex}
+                            activeShape={renderActiveShape}
+                            data={getPerformancePieChartData()}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={60}
+                            outerRadius={90}
+                            paddingAngle={5}
+                            dataKey="value"
+                            onMouseEnter={(_, index) => setActivePieIndex(index)}
+                          >
+                            {getPerformancePieChartData().map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <RechartsTooltip
+                            formatter={(value) => [`${value}%`, 'Score']}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                      
+                      {/* Indicateur central */}
+                      <Box
                         sx={{
-                          fontSize: '1rem',
-                          py: 2,
-                          px: 3,
-                          mb: 2,
-                          fontWeight: 700
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          transform: 'translate(-50%, -50%)',
+                          textAlign: 'center'
                         }}
-                      />
+                      >
+                        <Typography variant="h4" sx={{ 
+                          fontWeight: 800,
+                          background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                          backgroundClip: 'text',
+                          WebkitBackgroundClip: 'text',
+                          color: 'transparent',
+                          lineHeight: 1
+                        }}>
+                          {Math.round(
+                            (getSafeValue(stats.taux_presence, 0) + 
+                             getSafeValue(stats.taux_regularite, 0) + 
+                             (stats.statut_heures?.toLowerCase() === 'normal' ? 95 : 
+                              stats.statut_heures?.toLowerCase() === 'insuffisant' ? 60 : 
+                              stats.statut_heures?.toLowerCase() === 'surplus' ? 85 : 80)) / 3
+                          )}%
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                          Score Global
+                        </Typography>
+                      </Box>
                     </Box>
 
-                    {/* Observation */}
-                    <Box sx={{ p: 2, bgcolor: 'background.default', borderRadius: 2 }}>
-                      <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'text.secondary', lineHeight: 1.6 }}>
+                    {/* Légende du graphique de performance */}
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, color: 'text.secondary' }}>
+                        INDICATEURS DE PERFORMANCE
+                      </Typography>
+                      {getPerformancePieChartData().map((item, index) => (
+                        <Box 
+                          key={index} 
+                          sx={{ 
+                            display: 'flex', 
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            mb: 1,
+                            p: 1,
+                            borderRadius: 1,
+                            bgcolor: alpha(item.color, 0.05),
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            '&:hover': {
+                              bgcolor: alpha(item.color, 0.1),
+                              transform: 'translateX(4px)'
+                            }
+                          }}
+                          onMouseEnter={() => setActivePieIndex(index)}
+                        >
+                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <Box sx={{ 
+                              width: 12, 
+                              height: 12, 
+                              borderRadius: '50%', 
+                              bgcolor: item.color,
+                              mr: 1.5 
+                            }} />
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                              {item.name}
+                            </Typography>
+                          </Box>
+                          <Box sx={{ textAlign: 'right' }}>
+                            <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                              {item.value}%
+                            </Typography>
+                          </Box>
+                        </Box>
+                      ))}
+                    </Box>
+
+                    {/* Évaluation détaillée */}
+                    <Paper
+                      sx={{
+                        p: 2,
+                        mb: 2,
+                        background: `linear-gradient(135deg, ${alpha(theme.palette.primary.light, 0.05)}, transparent)`,
+                        borderRadius: 2,
+                        border: `1px solid ${alpha(theme.palette.divider, 0.5)}`
+                      }}
+                    >
+                      <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700, color: 'text.primary' }}>
+                        ÉVALUATION DE LA PERFORMANCE
+                      </Typography>
+                      <Typography variant="body2" sx={{ 
+                        color: 'text.secondary',
+                        lineHeight: 1.6,
+                        fontStyle: 'italic'
+                      }}>
+                        {getRegulariteDescription()}
+                      </Typography>
+                    </Paper>
+
+                    {/* Observation détaillée */}
+                    <Paper
+                      sx={{
+                        p: 2,
+                        background: `linear-gradient(135deg, ${alpha(theme.palette.info.light, 0.05)}, transparent)`,
+                        borderRadius: 2,
+                        border: `1px solid ${alpha(theme.palette.divider, 0.5)}`
+                      }}
+                    >
+                      <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700, color: 'text.primary' }}>
+                        OBSERVATION DÉTAILLÉE
+                      </Typography>
+                      <Typography variant="body2" sx={{ 
+                        color: 'text.secondary',
+                        lineHeight: 1.6
+                      }}>
                         {stats.observation_heures || 'Aucune observation disponible pour cette période.'}
                       </Typography>
-                    </Box>
-                    
-                    {/* Absences */}
-                    {(stats.jours_absents > 0 || stats.taux_absence > 0) && (
-                      <Box sx={{ mt: 3, p: 2, bgcolor: alpha(theme.palette.warning.light, 0.1), borderRadius: 2, border: `1px solid ${theme.palette.warning.light}` }}>
-                        <Typography variant="body2" sx={{ fontWeight: 600, color: 'warning.main', mb: 1 }}>
-                          ⚠️ Absences détectées
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                          {stats.jours_absents} jour(s) d'absence ({getSafeValue(stats.taux_absence)}%)
-                        </Typography>
-                      </Box>
-                    )}
+                    </Paper>
                   </CardContent>
                 </Card>
               </Grid>
@@ -725,7 +1386,7 @@ const EmployeeStatistics = () => {
           {/* No Employee Selected */}
           {!loading && !selectedEmployee && (
             <Box sx={{ textAlign: 'center', py: 8 }}>
-              <AccessTimeIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
+              <PeopleIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
               <Typography variant="h6" sx={{ color: 'text.secondary', mb: 1 }}>
                 Aucun employé sélectionné
               </Typography>
