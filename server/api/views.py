@@ -272,8 +272,9 @@ class EmployeeStatisticsAPIView(APIView):
             )
 
 # views.py - Partie GlobalStatisticsAPIView
+# views.py - Partie GlobalStatisticsAPIView
 class GlobalStatisticsAPIView(APIView):
-    """API pour les statistiques globales calculées en temps réel avec nouveau système"""
+    """API pour les statistiques globales calculées en temps réel"""
     permission_classes = [permissions.IsAuthenticated]
     
     def get(self, request):
@@ -297,6 +298,16 @@ class GlobalStatisticsAPIView(APIView):
             else:
                 stats = StatisticsService.calculate_global_monthly_stats(mois)
                 stats['type_periode'] = 'annuel'
+            
+            # S'assurer que tous les champs de formatage sont présents
+            if 'heures_attendues_total_display' not in stats:
+                from .statistics_service import DurationFormatter
+                stats['heures_attendues_total_display'] = DurationFormatter.format_human_readable(
+                    stats.get('heures_attendues_total', 0)
+                )
+                stats['heures_travail_total_display'] = DurationFormatter.format_human_readable(
+                    stats.get('heures_travail_total', 0)
+                )
             
             serializer = GlobalStatsCalculatedSerializer(stats)
             return Response(serializer.data)

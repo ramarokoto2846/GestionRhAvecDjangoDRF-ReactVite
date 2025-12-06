@@ -1,4 +1,4 @@
-# statistics_service.py
+# statistics_service.py - VERSION COMPLÈTE ET CORRIGÉE
 from django.db.models import Q, Count, Avg, Sum
 from datetime import timedelta, datetime, time, date
 from django.utils import timezone
@@ -7,6 +7,54 @@ import logging
 import calendar
 
 logger = logging.getLogger(__name__)
+
+class DurationFormatter:
+    """Formateur de durées pour le frontend et PDF"""
+    
+    @staticmethod
+    def format_human_readable(td):
+        """Formate pour l'affichage humain (Xh YYmin) - utilisé dans le PDF"""
+        if not td:
+            return "0h 00min"
+        
+        if isinstance(td, (int, float)):
+            # Si c'est déjà des secondes
+            total_seconds = int(td)
+        else:
+            # Si c'est un timedelta
+            total_seconds = int(td.total_seconds())
+        
+        hours = total_seconds // 3600
+        minutes = (total_seconds % 3600) // 60
+        
+        return f"{hours}h {minutes:02d}min"
+    
+    @staticmethod
+    def format_for_frontend(td):
+        """Formate pour l'affichage frontend (HH:MM:SS)"""
+        if not td:
+            return "00:00:00"
+        
+        if isinstance(td, (int, float)):
+            total_seconds = int(td)
+        else:
+            total_seconds = int(td.total_seconds())
+        
+        hours = total_seconds // 3600
+        minutes = (total_seconds % 3600) // 60
+        seconds = total_seconds % 60
+        
+        return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+    
+    @staticmethod
+    def to_hours_decimal(td):
+        """Convertit en heures décimales pour les graphiques"""
+        if not td:
+            return 0.0
+        
+        if isinstance(td, (int, float)):
+            return td / 3600  # Convertir secondes en heures
+        return td.total_seconds() / 3600
 
 class StatisticsService:
     
@@ -163,6 +211,7 @@ class StatisticsService:
             regularite_statut, taux_presence, taux_absence
         )
         
+        # Construction des statistiques
         stats = {
             'employe': employe,
             'periode_debut': start_of_week,
@@ -189,6 +238,10 @@ class StatisticsService:
             # Présence et absence
             'taux_presence': round(taux_presence, 2),
             'taux_absence': round(taux_absence, 2),
+            
+            # Heures - Format pour affichage
+            'heures_travail_total_display': DurationFormatter.format_human_readable(total_heures),
+            'moyenne_heures_quotidiennes_display': DurationFormatter.format_human_readable(moyenne_quotidienne),
             
             'jours_total': jours_total_semaine,
             'observation_heures': observation
@@ -412,6 +465,16 @@ class StatisticsService:
             'taux_presence': round(taux_presence, 2),
             'taux_absence': round(taux_absence, 2),
             
+            # Format pour affichage
+            'heures_travail_total_display': DurationFormatter.format_human_readable(total_heures),
+            'heures_attendues_jours_passes_display': DurationFormatter.format_human_readable(heures_attendues),
+            'moyenne_heures_quotidiennes_display': DurationFormatter.format_human_readable(moyenne_quotidienne),
+            'ecart_heures_display': DurationFormatter.format_human_readable(ecart_heures),
+            
+            # Format décimal pour graphiques
+            'heures_travail_total_hours': DurationFormatter.to_hours_decimal(total_heures),
+            'heures_attendues_jours_passes_hours': DurationFormatter.to_hours_decimal(heures_attendues),
+            
             # Données de debug
             '_debug': {
                 'pointages_count': pointages.count(),
@@ -495,7 +558,15 @@ class StatisticsService:
     @staticmethod
     def calculate_global_monthly_stats(mois=None):
         """Calcule les statistiques globales mensuelles pour TOUS les employés avec départements"""
-        from ..models import Employe, Departement, Pointage
+        # IMPORT CORRECT - utilisez le chemin relatif correct
+        try:
+            from .models import Employe, Departement, Pointage
+        except ImportError:
+            # Si l'importation directe échoue, essayez l'autre chemin
+            try:
+                from api.models import Employe, Departement, Pointage
+            except ImportError:
+                from models import Employe, Departement, Pointage
         
         # Gestion des dates
         if isinstance(mois, str):
@@ -662,11 +733,11 @@ class StatisticsService:
         observation += f"• Employés: {employes_actifs}/{total_employes} actifs ({taux_activite:.1f}%)\n"
         observation += f"• Départements: {departements_actifs_count}/{total_departements} actifs\n"
         observation += f"• Pointages effectués: {total_pointages} sur {jours_total_possibles} attendus ({taux_presence:.1f}%)\n"
-        observation += f"• Heures travaillées: {StatisticsService._format_duration_observation(total_heures)}\n"
+        observation += f"• Heures travaillées: {DurationFormatter.format_human_readable(total_heures)}\n"
         observation += f"• Ponctualité: {ponctualite_parfaite} parfaits, {ponctualite_acceptable} acceptables, {ponctualite_inacceptable} inacceptables\n"
-        observation += f"• Statut heures: {statut_heures} (écart: {StatisticsService._format_duration_observation(ecart_heures)}, {pourcentage_ecart:.1f}%)"
+        observation += f"• Statut heures: {statut_heures} (écart: {DurationFormatter.format_human_readable(ecart_heures)}, {pourcentage_ecart:.1f}%)"
         
-        # 9. CONSTRUCTION DES STATISTIQUES
+        # 9. CONSTRUCTION DES STATISTIQUES AVEC FORMATAGE COMPLET
         stats = {
             'periode': mois,
             'type_periode': 'mensuel',
@@ -680,7 +751,7 @@ class StatisticsService:
             # Global - Départements
             'total_departements': total_departements,
             'departements_actifs': departements_actifs_count,
-            'departements_data': departements_data,  # Ajout des données par département
+            'departements_data': departements_data,
             
             # Pointage et ponctualité
             'total_pointages': total_pointages,
@@ -689,25 +760,55 @@ class StatisticsService:
             'ponctualite_parfaite': ponctualite_parfaite,
             'ponctualite_acceptable': ponctualite_acceptable,
             'ponctualite_inacceptable': ponctualite_inacceptable,
-            'heures_travail_total': total_heures,
-            'moyenne_heures_quotidiennes': total_heures / total_pointages if total_pointages > 0 else timedelta(),
+            
+            # Absences
+            'total_absences': total_absences,
+            
+            # Présence et absence
+            'taux_presence': round(taux_presence, 2),
+            'taux_absence_global': round(taux_absence_global, 2),
             
             # Régularité
             'taux_regularite_parfaite': round(taux_regularite_parfaite, 2),
             'taux_regularite_acceptable': round(taux_regularite_acceptable, 2),
             'taux_regularite_inacceptable': round(taux_regularite_inacceptable, 2),
             
-            # Présence et absence
-            'total_absences': total_absences,
-            'taux_presence': round(taux_presence, 2),
-            'taux_absence_global': round(taux_absence_global, 2),
+            # HEURES - Format original (secondes)
+            'heures_attendues_total': heures_attendues_total.total_seconds(),
+            'heures_travail_total': total_heures.total_seconds(),
+            'ecart_heures_global': ecart_heures.total_seconds(),
+            'moyenne_heures_quotidiennes': (
+                total_heures.total_seconds() / total_pointages 
+                if total_pointages > 0 else 0
+            ),
             
-            # Analyse des heures globales
-            'heures_attendues_total': heures_attendues_total,
+            # HEURES - Format pour affichage (NOUVEAU)
+            'heures_attendues_total_display': DurationFormatter.format_human_readable(heures_attendues_total),
+            'heures_travail_total_display': DurationFormatter.format_human_readable(total_heures),
+            'ecart_heures_global_display': DurationFormatter.format_human_readable(ecart_heures),
+            'moyenne_heures_quotidiennes_display': DurationFormatter.format_human_readable(
+                total_heures / total_pointages if total_pointages > 0 else timedelta()
+            ),
+            
+            # HEURES - Format pour graphiques (NOUVEAU)
+            'heures_attendues_total_hms': DurationFormatter.format_for_frontend(heures_attendues_total),
+            'heures_travail_total_hms': DurationFormatter.format_for_frontend(total_heures),
+            
+            # HEURES - Format décimal pour calculs (NOUVEAU)
+            'heures_attendues_total_hours': DurationFormatter.to_hours_decimal(heures_attendues_total),
+            'heures_travail_total_hours': DurationFormatter.to_hours_decimal(total_heures),
+            
+            # Statut et observation
             'statut_heures_global': statut_heures,
-            'ecart_heures_global': ecart_heures,
             'pourcentage_ecart_global': round(pourcentage_ecart, 2),
-            'observation_globale': observation
+            'observation_globale': observation,
+            
+            # Metadata
+            '_debug': {
+                'calcul_timestamp': timezone.now().isoformat(),
+                'jours_analyse': jours_passes_mois,
+                'employes_analyse': employes_actifs
+            }
         }
         
         logger.info(f"🌐 Stats globales calculées - "
@@ -717,20 +818,10 @@ class StatisticsService:
         return stats
     
     @staticmethod
-    def _format_duration_observation(td):
-        """Formate une durée pour l'observation"""
-        if not td:
-            return "0h 00min"
-        total_seconds = int(td.total_seconds())
-        hours = total_seconds // 3600
-        minutes = (total_seconds % 3600) // 60
-        return f"{hours}h {minutes:02d}min"
-    
-    @staticmethod
     def save_employee_stats_to_db(stats_data):
         """Sauvegarde les statistiques employé en base de données"""
         try:
-            from ..models import StatistiquesEmploye
+            from .models import StatistiquesEmploye
             
             stats, created = StatistiquesEmploye.objects.update_or_create(
                 employe=stats_data['employe'],
