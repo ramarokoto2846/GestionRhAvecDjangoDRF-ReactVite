@@ -271,6 +271,7 @@ class EmployeeStatisticsAPIView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+# views.py - Partie GlobalStatisticsAPIView
 class GlobalStatisticsAPIView(APIView):
     """API pour les statistiques globales calculées en temps réel avec nouveau système"""
     permission_classes = [permissions.IsAuthenticated]
@@ -306,6 +307,7 @@ class GlobalStatisticsAPIView(APIView):
                 {"error": str(e)}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
 
 class EmployeePonctualiteAnalysisAPIView(APIView):
     """Analyse détaillée de la ponctualité d'un employé avec nouveau système"""
@@ -847,6 +849,7 @@ class ExportStatisticsPDFAPIView(APIView):
     
     # views.py - Fonction _export_global_pdf complète
 
+    # views.py - Fonction _export_global_pdf (partie modifiée)
     def _export_global_pdf(self, request):
         mois_str = request.GET.get('mois')
         
@@ -866,25 +869,23 @@ class ExportStatisticsPDFAPIView(APIView):
             periode_text = Paragraph(f"<b>Période:</b> {stats.get('periode', 'N/A').strftime('%B %Y') if hasattr(stats.get('periode'), 'strftime') else 'N/A'} ({stats.get('jours_passes_mois', 0)} jours analysés)", styles['Normal'])
             elements.append(periode_text)
             elements.append(Spacer(1, 25))
-            
-            section_style = styles['Heading2']
-            elements.append(Paragraph("🌐 STATISTIQUES GLOBALES", section_style))
             elements.append(Spacer(1, 10))
             
-            # Section pour les jours analysés
-            jours_section = styles['Heading3']
-            elements.append(Paragraph("📅 JOURS ANALYSÉS", jours_section))
-            elements.append(Spacer(1, 5))
+            # Section 1: RÉSUMÉ GLOBAL
+            section_style = styles['Heading2']
+            elements.append(Paragraph("🌐 RÉSUMÉ GLOBAL", section_style))
+            elements.append(Spacer(1, 10))
             
-            # MODIFIÉ: Supprimé "Jours totaux attendus"
-            jours_data = [
-                ['Jours passés dans le mois', f"{stats.get('jours_passes_mois', 0)} jours"],
+            resume_data = [
+                ['Total employés', f"{stats.get('total_employes', 0)}"],
                 ['Employés actifs', f"{stats.get('employes_actifs', 0)}"],
-                ['Pointages effectués', f"{stats.get('total_pointages', 0)} jours"],
+                ['Taux d\'activité', f"{stats.get('taux_activite_global', 0):.1f}%"],
+                ['Total départements', f"{stats.get('total_departements', 0)}"],
+                ['Départements actifs', f"{stats.get('departements_actifs', 0)}"],
             ]
             
-            jours_table = Table(jours_data, colWidths=[80*mm, 80*mm])
-            jours_table.setStyle(TableStyle([
+            resume_table = Table(resume_data, colWidths=[80*mm, 80*mm])
+            resume_table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2E86AB')),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
                 ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
@@ -893,24 +894,27 @@ class ExportStatisticsPDFAPIView(APIView):
                 ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#CCCCCC')),
                 ('PADDING', (0, 0), (-1, -1), 6),
             ]))
-            elements.append(jours_table)
-            elements.append(Spacer(1, 15))
+            elements.append(resume_table)
+            elements.append(Spacer(1, 20))
+            elements.append(Spacer(1, 10))
             
-            # Section pour les absences
-            absences_section = styles['Heading3']
-            elements.append(Paragraph("📉 ANALYSE DES ABSENCES", absences_section))
-            elements.append(Spacer(1, 5))
+            # Section 2: POINTAGE ET ABSENCES
+            elements.append(Paragraph("📅 POINTAGE ET ABSENCES GLOBALES", section_style))
+            elements.append(Spacer(1, 10))
             
-            # MODIFIÉ: Supprimé référence à jours_total_attendus
-            absences_data = [
+            pointage_data = [
+                ['Jours analysés', f"{stats.get('jours_passes_mois', 0)} jours"],
+                ['Jours possibles de travail', f"{stats.get('jours_total_possibles', 0)} jours"],
+                ['Pointages effectués', f"{stats.get('total_pointages', 0)}"],
+                ['Jours travaillés', f"{stats.get('total_jours_travailles', 0)} jours"],
                 ['Total absences', f"{stats.get('total_absences', 0)} jours"],
+                ['Taux de présence', f"{stats.get('taux_presence', 0):.1f}%"],
                 ['Taux d\'absence global', f"{stats.get('taux_absence_global', 0):.1f}%"],
-                ['Taux de présence global', f"{stats.get('taux_presence', 0):.1f}%"],
             ]
             
-            absences_table = Table(absences_data, colWidths=[80*mm, 80*mm])
-            absences_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#FF9999')),
+            pointage_table = Table(pointage_data, colWidths=[80*mm, 80*mm])
+            pointage_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#FF6B6B')),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
                 ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
@@ -918,10 +922,11 @@ class ExportStatisticsPDFAPIView(APIView):
                 ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#CCCCCC')),
                 ('PADDING', (0, 0), (-1, -1), 6),
             ]))
-            elements.append(absences_table)
-            elements.append(Spacer(1, 15))
+            elements.append(pointage_table)
+            elements.append(Spacer(1, 20))
+            elements.append(Spacer(1, 10))
             
-            # Section pour la ponctualité et régularité
+            # Section 4: PONCTUALITÉ ET RÉGULARITÉ
             elements.append(Paragraph("🕒 PONCTUALITÉ ET RÉGULARITÉ GLOBALE", section_style))
             elements.append(Spacer(1, 10))
             
@@ -945,9 +950,10 @@ class ExportStatisticsPDFAPIView(APIView):
                 ('PADDING', (0, 0), (-1, -1), 6),
             ]))
             elements.append(ponctualite_table)
-            elements.append(Spacer(1, 15))
+            elements.append(Spacer(1, 20))
+            elements.append(Spacer(1, 20))
             
-            # Section pour l'analyse des heures globales
+            # Section 5: ANALYSE DES HEURES
             elements.append(Paragraph("⏰ ANALYSE DES HEURES GLOBALES", section_style))
             elements.append(Spacer(1, 10))
             
@@ -961,6 +967,7 @@ class ExportStatisticsPDFAPIView(APIView):
             heures_data = [
                 ['Heures attendues totales', self._format_duration(stats.get('heures_attendues_total'))],
                 ['Heures travaillées totales', self._format_duration(stats.get('heures_travail_total'))],
+                ['Moyenne quotidienne', self._format_duration(stats.get('moyenne_heures_quotidiennes'))],
                 ['Écart global', self._format_duration(stats.get('ecart_heures_global'))],
                 ['Pourcentage d\'écart', f"{stats.get('pourcentage_ecart_global', 0):.1f}%"],
                 ['Statut des heures', f"{statut}"],
@@ -973,48 +980,27 @@ class ExportStatisticsPDFAPIView(APIView):
                 ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
                 ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F8F9FA')),
-                ('TEXTCOLOR', (4, 4), (4, 4), statut_color),
-                ('FONTNAME', (4, 4), (4, 4), 'Helvetica-Bold'),
+                ('TEXTCOLOR', (5, 5), (5, 5), statut_color),
+                ('FONTNAME', (5, 5), (5, 5), 'Helvetica-Bold'),
                 ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#CCCCCC')),
                 ('PADDING', (0, 0), (-1, -1), 6),
             ]))
             elements.append(heures_table)
-            elements.append(Spacer(1, 15))
             
-            elements.append(Paragraph("📊 DONNÉES GÉNÉRALES", section_style))
-            elements.append(Spacer(1, 10))
-            
-            global_data = [
-                ['Total employés', f"{stats.get('total_employes', 0)}"],
-                ['Employés actifs', f"{stats.get('employes_actifs', 0)}"],
-                ['Total départements', f"{stats.get('total_departements', 0)}"],
-                ['Départements actifs', f"{stats.get('departements_actifs', 0)}"],
-                ['Taux d\'activité global', f"{stats.get('taux_activite_global', 0):.1f}%"],
-                ['Moyenne quotidienne', self._format_duration(stats.get('moyenne_heures_quotidiennes'))],
-            ]
-            
-            global_table = Table(global_data, colWidths=[80*mm, 80*mm])
-            global_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4A4A4A')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F8F9FA')),
-                ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#CCCCCC')),
-                ('PADDING', (0, 0), (-1, -1), 6),
-            ]))
-            elements.append(global_table)
-            
-            # Ajouter l'observation globale si disponible
+            # Section 6: OBSERVATION GLOBALE
             if stats.get('observation_globale'):
                 elements.append(Spacer(1, 20))
                 elements.append(Paragraph("📝 OBSERVATION GLOBALE", section_style))
                 elements.append(Spacer(1, 10))
                 
                 observation_style = styles['Normal']
-                observation_text = Paragraph(f"<i>{stats.get('observation_globale', '')}</i>", observation_style)
-                elements.append(observation_text)
-        
+                # Diviser l'observation en lignes plus petites
+                observation_lines = stats.get('observation_globale', '').split('\n')
+                for line in observation_lines:
+                    if line.strip():
+                        observation_text = Paragraph(f"• {line.strip()}", observation_style)
+                        elements.append(observation_text)
+            
             elements.append(Spacer(1, 25))
             footer = Paragraph(f"Rapport généré le {timezone.now().strftime('%d/%m/%Y à %H:%M')} - Système de Gestion RH", styles['Italic'])
             elements.append(footer)

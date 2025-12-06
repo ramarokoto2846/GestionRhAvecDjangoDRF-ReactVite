@@ -491,11 +491,10 @@ class StatisticsService:
                     f"{ponctualite_info}"
                     f"Régularité: {regularite_statut.upper()}. "
                     f"Présence: {taux_presence:.1f}%, Absence: {taux_absence:.1f}%")
-    
 
     @staticmethod
     def calculate_global_monthly_stats(mois=None):
-        """Calcule les statistiques globales mensuelles avec nouveau système"""
+        """Calcule les statistiques globales mensuelles pour TOUS les employés avec départements"""
         from ..models import Employe, Departement, Pointage
         
         # Gestion des dates
@@ -523,45 +522,109 @@ class StatisticsService:
         
         logger.info(f"📅 Période analysée globale: {start_of_month} à {date_fin_analyse} ({jours_passes_mois} jours)")
         
-        # Données de base
+        # 1. DONNÉES DE BASE - TOUS LES EMPLOYÉS
         total_employes = Employe.objects.count()
         employes_actifs = Employe.objects.filter(statut='actif').count()
+        
+        # 2. DONNÉES DES DÉPARTEMENTS
         total_departements = Departement.objects.count()
         
-        # Récupération des pointages pour la période analysée (jours passés)
+        # Récupérer tous les départements avec leurs statistiques
+        departements_data = []
+        departements_actifs_count = 0
+        
+        for departement in Departement.objects.all():
+            # Compter les employés actifs dans le département
+            employes_departement = departement.employes.filter(statut='actif').count()
+            
+            # Récupérer les pointages pour ce département
+            employes_departement_ids = departement.employes.values_list('cin', flat=True)
+            pointages_departement = Pointage.objects.filter(
+                employe__cin__in=employes_departement_ids,
+                date_pointage__range=[start_of_month, date_fin_analyse]
+            ).exclude(duree_travail__isnull=True)
+            
+            # Calculer les heures pour ce département
+            heures_departement = timedelta()
+            for p in pointages_departement:
+                if p.duree_travail:
+                    heures_departement += p.duree_travail
+            
+            departements_data.append({
+                'id': departement.id_departement,
+                'nom': departement.nom,
+                'employes_count': departement.employes.count(),
+                'employes_actifs': employes_departement,
+                'pointages_count': pointages_departement.count(),
+                'heures_travail': heures_departement,
+                'est_actif': employes_departement > 0
+            })
+            
+            if employes_departement > 0:
+                departements_actifs_count += 1
+        
+        # 3. POINTAGES POUR TOUS LES EMPLOYÉS ACTIFS
         pointages_mois = Pointage.objects.filter(
             date_pointage__range=[start_of_month, date_fin_analyse]
         ).exclude(duree_travail__isnull=True).select_related('employe')
         
-        # Total des jours où au moins un pointage a été fait
-        jours_avec_pointage = pointages_mois.values('date_pointage').distinct().count()
-        
-        # Total des pointages (nombre d'entrées dans la table Pointage)
         total_pointages = pointages_mois.count()
         
-        # Calcul heures totales
+        # 4. CALCUL DES MÉTRIQUES GLOBALES
+        # Heures totales travaillées par tous les employés
         total_heures = timedelta()
         
-        # Compteurs de ponctualité globale
+        # Compteurs de ponctualité pour tous les pointages
         ponctualite_parfaite = 0
         ponctualite_acceptable = 0
         ponctualite_inacceptable = 0
         
-        # Analyse de chaque pointage
+        # Dictionnaire pour suivre les jours de travail par employé
+        jours_travailles_par_employe = {}
+        
+        # Analyse de chaque pointage de TOUS les employés
         for p in pointages_mois:
             if p.duree_travail:
                 total_heures += p.duree_travail
             
-            # Utiliser le calcul déjà effectué dans le modèle Pointage
-            if hasattr(p, 'ponctualite_statut'):
-                if p.ponctualite_statut == 'parfait':
+            # Calculer la ponctualité
+            ponctualite = StatisticsService._calculer_ponctualite_pointage(p, p.employe)
+            if ponctualite:
+                if ponctualite['categorie'] == 'parfait':
                     ponctualite_parfaite += 1
-                elif p.ponctualite_statut == 'acceptable':
+                elif ponctualite['categorie'] == 'acceptable':
                     ponctualite_acceptable += 1
-                elif p.ponctualite_statut == 'inacceptable':
+                else:
                     ponctualite_inacceptable += 1
+            
+            # Compter les jours travaillés par employé
+            employe_id = p.employe.cin
+            if employe_id not in jours_travailles_par_employe:
+                jours_travailles_par_employe[employe_id] = set()
+            jours_travailles_par_employe[employe_id].add(p.date_pointage)
         
-        # Calcul des taux de régularité
+        # 5. CALCUL DES ABSENCES GLOBALES
+        # Nombre total de jours où les employés auraient dû travailler
+        jours_total_possibles = employes_actifs * jours_passes_mois
+        
+        # Nombre total de jours effectivement travaillés
+        total_jours_travailles = sum(len(jours) for jours in jours_travailles_par_employe.values())
+        
+        # Total des absences
+        total_absences = max(0, jours_total_possibles - total_pointages)
+        
+        # 6. CALCUL DES TAUX
+        # Taux d'activité global
+        taux_activite = (employes_actifs / total_employes * 100) if total_employes > 0 else 0
+        
+        # Taux de présence et absence
+        if jours_total_possibles > 0:
+            taux_presence = (total_pointages / jours_total_possibles) * 100
+            taux_absence_global = (total_absences / jours_total_possibles) * 100
+        else:
+            taux_presence = taux_absence_global = 0
+        
+        # Taux de régularité
         total_ponctualite = ponctualite_parfaite + ponctualite_acceptable + ponctualite_inacceptable
         
         if total_ponctualite > 0:
@@ -571,25 +634,9 @@ class StatisticsService:
         else:
             taux_regularite_parfaite = taux_regularite_acceptable = taux_regularite_inacceptable = 0
         
-        # Taux d'activité
-        taux_activite = (employes_actifs / total_employes * 100) if total_employes > 0 else 0
-        
-        # CALCUL DES ABSENCES - CORRIGÉ
-        # Jours maximum possibles de travail = employés actifs × jours passés
-        jours_max_travail = employes_actifs * jours_passes_mois
-        
-        # Total des absences = jours maximum possibles - total des pointages effectués
-        total_absences = max(0, jours_max_travail - total_pointages)
-        
-        # Taux de présence et absence
-        if jours_max_travail > 0:
-            taux_presence = (total_pointages / jours_max_travail) * 100
-            taux_absence_global = (total_absences / jours_max_travail) * 100
-        else:
-            taux_presence = taux_absence_global = 0
-        
-        # Heures attendues totales (8h par jour par employé actif pour les jours passés)
-        heures_attendues_total = timedelta(hours=8 * jours_max_travail)
+        # 7. ANALYSE DES HEURES GLOBALES
+        # Heures attendues totales (8h par jour par employé actif)
+        heures_attendues_total = timedelta(hours=8 * jours_total_possibles)
         
         # Calcul de l'écart des heures
         total_heures_seconds = total_heures.total_seconds()
@@ -609,31 +656,36 @@ class StatisticsService:
         else:                          # Entre 85% et 115%
             statut_heures = 'NORMAL'
         
-        # Génération de l'observation
-        observation = f"📊 **Statistiques globales** - Période: {start_of_month.strftime('%B %Y')} ({jours_passes_mois} jours analysés)\n"
-        observation += f"• Employés actifs: {employes_actifs}/{total_employes} ({taux_activite:.1f}%)\n"
-        observation += f"• Jours analysés: {jours_passes_mois} jours du mois\n"
-        observation += f"• Jours avec pointage: {jours_avec_pointage} jours\n"
-        observation += f"• Pointages effectués: {total_pointages} sur {jours_max_travail} attendus ({taux_presence:.1f}%)\n"
+        # 8. GÉNÉRATION DE L'OBSERVATION
+        observation = f"📊 **STATISTIQUES GLOBALES** - Période: {start_of_month.strftime('%B %Y')}\n"
+        observation += f"• Jours analysés: {jours_passes_mois} jours\n"
+        observation += f"• Employés: {employes_actifs}/{total_employes} actifs ({taux_activite:.1f}%)\n"
+        observation += f"• Départements: {departements_actifs_count}/{total_departements} actifs\n"
+        observation += f"• Pointages effectués: {total_pointages} sur {jours_total_possibles} attendus ({taux_presence:.1f}%)\n"
         observation += f"• Heures travaillées: {StatisticsService._format_duration_observation(total_heures)}\n"
         observation += f"• Ponctualité: {ponctualite_parfaite} parfaits, {ponctualite_acceptable} acceptables, {ponctualite_inacceptable} inacceptables\n"
         observation += f"• Statut heures: {statut_heures} (écart: {StatisticsService._format_duration_observation(ecart_heures)}, {pourcentage_ecart:.1f}%)"
         
+        # 9. CONSTRUCTION DES STATISTIQUES
         stats = {
             'periode': mois,
             'type_periode': 'mensuel',
             'jours_passes_mois': jours_passes_mois,
             
-            # Global
+            # Global - Employés
             'total_employes': total_employes,
             'employes_actifs': employes_actifs,
-            'total_departements': total_departements,
-            'departements_actifs': total_departements,
             'taux_activite_global': round(taux_activite, 2),
+            
+            # Global - Départements
+            'total_departements': total_departements,
+            'departements_actifs': departements_actifs_count,
+            'departements_data': departements_data,  # Ajout des données par département
             
             # Pointage et ponctualité
             'total_pointages': total_pointages,
-            'jours_avec_pointage': jours_avec_pointage,  # Nouvelle métrique
+            'jours_total_possibles': jours_total_possibles,
+            'total_jours_travailles': total_jours_travailles,
             'ponctualite_parfaite': ponctualite_parfaite,
             'ponctualite_acceptable': ponctualite_acceptable,
             'ponctualite_inacceptable': ponctualite_inacceptable,
@@ -647,7 +699,6 @@ class StatisticsService:
             
             # Présence et absence
             'total_absences': total_absences,
-            'jours_max_travail': jours_max_travail,  # Nouvelle métrique pour référence
             'taux_presence': round(taux_presence, 2),
             'taux_absence_global': round(taux_absence_global, 2),
             
@@ -660,11 +711,10 @@ class StatisticsService:
         }
         
         logger.info(f"🌐 Stats globales calculées - "
-                   f"Employés: {total_employes}, Pointages: {total_pointages}, "
-                   f"Ponctualité: {ponctualite_parfaite}/{ponctualite_acceptable}/{ponctualite_inacceptable}, "
-                   f"Jours analysés: {jours_passes_mois}")
+                   f"Employés: {total_employes}, Actifs: {employes_actifs}, "
+                   f"Départements: {total_departements}, Actifs: {departements_actifs_count}, "
+                   f"Pointages: {total_pointages}, Ponctualité: {ponctualite_parfaite}/{ponctualite_acceptable}/{ponctualite_inacceptable}")
         return stats
-
     
     @staticmethod
     def _format_duration_observation(td):

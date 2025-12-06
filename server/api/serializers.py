@@ -107,9 +107,14 @@ class EmployeMinimalSerializer(serializers.ModelSerializer):
 # Departement - Minimal (pour les relations)
 # -----------------------
 class DepartementMinimalSerializer(serializers.ModelSerializer):
+    employes_actifs = serializers.SerializerMethodField()
+    
     class Meta:
         model = Departement
-        fields = ['id_departement', 'nom', 'responsable']
+        fields = ['id_departement', 'nom', 'responsable', 'employes_actifs']
+    
+    def get_employes_actifs(self, obj):
+        return obj.employes.filter(statut='actif').count()
 
 # -----------------------
 # Employe - Complet
@@ -290,7 +295,6 @@ class StatistiquesGlobalesSerializer(serializers.ModelSerializer):
             
             # Jours analysés
             'jours_passes_mois',
-            # SUPPRIMER: 'jours_total_attendus',
             
             # Pointage et ponctualité
             'total_pointages', 'ponctualite_parfaite', 'ponctualite_acceptable', 
@@ -367,8 +371,9 @@ class EmployeeStatsCalculatedSerializer(serializers.Serializer):
     def get_moyenne_heures_quotidiennes_str(self, obj):
         return StatisticsService.format_duration(obj.get('moyenne_heures_quotidiennes'))
 
-# serializers.py - Modifier GlobalStatsCalculatedSerializer
-
+# -----------------------
+# GlobalStatsCalculatedSerializer (MODIFIÉ avec départements)
+# -----------------------
 class GlobalStatsCalculatedSerializer(serializers.Serializer):
     periode = serializers.DateField()
     type_periode = serializers.CharField()
@@ -376,17 +381,21 @@ class GlobalStatsCalculatedSerializer(serializers.Serializer):
     
     # Jours analysés
     jours_passes_mois = serializers.IntegerField(default=0)
-    # SUPPRIMER: jours_total_attendus = serializers.IntegerField(default=0)
     
-    # Global
+    # Global - Employés
     total_employes = serializers.IntegerField()
     employes_actifs = serializers.IntegerField()
+    taux_activite_global = serializers.FloatField()
+    
+    # Global - Départements
     total_departements = serializers.IntegerField()
     departements_actifs = serializers.IntegerField()
-    taux_activite_global = serializers.FloatField()
+    departements_data = serializers.ListField(required=False, allow_null=True)
     
     # Pointage et ponctualité
     total_pointages = serializers.IntegerField()
+    jours_total_possibles = serializers.IntegerField(default=0)
+    total_jours_travailles = serializers.IntegerField(default=0)
     ponctualite_parfaite = serializers.IntegerField(default=0)
     ponctualite_acceptable = serializers.IntegerField(default=0)
     ponctualite_inacceptable = serializers.IntegerField(default=0)

@@ -354,6 +354,7 @@ class StatistiquesEmploye(models.Model):
 # ========================
 # Statistiques Globales
 # ========================
+# models.py - Section StatistiquesGlobales (modifiée)
 class StatistiquesGlobales(models.Model):
     periode = models.DateField(unique=True)  # Premier jour du mois
     type_periode = models.CharField(max_length=20, choices=[('mensuel', 'Mensuel'), ('annuel', 'Annuel')])
@@ -367,6 +368,8 @@ class StatistiquesGlobales(models.Model):
     
     # Statistiques Pointage
     total_pointages = models.IntegerField(default=0)
+    jours_total_possibles = models.IntegerField(default=0)  # AJOUT: Jours où les employés auraient dû travailler
+    total_jours_travailles = models.IntegerField(default=0)  # AJOUT: Jours effectivement travaillés
     ponctualite_parfaite = models.IntegerField(default=0)
     ponctualite_acceptable = models.IntegerField(default=0)
     ponctualite_inacceptable = models.IntegerField(default=0)
@@ -375,7 +378,6 @@ class StatistiquesGlobales(models.Model):
     
     # Jours analysés
     jours_passes_mois = models.IntegerField(default=0)
-    # SUPPRIMER: jours_total_attendus = models.IntegerField(default=0)
     
     # Taux calculés
     taux_presence = models.FloatField(default=0)
