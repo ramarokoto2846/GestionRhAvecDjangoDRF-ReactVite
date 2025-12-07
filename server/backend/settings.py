@@ -135,12 +135,3 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
-
-
-
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'leondroh.p18@gmail.com'
-EMAIL_HOST_PASSWORD = 'prub gsle skcq nzfg'
-DEFAULT_FROM_EMAIL = 'Responsable RH'
