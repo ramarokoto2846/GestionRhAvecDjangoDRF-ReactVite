@@ -46,7 +46,7 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.IsAuthenticated",
     ),
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
-    "PAGE_SIZE": 10,
+    'DEFAULT_PAGINATION_CLASS': None,  # Désactive la pagination par défaut
 }
 
 # Configuration JWT
@@ -87,15 +87,14 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "backend.wsgi.application"
 
-# Database
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": "gestion_ptg",       # Remplace par le nom de ta DB
-        "USER": "postgres",      # Remplace par ton user PostgreSQL
-        "PASSWORD": "postgres_pwd", # Remplace par ton mot de passe
-        "HOST": "localhost",            # Ou l'adresse du serveur PostgreSQL
-        "PORT": "5432",                 # Port par défaut PostgreSQL
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'pointage_db_ortm',
+        'USER': 'pointage_db_manager',
+        'PASSWORD': 'ptg_user_pwd01',
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
 
